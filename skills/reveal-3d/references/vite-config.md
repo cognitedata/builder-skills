@@ -68,11 +68,8 @@ export default defineConfig({
     conditions: ['import', 'module', 'browser', 'default'],
   },
   optimizeDeps: {
-    // NEVER add @cognite/dune-industrial-components to `exclude`.
-    // Excluding forces raw ESM serving. In pnpm's virtual store, raw ESM files resolve
-    // React via their own physical path — a different module instance from the
-    // pre-bundled singleton — causing ReactCurrentDispatcher errors even with dedupe.
-    // Let Vite auto-discover and pre-bundle them together with everything else.
+    // Do not exclude the copied Reveal feature bundle. Let Vite pre-bundle
+    // React, React Query, Three.js, and Reveal dependencies as one graph.
     esbuildOptions: {
       define: { global: 'globalThis' },
     },
@@ -107,31 +104,33 @@ export default defineConfig({
 
 ## Why each setting is needed
 
-| Setting | Reason |
-|---------|--------|
-| `util/`, `assert/`, `process/browser` aliases | Browser-compatible replacements for Node built-ins. Packages must be in `dependencies`. Do NOT use `vite-plugin-node-polyfills` — causes "Could not resolve 'inherits'" |
-| `process` polyfill in main.tsx first | `@cognite/reveal` deps call `process.env` at **runtime** (not build-time). The `define` replacements handle build-time; the window assignment handles runtime |
-| `define.global = 'globalThis'` | Some CJS deps use `global` instead of `globalThis` |
-| `resolve.alias.three` | Single Three.js instance — without this, Reveal's bundled copy and the app's copy conflict |
-| `resolve.dedupe` with react + react-dom + react/jsx-runtime | pnpm symlinks can create separate module instances. `dedupe` forces one copy. Critical — missing these causes `ReactCurrentDispatcher` errors |
-| `resolve.dedupe` with three | Ensures symlinked packages (e.g. `@cognite/dune-industrial-components`) share the same Three.js |
-| `optimizeDeps.include` for process/util/assert | No source file imports them, so Vite cannot auto-discover them for pre-bundling |
-| `optimizeDeps.include` for react + react-dom + @tanstack/react-query | Converts CJS → ESM and creates a single shared instance. All pre-bundled deps that import React get the same copy |
-| `worker.format: 'es'` | Reveal spawns ES module workers; Vite defaults to IIFE/UMD which breaks them |
-| `conditions: ['import', 'module', 'browser', 'default']` | Ensures browser ESM variants are preferred over CJS/Node variants |
+
+| Setting                                                              | Reason                                                                                                                                                                  |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `util/`, `assert/`, `process/browser` aliases                        | Browser-compatible replacements for Node built-ins. Packages must be in `dependencies`. Do NOT use `vite-plugin-node-polyfills` — causes "Could not resolve 'inherits'" |
+| `process` polyfill in main.tsx first                                 | `@cognite/reveal` deps call `process.env` at **runtime** (not build-time). The `define` replacements handle build-time; the window assignment handles runtime           |
+| `define.global = 'globalThis'`                                       | Some CJS deps use `global` instead of `globalThis`                                                                                                                      |
+| `resolve.alias.three`                                                | Single Three.js instance — without this, Reveal's bundled copy and the app's copy conflict                                                                              |
+| `resolve.dedupe` with react + react-dom + react/jsx-runtime          | pnpm symlinks can create separate module instances. `dedupe` forces one copy. Critical — missing these causes `ReactCurrentDispatcher` errors                           |
+| `resolve.dedupe` with three                                          | Ensures the copied feature bundle and Reveal share the same Three.js                                                                                                    |
+| `optimizeDeps.include` for process/util/assert                       | No source file imports them, so Vite cannot auto-discover them for pre-bundling                                                                                         |
+| `optimizeDeps.include` for react + react-dom + @tanstack/react-query | Converts CJS → ESM and creates a single shared instance. All pre-bundled deps that import React get the same copy                                                       |
+| `worker.format: 'es'`                                                | Reveal spawns ES module workers; Vite defaults to IIFE/UMD which breaks them                                                                                            |
+| `conditions: ['import', 'module', 'browser', 'default']`             | Ensures browser ESM variants are preferred over CJS/Node variants                                                                                                       |
+
 
 ## Common mistakes that break the setup
 
-| Mistake | Symptom | Fix |
-|---------|---------|-----|
-| Running `pnpm install` in Cursor sandbox without `required_permissions: ["all"]` | `git init ... Operation not permitted` — pnpm can't clone the GitHub package | Add `required_permissions: ["all"]` to the Shell tool call |
-| Installing `three` without checking `@cognite/reveal`'s peer requirement | `unmet peer three@0.180.0: found 0.177.x` warning; potential rendering bugs | After install, compare versions; `pnpm add three@^<peer-version>` if mismatched |
-| Not adding `ajv` as a direct dependency | `unmet peer ajv@>=8: found 6.x` | `pnpm add ajv` (installs `^8`) in the app |
-| `@cognite/dune-industrial-components` in `optimizeDeps.exclude` | `ReactCurrentDispatcher` undefined or `No QueryClient set` | Remove from `exclude` — Vite auto-discovers it |
-| `vite-plugin-node-polyfills` instead of manual aliases | `Could not resolve "inherits"` on transitive deps | Remove the plugin; add `util`, `assert`, `process` to dependencies and use aliases |
-| `RevealKeepAlive` inside conditional component | `ObjectUnsubscribedError: object unsubscribed` at model load | Move `CacheProvider` + `RevealKeepAlive` to always-mounted app/page level |
-| Inline arrow as `onSelect`/`onLoad` prop | `Maximum update depth exceeded` | `useCallback` at call site; call `onSelect` from `useEffect` inside model browser, never from render |
-| Model browser calls `onSelect` during render (`if (revision) onSelect(...)`) | `Maximum update depth exceeded` | Move to `useEffect([revision, onSelect])` |
-| Missing `worker.format: 'es'` | Black screen, no error | Add `worker: { format: 'es' }` |
-| `react`/`react-dom` missing from `resolve.dedupe` | `ReactCurrentDispatcher` in pnpm monorepo | Add both to `dedupe` |
-| Container has no height | Canvas collapses to 0px, nothing renders | Add `height: '70vh'` (or flex/grid height) to the parent element |
+
+| Mistake                                                                      | Symptom                                                                     | Fix                                                                                                  |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Installing `three` without checking `@cognite/reveal`'s peer requirement     | `unmet peer three@0.180.0: found 0.177.x` warning; potential rendering bugs | After install, compare versions; `pnpm add three@^<peer-version>` if mismatched                      |
+| Not adding `ajv` as a direct dependency                                      | `unmet peer ajv@>=8: found 6.x`                                             | `pnpm add ajv` (installs `^8`) in the app                                                            |
+| Copied Reveal feature folder in `optimizeDeps.exclude`                       | `ReactCurrentDispatcher` undefined or `No QueryClient set`                  | Remove from `exclude` and let Vite pre-bundle shared deps                                            |
+| `vite-plugin-node-polyfills` instead of manual aliases                       | `Could not resolve "inherits"` on transitive deps                           | Remove the plugin; add `util`, `assert`, `process` to dependencies and use aliases                   |
+| `RevealKeepAlive` inside conditional component                               | `ObjectUnsubscribedError: object unsubscribed` at model load                | Move `CacheProvider` + `RevealKeepAlive` to always-mounted app/page level                            |
+| Inline arrow as `onSelect`/`onLoad` prop                                     | `Maximum update depth exceeded`                                             | `useCallback` at call site; call `onSelect` from `useEffect` inside model browser, never from render |
+| Model browser calls `onSelect` during render (`if (revision) onSelect(...)`) | `Maximum update depth exceeded`                                             | Move to `useEffect([revision, onSelect])`                                                            |
+| Missing `worker.format: 'es'`                                                | Black screen, no error                                                      | Add `worker: { format: 'es' }`                                                                       |
+| `react`/`react-dom` missing from `resolve.dedupe`                            | `ReactCurrentDispatcher` in pnpm monorepo                                   | Add both to `dedupe`                                                                                 |
+| Container has no height                                                      | Canvas collapses to 0px, nothing renders                                    | Add `height: '70vh'` (or flex/grid height) to the parent element                                     |
