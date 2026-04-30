@@ -2,7 +2,7 @@
 
 This bundle is copied from:
 
-`/Users/marvin.reza@cognitedata.com/Documents/Cognite/dune-industrial-components/src/reveal`
+`dune-industrial-components/src/reveal`
 
 Copy the contents of `code/reveal/` into an app-local feature folder, typically:
 
@@ -22,8 +22,8 @@ import {
 } from '@/features/reveal-3d';
 ```
 
-Do not import from `skills/reveal-3d/code/reveal` or from the old external
-Reveal package in the target app.
+Do not import from `skills/reveal-3d/code/reveal` or from
+`@cognite/dune-industrial-components/reveal` in the target app.
 
 ## Dependencies
 

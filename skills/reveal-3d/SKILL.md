@@ -84,12 +84,14 @@ export function ViewerPage({
   sdk: CogniteClient;
   selected: SelectedModel | null;
 }) {
+  const memoizedSdk = useMemo(() => sdk, [sdk.project]);
+
   return (
     <CacheProvider>
       <RevealKeepAlive>
         <div style={{ width: '100%', height: '70vh', position: 'relative' }}>
           {selected && (
-            <RevealProvider sdk={sdk}>
+            <RevealProvider sdk={memoizedSdk}>
               <ViewerContent
                 modelId={selected.modelId}
                 revisionId={selected.revisionId}
