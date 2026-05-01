@@ -124,7 +124,7 @@ async function listByExternalIds(
           sources: [{ source: { type: 'view', ...MY_VIEW } }],
           filter: {
             in: {
-              property: getContainerProperty(MY_CONTAINER, 'externalId'),
+              property: ['node', 'externalId'],
               values: batch,
             },
           },
