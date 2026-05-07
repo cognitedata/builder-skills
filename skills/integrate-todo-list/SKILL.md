@@ -10,8 +10,7 @@ Add a structured task-tracking feature to this Flows app. The agent will use a `
 to create and update a task list as it works through multi-step queries, giving the user real-time
 visibility into what the agent is doing and why.
 
-**Prerequisite:** `integrate-atlas-chat` must already be set up — `useAtlasChat` must be wired and
-`@cognite/dune-industrial-components`, `@sinclair/typebox`, `ajv`, `ajv-formats` must be installed.
+**Prerequisite:** **`integrate-atlas-chat`** must already be complete — `useAtlasChat` must be wired (typically from `./atlas-agent/react`), `src/atlas-agent/` must contain the vendored atlas-agent sources, and `@sinclair/typebox`, `ajv`, `ajv-formats` must be installed per that skill.
 
 ---
 
