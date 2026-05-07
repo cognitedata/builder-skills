@@ -1,25 +1,25 @@
 ---
 name: reveal-3d
-description: "Integrates a local Cognite Reveal 3D CAD viewer bundle into Dune apps by copying app-local source code. Use when adding 3D viewer, 3D visualization, Reveal, CAD model, RevealProvider, RevealCanvas, Reveal3DResources, FDM 3D mapping, asset 3D model, model browser, or Cognite 3D content to a Dune application."
+description: "Integrates a local Cognite Reveal 3D CAD viewer bundle into Flows apps by copying app-local source code. Use when adding 3D viewer, 3D visualization, Reveal, CAD model, RevealProvider, RevealCanvas, Reveal3DResources, FDM 3D mapping, asset 3D model, model browser, or Cognite 3D content to a Flows application."
 metadata:
   argument-hint: "[FDM instance variable name or description, e.g. 'asset' or 'selectedEquipment']"
 ---
 
 # Reveal 3D Viewer
 
-Add a Cognite Reveal 3D viewer to a Dune app by copying the bundled source into the target app. Renders CAD models from CDF, with support for model browsing, direct model/revision IDs, or FDM-linked assets.
+Add a Cognite Reveal 3D viewer to a Flows app by copying the bundled source into the target app. Renders CAD models from CDF, with support for model browsing, direct model/revision IDs, or FDM-linked assets.
 
 FDM instance to visualize: **$ARGUMENTS**
 
 ## Use This When
 
-The user wants to embed an interactive Cognite Reveal viewer for CDF 3D/CAD content in a Dune app.
+The user wants to embed an interactive Cognite Reveal viewer for CDF 3D/CAD content in a Flows app.
 
 Do **not** use this skill for static diagrams, graph visualizations, or unrelated custom Three.js scenes.
 
 ## Prerequisites
 
-- The app uses React + TypeScript and is wrapped in `@cognite/dune` auth.
+- The app uses React + TypeScript and is wrapped in `@cognite/dune` auth (Flows auth).
 - The app has a `QueryClientProvider` from `@tanstack/react-query`.
 - The CDF project has 3D models, or the user has supplied direct model/revision IDs.
 - For FDM-linked 3D, the instance must be linked through Core DM (`CogniteVisualizable.object3D` -> `CogniteCADNode`).
@@ -29,7 +29,7 @@ Do **not** use this skill for static diagrams, graph visualizations, or unrelate
 Follow these steps in order. Adapt paths to the target app's conventions instead of inventing new ones.
 
 1. **Inspect the target app.** Read `package.json`, `vite.config.ts`, `src/main.tsx`, and the app's folder/alias conventions.
-2. **Install missing dependencies** with the app's package manager. See [Dependencies](#dependencies). Reuse existing pinned React, Dune, SDK, and React Query versions.
+2. **Install missing dependencies** with the app's package manager. See [Dependencies](#dependencies). Reuse existing pinned React, Flows, SDK, and React Query versions.
 3. **Copy the bundle into the app.** Copy every file from `skills/reveal-3d/code/reveal/` into an app-local feature folder, typically:
 
    ```text

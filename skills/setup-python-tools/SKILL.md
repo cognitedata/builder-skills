@@ -1,6 +1,6 @@
 ---
 name: setup-python-tools
-description: "MUST be used when adding Pyodide or Python tool support to a Dune app. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
+description: "MUST be used when adding Pyodide or Python tool support to a Flows app. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[tool-names or agent-external-id]"
@@ -8,7 +8,7 @@ metadata:
 
 # Set Up Python Tool Execution
 
-Add client-side Python tool execution via Pyodide to this Dune app.
+Add client-side Python tool execution via Pyodide to this Flows app.
 
 Target: **$ARGUMENTS**
 

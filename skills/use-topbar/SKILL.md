@@ -1,18 +1,18 @@
 ---
 name: use-topbar
 description: >-
-  Wires the Aura Topbar (@aura/topbar) into Dune/Fusion apps as the single top
+  Wires the Aura Topbar (@aura/topbar) into Flows/Fusion apps as the single top
   navigation bar — breadcrumbs, optional center Tabs or Segmented control, right
   utility strip (Share, notifications, theme menu, Atlas, user Avatar), and
   light/dark theme switching. Use when adding a topbar, app header, navigation
-  bar, breadcrumbs, or theme switcher to a Dune or Fusion app, or when
-  scaffolding a new Dune/Fusion application.
+  bar, breadcrumbs, or theme switcher to a Flows or Fusion app, or when
+  scaffolding a new Flows/Fusion application.
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash
 ---
 
 # Topbar
 
-`@aura/topbar` is the single, compliant top navigation bar for every authenticated Dune/Fusion app. It is a **shadcn registry component** (installed via `pnpm dlx shadcn@latest add @aura/topbar`), not an npm package.
+`@aura/topbar` is the single, compliant top navigation bar for every authenticated Flows/Fusion app. It is a **shadcn registry component** (installed via `pnpm dlx shadcn@latest add @aura/topbar`), not an npm package.
 
 - **Storybook:** https://cognitedata.github.io/aura/storybook/?path=/docs/primitives-topbar--docs
 - **Full rules:** [RULES.md](RULES.md) · **Interview:** [INTERVIEW.md](INTERVIEW.md) · **Install + code:** [IMPLEMENTATION.md](IMPLEMENTATION.md)
@@ -35,7 +35,7 @@ Ensure the topbar interview is triggered at the start of every future Cursor ses
     "sessionStart": [
       {
         "type": "prompt",
-        "prompt": "This is a Dune/Fusion application. Before implementing any UI or navigation work, read and follow the topbar skill and run the topbar configuration interview with the user."
+        "prompt": "This is a Flows/Fusion application. Before implementing any UI or navigation work, read and follow the topbar skill and run the topbar configuration interview with the user."
       }
     ]
   }
@@ -53,7 +53,7 @@ Before asking any questions, read:
 
 - `package.json` — package manager, existing UI deps, existing `@aura/topbar`
 - `src/App.tsx` (or main layout file) — routing, existing dark-mode hook/context
-- Dune/Fusion app config (`app.config.ts`, `fusion.config.ts`, manifest) — `displayName`, `name`, app mark / branding
+- Flows/Fusion app config (`app.config.ts`, `fusion.config.ts`, manifest) — `displayName`, `name`, app mark / branding
 
 Apply any found defaults and skip the corresponding interview questions. State what was inferred.
 
