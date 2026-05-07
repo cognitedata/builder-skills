@@ -1,6 +1,6 @@
 ---
 name: integrate-atlas-chat
-description: "MUST be used whenever building a chat UI with Atlas agents in a Dune app. Do NOT manually write useAtlasChat integration code — this skill handles installation, component structure, and hook wiring. Triggers: useAtlasChat, atlas chat, streaming chat, agent chat, chat interface, chat component, chat UI. For a full chat app, run skills in order: (1) integrate-atlas-chat, (2) create-client-tool (per tool), (3) setup-python-tools (if Python tools needed)."
+description: "MUST be used whenever building a chat UI with Atlas agents in a Flows app. Do NOT manually write useAtlasChat integration code — this skill handles installation, component structure, and hook wiring. Triggers: useAtlasChat, atlas chat, streaming chat, agent chat, chat interface, chat component, chat UI. For a full chat app, run skills in order: (1) integrate-atlas-chat, (2) create-client-tool (per tool), (3) setup-python-tools (if Python tools needed)."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[agent-external-id]"
@@ -8,7 +8,7 @@ metadata:
 
 # Integrate Atlas Agent Chat
 
-Add a streaming Atlas Agent chat UI to this Dune app.
+Add a streaming Atlas Agent chat UI to this Flows app.
 
 Agent external ID: **$ARGUMENTS**
 
@@ -22,7 +22,7 @@ The atlas-agent library files (copied in Step 2) require these npm packages:
 | `ajv` | `^8.17.1` |
 | `ajv-formats` | `^2.1.1` |
 
-`@cognite/sdk` is assumed to already be present in Dune apps.
+`@cognite/sdk` is assumed to already be present in Flows apps.
 
 ---
 

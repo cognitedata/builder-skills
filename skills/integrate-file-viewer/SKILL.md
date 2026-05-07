@@ -1,12 +1,12 @@
 ---
 name: integrate-file-viewer
-description: "MUST be used whenever integrating CogniteFileViewer into a Dune app to preview CDF files (PDFs, images, text). Do NOT manually wire up react-pdf or file resolution — this skill handles installation, Vite config, worker setup, and component usage. Triggers: file viewer, file preview, CogniteFileViewer, PDF viewer, view CDF files, document viewer, preview file."
+description: "MUST be used whenever integrating CogniteFileViewer into a Flows app to preview CDF files (PDFs, images, text). Do NOT manually wire up react-pdf or file resolution — this skill handles installation, Vite config, worker setup, and component usage. Triggers: file viewer, file preview, CogniteFileViewer, PDF viewer, view CDF files, document viewer, preview file."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # Integrate CogniteFileViewer
 
-Add `CogniteFileViewer` to this Dune app to preview CDF files (PDF, image, text).
+Add `CogniteFileViewer` to this Flows app to preview CDF files (PDF, image, text).
 
 ## Dependencies
 
@@ -17,7 +17,7 @@ The file-viewer library files (copied in Step 2) require this npm package:
 | `react-pdf` | `^9.1.1` |
 
 `pdfjs-dist` ships as a dependency of `react-pdf` at the correct version — do not install it separately.
-`react` and `@cognite/sdk` are assumed to already be present in Dune apps.
+`react` and `@cognite/sdk` are assumed to already be present in Flows apps.
 
 ---
 
@@ -91,7 +91,7 @@ Import and render `CogniteFileViewer` from the locally copied files:
 import { CogniteFileViewer } from './cognite-file-viewer';
 ```
 
-Get the `sdk` from the `useDune()` hook (already available in every Dune app):
+Get the `sdk` from the `useDune()` hook (already available in every Flows app):
 
 ```tsx
 import { useDune } from '@cognite/dune';
