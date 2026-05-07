@@ -1,6 +1,6 @@
 ---
 name: performance
-description: "MUST be used whenever fixing performance issues in a Dune app. This skill finds AND fixes performance problems — re-renders, inefficient queries, missing pagination, unbounded fetches, large bundles, and memory leaks. It does not just report them. Always measure before and after. Triggers: performance, slow, laggy, optimize, re-render, bundle size, load time, CDF query, large list, memory leak, debounce, virtualize, lazy load, code split."
+description: "MUST be used whenever fixing performance issues in a Flows app. This skill finds AND fixes performance problems — re-renders, inefficient queries, missing pagination, unbounded fetches, large bundles, and memory leaks. It does not just report them. Always measure before and after. Triggers: performance, slow, laggy, optimize, re-render, bundle size, load time, CDF query, large list, memory leak, debounce, virtualize, lazy load, code split."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[file, component, or area to optimize — e.g. 'src/components/AssetTable.tsx']"

@@ -1,6 +1,6 @@
 # Topbar Rules — Full Reference (Aura)
 
-Detailed architecture and usage rules for the Topbar across Dune and Fusion applications. Read this file when you need the full rule set beyond the quick reference in `SKILL.md`.
+Detailed architecture and usage rules for the Topbar across Flows and Fusion applications. Read this file when you need the full rule set beyond the quick reference in `SKILL.md`.
 
 **Storybook:** https://cognitedata.github.io/aura/storybook/?path=/docs/primitives-topbar--docs
 **Install:** `pnpm dlx shadcn@latest add @aura/topbar` — registry component only; do not use `npm install` / `pnpm add` / `yarn add`
@@ -81,7 +81,7 @@ Rules:
 - Visibility of Share, Notifications, Theme, Atlas, and user Avatar is **configurable** per app where the Aura API allows — enable only what the product needs.
 - Theme and user Avatar are **typically always on** for authenticated apps; hide them only when the Aura/shell API and product policy explicitly allow.
 - **Do not reorder** items; **do not** override Aura styling or behavior for these controls.
-- If Storybook documents additional entries (e.g. a separate agent affordance), follow the **current** `@aura/topbar` API — this document lists the canonical Dune/Fusion strip above.
+- If Storybook documents additional entries (e.g. a separate agent affordance), follow the **current** `@aura/topbar` API — this document lists the canonical Flows/Fusion strip above.
 
 ---
 
@@ -202,4 +202,4 @@ Update `RULES.md` when:
 - Aura Topbar API or package name changes.
 - Platform finalizes configuration, telemetry, shell mount, or lint rules.
 - New controls are added to the right strip or center slot contract changes.
-- Dune/Fusion config paths or fields used for pre-flight are standardized.
+- Flows/Fusion config paths or fields used for pre-flight are standardized.
