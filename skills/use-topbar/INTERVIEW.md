@@ -66,7 +66,7 @@ If Storybook exposes extra right-slot entries (e.g. legacy agent), follow the **
 
 > "At the far left we use a small Aura Avatar in the fjord colorway for the app mark. Does your app already have branding or an image in config, or should we use the default fjord Avatar treatment from Aura?"
 
-- Prefer assets from Dune/Fusion app config when present.
+- Prefer assets from Flows/Fusion app config when present.
 - Compose with Aura **`Avatar`**, **`size="small"`**, **`fjord`** (exact props from Storybook).
 
 **Q2 — App name**

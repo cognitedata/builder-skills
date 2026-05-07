@@ -2,7 +2,7 @@
 name: pull-changes-resolve-conflicts
 description: >-
   Standard workflow for pulling updates from main or other branches on multi-contributor
-  projects (including Dune apps) without silently discarding work. Guides fetching/merging,
+  projects (including Flows apps) without silently discarding work. Guides fetching/merging,
   requires listing merge conflicts explicitly, analyzing ours vs theirs using conversation
   history and repo context, presenting prioritized recommendations, and obtaining user answers
   before editing conflict markers or completing the merge. Triggers: pull main, merge main,
@@ -15,7 +15,7 @@ metadata:
 
 # Pull changes & resolve merge conflicts
 
-Use this skill whenever integrating another branch (usually `main`) into the current feature branch, or when `git status` shows unmerged paths after a merge or rebase. Applies to any Git-based team workflow; Dune/React apps are a common case where conflicts cluster in app shells and shared libraries.
+Use this skill whenever integrating another branch (usually `main`) into the current feature branch, or when `git status` shows unmerged paths after a merge or rebase. Applies to any Git-based team workflow; Flows/React apps are a common case where conflicts cluster in app shells and shared libraries.
 
 ## Goals
 
@@ -90,6 +90,6 @@ Present to the user:
 ## Quick reference
 
 - **Ours vs theirs (merge):** stage 2 = current branch (`HEAD`), stage 3 = incoming (`MERGE_HEAD`). Verify with `git checkout --conflict=merge <file>` if needed.
-- **Typical high-touch paths** in full-stack or Dune apps: root app shell, top navigation, route modules, and shared `lib/` or `hooks/`.
+- **Typical high-touch paths** in full-stack or Flows apps: root app shell, top navigation, route modules, and shared `lib/` or `hooks/`.
 
 For optional command snippets and a merge message template, see [reference.md](reference.md).

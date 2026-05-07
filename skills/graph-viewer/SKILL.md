@@ -1,13 +1,13 @@
 ---
 name: graph-viewer
-description: Integrate the reusable CDF graph viewer (useGraphViewer) into a Dune app by copying the local code bundle. Use when embedding a graph visualization, adding a knowledge graph, or showing CDF data model relationships and instances.
+description: Integrate the reusable CDF graph viewer (useGraphViewer) into a Flows app by copying the local code bundle. Use when embedding a graph visualization, adding a knowledge graph, or showing CDF data model relationships and instances.
 ---
 
 # Graph Viewer
 
 ## Use This When
 
-The user wants to embed an interactive graph of a CDF data model — nodes, direct relations, edges, and reverse relations — inside a Dune app.
+The user wants to embed an interactive graph of a CDF data model — nodes, direct relations, edges, and reverse relations — inside a Flows app.
 
 Do **not** use this skill for static diagrams, pure dataflow visualizations, or non-CDF graphs.
 

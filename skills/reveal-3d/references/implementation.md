@@ -1,6 +1,6 @@
 # Implementation Reference — Reveal 3D Viewer
 
-Full copy-paste ready implementations. **Pattern B (model browser — auto-loads models) is the default** — use it unless the data has explicit FDM → CAD node linkage.
+Full copy-paste ready implementations. Copy `skills/reveal-3d/code/reveal/` into an app-local feature folder first, typically `src/features/reveal-3d/`, then import from that local folder. **Pattern B (model browser — auto-loads models) is the default** — use it unless the data has explicit FDM → CAD node linkage.
 
 ---
 
@@ -14,7 +14,7 @@ import {
   Reveal3DResources,
   RevealCanvas,
   type AddCadResourceOptions,
-} from '@cognite/dune-industrial-components/reveal';
+} from '@/features/reveal-3d';
 
 export interface ViewerContentProps {
   modelId: number;
@@ -56,7 +56,7 @@ import {
   RevealKeepAlive,
   RevealProvider,
   type ViewerOptions,
-} from '@cognite/dune-industrial-components/reveal';
+} from '@/features/reveal-3d';
 
 // Lazy-load canvas content — providers are eagerly imported
 const ViewerContent = lazy(() =>
@@ -224,7 +224,7 @@ import {
   useModelsForInstanceQuery,
   type AddCadResourceOptions,
   type TaggedAddResourceOptions,
-} from '@cognite/dune-industrial-components/reveal';
+} from '@/features/reveal-3d';
 
 function pickFirstCad(models: TaggedAddResourceOptions[]): AddCadResourceOptions | undefined {
   const m = models[0];
@@ -266,7 +266,7 @@ import {
   RevealKeepAlive,
   RevealProvider,
   type ViewerOptions,
-} from '@cognite/dune-industrial-components/reveal';
+} from '@/features/reveal-3d';
 import { ViewerContent } from './components/ViewerContent';
 
 const BG = new THREE.Color(0x1a1a2e);

@@ -21,7 +21,7 @@ Consult this skill whenever you are:
 - Writing or editing any user-facing text
 - Building forms, handling API responses, async actions, confirmations, or dynamic content
 - Implementing accessibility (keyboard, focus, headings, ARIA, alt text)
-- Applying Aura correctly in a Dune or React app
+- Applying Aura correctly in a Flows or React app
 
 </when-to-reference>
 

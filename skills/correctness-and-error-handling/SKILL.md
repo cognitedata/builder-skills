@@ -1,6 +1,6 @@
 ---
 name: correctness-and-error-handling
-description: "MUST be used whenever fixing correctness and error handling issues in a Dune app. This skill finds AND fixes bugs, missing error states, unhandled rejections, and edge-case failures — it does not just report them. Triggers: correctness, error handling, bug fix, edge case, crash, unhandled, null, undefined, empty state, loading state, error boundary, try catch, async error, useEffect cleanup, type guard, runtime error, robustness."
+description: "MUST be used whenever fixing correctness and error handling issues in a Flows app. This skill finds AND fixes bugs, missing error states, unhandled rejections, and edge-case failures — it does not just report them. Triggers: correctness, error handling, bug fix, edge case, crash, unhandled, null, undefined, empty state, loading state, error boundary, try catch, async error, useEffect cleanup, type guard, runtime error, robustness."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[file or directory to fix, or leave blank to fix the whole app]"
@@ -48,7 +48,7 @@ Do not leave TODOs in critical paths. Every one must be resolved or converted to
 
 ## Step 2 — Add top-level error boundary
 
-Every Dune app must have at least one React Error Boundary wrapping the main content so that an unexpected render-time exception shows a user-friendly message instead of a blank screen.
+Every Flows app must have at least one React Error Boundary wrapping the main content so that an unexpected render-time exception shows a user-friendly message instead of a blank screen.
 
 ```bash
 grep -rn --include="*.tsx" --include="*.ts" -E "ErrorBoundary|componentDidCatch|getDerivedStateFromError" src/
