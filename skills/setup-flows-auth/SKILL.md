@@ -1,14 +1,14 @@
 ---
-name: setup-dune-auth
-description: "MUST be used when migrating an existing React app to Dune, or when no Dune auth is wired up. Detects classic vs Apps API flow from `app.json` `infra` field, installs the right packages, and wires up the entry file. No-op when a valid auth setup is already in place. Triggers: migrate to Dune, add Dune auth, DuneAuthProvider, AppSdkAuthProvider, connectToHostApp, useDune, Dune setup, setup auth, missing auth provider, CDF authentication, Fusion iframe auth."
+name: setup-flows-auth
+description: "MUST be used when migrating an existing React app to Flows, or when no Flows auth is wired up. Detects classic vs Apps API flow from `app.json` `infra` field, installs the right packages, and wires up the entry file. No-op when a valid auth setup is already in place. Triggers: migrate to Flows, add Flows auth, DuneAuthProvider, AppSdkAuthProvider, connectToHostApp, useDune, Flows setup, setup auth, missing auth provider, CDF authentication, Fusion iframe auth."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: ""
 ---
 
-# Set Up Dune Authentication
+# Set Up Flows Authentication
 
-Wire a React app for Dune auth so it can talk to CDF inside Fusion. Two flows exist; pick one based on `app.json`.
+Wire a React app for Flows auth so it can talk to CDF inside Fusion. Two flows exist; pick one based on `app.json`.
 
 ## Pick the flow
 
@@ -180,6 +180,6 @@ Remove only what's now redundant:
 - Custom CDF auth providers/hooks
 - Manual `CogniteClient` instantiation
 - OIDC/token-management code
-- CDF env vars (`VITE_CDF_PROJECT`, `VITE_CDF_CLUSTER`, etc.) — Dune/the host provide these
+- CDF env vars (`VITE_CDF_PROJECT`, `VITE_CDF_CLUSTER`, etc.) — Flows/the host provide these
 
 If unsure, leave it and flag to the user.

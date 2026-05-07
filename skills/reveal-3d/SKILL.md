@@ -1,226 +1,162 @@
 ---
 name: reveal-3d
-description: "Sets up a 3D CAD model viewer in a Dune app using Cognite Reveal via @cognite/dune-industrial-components/reveal. Use this skill whenever the user mentions 3D viewer, 3D visualization, reveal, CAD model, RevealProvider, RevealCanvas, Reveal3DResources, FDM 3D mapping, asset 3D model, loading a 3D model, or wants to display any Cognite 3D content in a Dune application — even if they don't explicitly say 'Reveal' or '3D viewer'. Do NOT manually wire up RevealProvider, RevealCanvas, or model-loading hooks without consulting this skill first."
+description: "Integrates a local Cognite Reveal 3D CAD viewer bundle into Flows apps by copying app-local source code. Use when adding 3D viewer, 3D visualization, Reveal, CAD model, RevealProvider, RevealCanvas, Reveal3DResources, FDM 3D mapping, asset 3D model, model browser, or Cognite 3D content to a Flows application."
 metadata:
   argument-hint: "[FDM instance variable name or description, e.g. 'asset' or 'selectedEquipment']"
 ---
 
 # Reveal 3D Viewer
 
-Add a Cognite Reveal 3D viewer to a Dune app. Renders CAD models from CDF, with support for FDM-linked assets or direct model/revision IDs.
+Add a Cognite Reveal 3D viewer to a Flows app by copying the bundled source into the target app. Renders CAD models from CDF, with support for model browsing, direct model/revision IDs, or FDM-linked assets.
 
 FDM instance to visualize: **$ARGUMENTS**
 
----
+## Use This When
 
-## Before you start
+The user wants to embed an interactive Cognite Reveal viewer for CDF 3D/CAD content in a Flows app.
 
-Read these files before touching anything:
+Do **not** use this skill for static diagrams, graph visualizations, or unrelated custom Three.js scenes.
 
-- `package.json` — note `react`/`react-dom` versions and existing deps
-- `vite.config.ts` — you will **replace** it entirely (new Dune apps have a standalone config, not a shared base config)
-- `src/main.tsx` — you will prepend two lines to it
+## Prerequisites
 
----
+- The app uses React + TypeScript and is wrapped in `@cognite/dune` auth (Flows auth).
+- The app has a `QueryClientProvider` from `@tanstack/react-query`.
+- The CDF project has 3D models, or the user has supplied direct model/revision IDs.
+- For FDM-linked 3D, the instance must be linked through Core DM (`CogniteVisualizable.object3D` -> `CogniteCADNode`).
 
-## Step 1 — Install packages
+## Integration Workflow
 
-```bash
-pnpm add @cognite/reveal three process util assert ajv
-pnpm add "@cognite/dune-industrial-components@github:cognitedata/dune-industrial-components#semver:*"
-pnpm add -D @types/three
-pnpm install --no-frozen-lockfile
-```
+Follow these steps in order. Adapt paths to the target app's conventions instead of inventing new ones.
 
-> **If running inside Cursor (sandbox):** the GitHub package install requires `git init`,
-> which the Cursor sandbox blocks. If you see `git init ... Operation not permitted`, the
-> install must be run with full permissions. In a Shell tool call, pass
-> `required_permissions: ["all"]`.
+1. **Inspect the target app.** Read `package.json`, `vite.config.ts`, `src/main.tsx`, and the app's folder/alias conventions.
+2. **Install missing dependencies** with the app's package manager. See [Dependencies](#dependencies). Reuse existing pinned React, Flows, SDK, and React Query versions.
+3. **Copy the bundle into the app.** Copy every file from `skills/reveal-3d/code/reveal/` into an app-local feature folder, typically:
 
-**After install — check `three` version matches what `@cognite/reveal` requires:**
+   ```text
+   src/features/reveal-3d/
+   ```
 
-```bash
-node -e "const r=require('./node_modules/@cognite/reveal/package.json'); console.log(r.peerDependencies?.three)"
-node -e "console.log(require('./node_modules/three/package.json').version)"
-```
+4. **Import from the local folder**, never from the skill directory or the old external package. With a typical `@/*` alias:
 
-If the installed `three` version is lower than `@cognite/reveal`'s peer requirement, update it:
+   ```tsx
+   import { CacheProvider, RevealKeepAlive, RevealProvider } from '@/features/reveal-3d';
+   ```
 
-```bash
-pnpm add three@^<required-version>    # e.g. three@^0.180.0
-pnpm install --no-frozen-lockfile
-```
+5. **Configure Vite and `main.tsx`.** Read [vite-config.md](references/vite-config.md) and apply the process polyfill, manual `process`/`util`/`assert` aliases, `three` alias, dedupe settings, and `worker.format: 'es'`.
+6. **Choose the implementation pattern.** Use Pattern B (model browser or direct model ID) unless you already have a `DMInstanceRef` and confirmed Core DM 3D linkage. For full examples, read [implementation.md](references/implementation.md).
+7. **Keep provider placement stable.** `CacheProvider` and `RevealKeepAlive` are always mounted at page/app level. `RevealProvider` is conditional, only when a model is selected or linked.
+8. **Run typecheck and build** (`tsc --noEmit`, `pnpm build`, etc.) and fix any copied-import or dependency issues.
 
-**Verify** `package.json` now has all of: `@cognite/reveal`, `three` (at the right version),
-`process`, `util`, `assert`, `ajv`, `@cognite/dune-industrial-components`.
-
-> **Why `ajv`?** `@cognite/dune-industrial-components` requires `ajv@>=8`. The monorepo
-> root has `ajv@6` as a transitive dep. Without a direct `ajv@^8` in the app, pnpm
-> picks up the root's v6 and you get a peer warning that can cause schema validation failures.
-
-> Do **not** install `vite-plugin-node-polyfills`. It introduces a different set of
-> transitive-dep conflicts. Use explicit `process`, `util`, `assert` package aliases instead.
-
----
-
-## Step 2 — Vite config
-
-Read [vite-config.md](references/vite-config.md) for the complete `vite.config.ts`. Apply it verbatim.
-
-Key points:
-
-- **`resolve.dedupe` includes `react`, `react-dom`, `react/jsx-runtime`, `three`** — pnpm symlinks can create separate module instances in a monorepo; `dedupe` forces one copy
-- **Manual `util/`, `assert/`, `process/browser` aliases** — not a plugin. These handle the top-level imports. The `process`, `util`, `assert` npm packages must be in `dependencies` (Step 1)
-- **`optimizeDeps.include` lists `process`, `util`, `assert`, `three`, `@cognite/reveal`** — pre-bundles them so esbuild handles CJS→ESM; Vite cannot auto-discover bare polyfill imports
-- **`worker.format: 'es'`** — Reveal spawns ES module web workers; without this they fail silently
-- **Never put `@cognite/dune-industrial-components` in `optimizeDeps.exclude`** — forces raw ESM, re-introduces React duplication even with dedupe
-
----
-
-## Step 3 — main.tsx
-
-Add the `process` polyfill as the **very first two lines** — before any import, before React:
+## Minimal Example
 
 ```tsx
-import process from 'process';
-(window as unknown as Record<string, unknown>).process = process;
+import { useCallback, useMemo } from 'react';
+import type { CogniteClient } from '@cognite/sdk';
+import {
+  CacheProvider,
+  Reveal3DResources,
+  RevealCanvas,
+  RevealKeepAlive,
+  RevealProvider,
+  type AddCadResourceOptions,
+} from '@/features/reveal-3d';
 
-// all other imports below ↓
-import { DuneAuthProvider } from '@cognite/dune';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './styles.css';
+type SelectedModel = { modelId: number; revisionId: number };
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000 } },
-});
+function ViewerContent({ modelId, revisionId }: SelectedModel) {
+  const resources = useMemo<AddCadResourceOptions[]>(
+    () => [{ modelId, revisionId }],
+    [modelId, revisionId]
+  );
+  const onLoaded = useCallback(() => {}, []);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <DuneAuthProvider>
-        <App />
-      </DuneAuthProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
-```
+  return (
+    <RevealCanvas>
+      <Reveal3DResources resources={resources} onModelsLoaded={onLoaded} />
+    </RevealCanvas>
+  );
+}
 
-Keep `DuneAuthProvider` from `@cognite/dune` as the auth provider — **not** `CDFAuthenticationProvider`.
+export function ViewerPage({
+  sdk,
+  selected,
+}: {
+  sdk: CogniteClient;
+  selected: SelectedModel | null;
+}) {
+  const memoizedSdk = useMemo(() => sdk, [sdk.project]);
 
----
-
-## Step 4 — Provider placement (critical)
-
-**Getting this wrong causes `ObjectUnsubscribedError: object unsubscribed` at model load time.**
-
-`CacheProvider` and `RevealKeepAlive` must be **always mounted at page/app level**. `RevealProvider` is conditional (only renders when a model is selected).
-
-```
-App (always rendered)
-  CacheProvider            ← always mounted
-    RevealKeepAlive        ← always mounted
-      <sidebar>            ← model picker lives here
-      {selected && (
-        RevealProvider     ← conditional, only when model is ready
-          <RevealCanvas>
-            <Reveal3DResources />
-      )}
-```
-
-**Why:** React StrictMode double-invokes effects on every component at first mount.
-If `RevealKeepAlive` is inside the same conditionally-rendered component as `RevealProvider`,
-StrictMode fires *both* cleanup cycles together — `RevealKeepAlive` disposes the
-viewer while `RevealProvider`'s async model-loading effect is still in-flight.
-
-When `RevealKeepAlive` is at App level, its StrictMode cycle completes at startup
-with no viewer yet (nothing to dispose). By the time `RevealProvider` conditionally
-mounts, `RevealKeepAlive`'s `viewerRef` is stable — and `RevealProvider` skips
-viewer disposal when keepAlive context is present.
-
-**Pattern that breaks:**
-```
-{selected && (
-  <MyViewerComponent>      ← ❌ RevealKeepAlive co-located with RevealProvider
+  return (
     <CacheProvider>
       <RevealKeepAlive>
-        <RevealProvider>
+        <div style={{ width: '100%', height: '70vh', position: 'relative' }}>
+          {selected && (
+            <RevealProvider sdk={memoizedSdk}>
+              <ViewerContent
+                modelId={selected.modelId}
+                revisionId={selected.revisionId}
+              />
+            </RevealProvider>
+          )}
+        </div>
+      </RevealKeepAlive>
+    </CacheProvider>
+  );
+}
 ```
 
----
+## Dependencies
 
-## Step 5 — Implementation
+Suggested versions are starting points. If the target app already pins compatible versions, defer to the app.
 
-**Decide the pattern first — before reading any code.**
+| Package | Suggested version | Purpose |
+|---------|-------------------|---------|
+| `react` / `react-dom` | app version | UI framework |
+| `@cognite/dune` | app version | Authenticated SDK via `useDune()` |
+| `@cognite/reveal` | `^4.30.0` | Reveal viewer runtime |
+| `@cognite/sdk` | `^10.0.0` | CDF API client |
+| `@tanstack/react-query` | `^5.90.21` | Reveal/FDM data fetching hooks |
+| `three` | `^0.180.0` | Three.js singleton used by Reveal |
+| `process`, `util`, `assert` | latest | Browser polyfills for Reveal dependencies |
+| `ajv` | `^8` | Avoids older transitive AJV resolution in monorepos |
+| `@types/three` | latest dev dep | TypeScript types |
 
-Use **Pattern B (model browser)** unless you can answer YES to all three of these:
-1. The app already has a `DMInstanceRef` in scope — passed in as a prop or route param, not something to be fetched
-2. The user has confirmed that instance has `CogniteVisualizable.object3D → CogniteCADNode` linkage in their CDF data model
-3. The user explicitly asked for FDM-linked 3D, not just "show a 3D viewer"
+Example install (pnpm; adapt to the app's package manager):
 
-If any answer is NO or uncertain — use Pattern B. It works with every CDF project that has 3D models, requires zero FDM setup, and is much easier to debug. Pattern A silently renders nothing when FDM linkage is missing.
-
-**Pattern B:** Read the "Pattern B (default)" section of [references/implementation.md](references/implementation.md).
-
-**Pattern A (only if gate above passed):** Read the "Pattern A (fallback)" section of [references/implementation.md](references/implementation.md).
-
-**Two files to create:** `src/components/ViewerContent.tsx` (canvas only, no providers) and `src/App.tsx` (owns all providers + model selection logic).
-
-**Critical rules that both patterns share:**
-
-- `ViewerContent` must contain **no providers** — `CacheProvider`, `RevealKeepAlive`, and `RevealProvider` all live in `App.tsx` (see Step 5 for why)
-- `resources` prop for `Reveal3DResources` must be `useMemo`'d; `onModelsLoaded` must be `useCallback`'d — inline values cause infinite model reload loops
-- `onSelect`/`onLoad` callbacks passed into child components must be `useCallback`'d at the call site, and called from `useEffect` inside the child — not during render
-- `sdk` passed to `RevealProvider` must be `useMemo`'d keyed on `client.project`
-- Lazy-load `ViewerContent` with `React.lazy` + `Suspense` to avoid blocking the initial bundle
-
----
-
-## Step 6 — Container height
-
-`RevealCanvas` fills its container with `width: 100%; height: 100%`. The parent **must have an explicit height**:
-
-```tsx
-<div style={{ width: '100%', height: '70vh', position: 'relative' }}>
-  <RevealProvider ...>
-    <ViewerContent modelId={...} revisionId={...} />
-  </RevealProvider>
-</div>
+```bash
+pnpm add @cognite/reveal @cognite/sdk @tanstack/react-query three process util assert ajv
+pnpm add -D @types/three
 ```
 
----
+After install, check `@cognite/reveal`'s `three` peer requirement and align `three` if needed.
 
-## Troubleshooting
+Do **not** install `vite-plugin-node-polyfills`; use the explicit Vite aliases in [vite-config.md](references/vite-config.md).
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `git init ... Operation not permitted` during `pnpm install` | Cursor sandbox blocks git operations needed to clone the GitHub package | Re-run `pnpm install --no-frozen-lockfile` with `required_permissions: ["all"]` in the Shell tool call |
-| `pnpm install` hangs for minutes with no output | Same GitHub package sandbox issue — pnpm is stuck waiting on a blocked syscall | Kill the process, re-run with `required_permissions: ["all"]` |
-| `unmet peer three@0.180.0: found 0.177.0` (or similar version) | `@cognite/reveal` requires a specific `three` version; `pnpm add three` installs latest which may differ | Check `@cognite/reveal`'s peerDependencies, then `pnpm add three@^<required>` + reinstall |
-| `unmet peer ajv@>=8: found 6.x` | Monorepo root has `ajv@6`; app needs `ajv@^8` for `@cognite/dune-industrial-components` | `pnpm add ajv` in the app (adds `^8`) |
-| `ObjectUnsubscribedError: object unsubscribed` | `RevealKeepAlive` inside conditional component | Move `CacheProvider` + `RevealKeepAlive` to always-mounted App level |
-| `Maximum update depth exceeded` | Inline `onLoad`/`onSelect` callback `(t) => setState(t)` re-creates every render | `useCallback((t) => setState(t), [])` at the call site; model browser must call `onSelect` from `useEffect`, not render phase |
-| `Maximum update depth exceeded` (variant) | `onSelect`/`onReady` called during render in an `if`-block instead of a `useEffect` | Move the call into `useEffect([revision, pendingId, onSelect])` |
-| `No QueryClient set` | `@tanstack/react-query` resolved to a different copy | Add `@tanstack/react-query` to `resolve.dedupe` and `optimizeDeps.include` |
-| `process is not defined` at runtime | Missing runtime polyfill | First two lines of `main.tsx`: `import process from 'process'; window.process = process;` |
-| `Could not resolve "inherits"` | Used `vite-plugin-node-polyfills` or wrong manual aliases | Remove the plugin; use package aliases (`util: 'util/'`, `assert: 'assert/'`) with those packages in `dependencies` |
-| `Multiple instances of Three.js` | Two Three.js copies loaded | `resolve.alias.three` → `node_modules/three/build/three.module.js` and `three` in `resolve.dedupe` |
-| Black screen / workers fail silently | Missing ES worker format | Add `worker: { format: 'es' }` to vite config |
-| Canvas 0px tall | Container has no explicit height | `height: '70vh'` (or any fixed/flex height) on the parent div |
-| No model found (FDM mode) | Instance not linked via Core DM (`CogniteVisualizable.object3D` → `CogniteCADNode`) | Use model browser (Pattern B) with `sdk.models3D.list()` as the default instead |
+## Critical Rules
 
----
+- `ViewerContent` contains only `RevealCanvas` and `Reveal3DResources`; no providers.
+- `resources` passed to `Reveal3DResources` must be memoized with `useMemo`.
+- `onModelsLoaded`, `onSelect`, and similar callbacks must be memoized with `useCallback`.
+- The SDK passed to `RevealProvider` must be memoized with `useMemo` keyed on `client.project`.
+- `RevealCanvas` fills its parent; the parent must have an explicit height.
+- Lazy-load canvas-heavy viewer content with `React.lazy` + `Suspense` when adding a route/page.
 
-## API reference
+## Advanced Reference
 
-**Page-level (always rendered):** `CacheProvider`, `RevealKeepAlive`
+For the copied bundle API and exports, read `code/README.md`.
 
-**Viewer-level (conditional):** `RevealProvider`, `RevealCanvas`, `Reveal3DResources`, `InstanceStylingProvider`
+For model browser and FDM-linked implementations, read `references/implementation.md`.
 
-**Hooks:** `useModelsForInstanceQuery`, `use3dModels`, `useFdmAssetMappings`, `useReveal`, `useOptionalRevealKeepAlive`
+For Vite, worker, polyfill, and troubleshooting details, read `references/vite-config.md`.
 
-**Types:** `AddCadResourceOptions`, `TaggedAddResourceOptions`, `ViewerOptions`, `DMInstanceRef` (from `@cognite/reveal`)
+## Verification Checklist
 
-All exports from `@cognite/dune-industrial-components/reveal`.
+- [ ] All files from `skills/reveal-3d/code/reveal/` were copied into an app-local feature folder.
+- [ ] Imports point to the app-local folder (e.g. `@/features/reveal-3d`).
+- [ ] The app does not import Reveal helpers from the old external package.
+- [ ] Required dependencies are present in `package.json`.
+- [ ] `main.tsx` starts with the `process` polyfill before other imports.
+- [ ] `vite.config.ts` uses manual aliases, dedupe, `three` singleton alias, and `worker.format: 'es'`.
+- [ ] `CacheProvider` and `RevealKeepAlive` are always mounted; `RevealProvider` is conditional when model selection is conditional.
+- [ ] The viewer container has an explicit height.
+- [ ] Typecheck and build pass.
