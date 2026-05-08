@@ -34,7 +34,7 @@ Consult this skill whenever you are:
 | If you are… | Open |
 |-------------|------|
 | Choosing primitives and deciding what to use when | `primitive-usage.md` |
-| Tokens, npm/setup, full inventory and decision tree (legacy) | Start at `picking-components.md`; detail in `picking-components.archive.md` |
+| Where to look for Storybook, docs, and Figma (router) | `picking-components.md` |
 | Structuring a page or choosing a layout pattern | `building-pages.md` |
 | Writing any user-facing text | `writing-copy.md` |
 | Forms, loading, errors, confirmations, or page-level accessibility | `handling-states.md` |

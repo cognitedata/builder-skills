@@ -13,6 +13,6 @@ Published Aura resources (outside this repo): [Aura docs](https://cog.link/aura)
 | Interface copy | `writing-copy.md` |
 | Forms, loading, errors, confirmations, page a11y | `handling-states.md` |
 | Storybook URLs for foundations and components | `storybook-links.md` |
-| Full component inventory, decision tree, Tailwind and token rules, InputGroup sizing, npm/setup notes | `picking-components.archive.md` |
+| Component props, variants, and foundation token reference | Storybook and [Aura docs](https://cog.link/aura) (this file does not duplicate them) |
 
 Use Storybook and [Aura primitives/patterns docs](https://cog.link/aura) for props, variants, and examples; use this skill for composition choices and consistency with Fusion and Dune apps.
