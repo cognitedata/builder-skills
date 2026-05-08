@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this file for primitive-level decisions when building Dune and Fusion apps.
+Use this file for primitive-level decisions when building Flows and Fusion apps.
 It captures usage guidance that is typically missing from component specs and prop tables.
 
 ## Resources
