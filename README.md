@@ -1,6 +1,6 @@
 # Flows Skills
 
-Agent-agnostic AI skills for [Flows](https://cognite-dune-docs.mintlify.app/cdf/flows) apps. Works with Claude Code, Cursor, Copilot, and any agent that supports the [skills format](https://github.com/anthropics/skill-spec).
+Agent-agnostic AI skills for [Flows](https://cognite-dune-docs.mintlify.app/cdf/flows) apps. Works with Claude Code, Cursor, Copilot, and any agent that supports the [skills format](https://agentskills.io/specification).
 
 ## Install
 
@@ -49,9 +49,3 @@ allowed-tools: Read, Glob, Grep, Edit, Write
 Consolidated Aura guidance uses the **`design`** skill (`skills/design/SKILL.md`). Older per-topic `design-*` skills were merged into that folder.
 
 **Authoring style**: Use `## Section` markdown headings for structural sections like Role, When to use, and Setup. XML tags (e.g., `<rubric>`, `<example>`) are acceptable where they serve a machine-parsing purpose.
-
-Or push via the CLI:
-
-```bash
-npx @cognite/dune skills push path/to/SKILL.md
-```
