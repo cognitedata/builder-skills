@@ -1,6 +1,6 @@
 ---
 name: design
-description: Simplified Aura guidance for selecting primitives, keeping token usage consistent, and applying reliable layout/copy/state patterns in Dune and Fusion apps.
+description: Simplified Aura guidance for selecting primitives, keeping token usage consistent, and applying reliable layout/copy/state patterns in Flows and Fusion apps.
 allowed-tools: Read, Glob, Grep, Edit, Write
 ---
 
