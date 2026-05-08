@@ -15,4 +15,4 @@ Published Aura resources (outside this repo): [Aura docs](https://cog.link/aura)
 | Storybook URLs for foundations and components | `storybook-links.md` |
 | Component props, variants, and foundation token reference | Storybook and [Aura docs](https://cog.link/aura) (this file does not duplicate them) |
 
-Use Storybook and [Aura primitives/patterns docs](https://cog.link/aura) for props, variants, and examples; use this skill for composition choices and consistency with Fusion and Dune apps.
+Use Storybook and [Aura primitives/patterns docs](https://cog.link/aura) for props, variants, and examples; use this skill for composition choices and consistency with Fusion and Flows apps.
