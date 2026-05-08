@@ -2,6 +2,8 @@
 
 This file is a **pointer**. Day-to-day primitive decisions live in **`primitive-usage.md`**. Canonical Storybook URLs in this repo live in **`storybook-links.md`**.
 
+Do not link Cognite-internal URL shorteners; skill consumers outside Cognite cannot open them.
+
 Published Aura resources (outside this repo): [Aura design system docs](https://cognite-dune-docs.mintlify.app/aura-design-system/index), [Aura Storybook (Fusion preview)](https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/), [Figma library](https://www.figma.com/design/pMnMQvfErZDJzWgrcWCIwZ/WIP---Aura-library).
 
 ## When to open what

@@ -7,6 +7,8 @@ It captures usage guidance that is typically missing from component specs and pr
 
 ## Resources
 
+Links below must stay usable without Cognite VPN or internal auth. Do not use Cognite-internal short URL domains in this skill.
+
 - Figma library: https://www.figma.com/design/pMnMQvfErZDJzWgrcWCIwZ/WIP---Aura-library
 - Aura design system docs: https://cognite-dune-docs.mintlify.app/aura-design-system/index
 - Aura Storybook (Fusion preview): https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/

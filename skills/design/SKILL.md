@@ -49,3 +49,4 @@ Consult this skill whenever you are:
 3. If a primitive almost fits, do not override visuals to force it; check variants/props first, then document the gap.
 4. Keep behavior predictable and accessible: keyboard support, visible focus, and clear feedback for loading/success/error.
 5. Use `storybook-links.md` for canonical component/foundation URLs.
+6. Use publicly reachable links only. Do not use Cognite-internal URL shorteners — they are not available to external skill users. Prefer the Aura design system docs (Mintlify), Fusion preview Storybook, and Figma links documented in `primitive-usage.md` and `picking-components.md`.
