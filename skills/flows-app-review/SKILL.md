@@ -61,7 +61,7 @@ Read `artifact-templates.md` (relative to this SKILL.md) for the exact column la
 
 ### Step 2: Build the package inventory (`review-packages.md`)
 
-List every package from `package.json` (`dependencies` and `devDependencies`). For each, look up weekly downloads, latest version, last publish date, and deprecated status via `npm view <pkg> --json`. Run `npm audit --json` (or `pnpm audit --json`) for CVEs. Assign health per the thresholds in `scoring-criteria.md`.
+List every package from `package.json` (`dependencies` and `devDependencies`). For each, look up weekly downloads, latest version, last publish date, and deprecated status via `npm view <pkg> --json`. Run `npm audit --json` or `pnpm audit --json` in the app directory (install deps first if needed). Use `--production` / `--prod` to separately assess what ships to users vs dev-only risk. Assign health per the thresholds in `scoring-criteria.md`.
 
 Read `artifact-templates.md` (relative to this SKILL.md) for the exact table format before writing this file.
 
