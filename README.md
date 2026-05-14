@@ -7,13 +7,13 @@ Agent-agnostic AI skills for [Flows](https://cognite-dune-docs.mintlify.app/cdf/
 Pull all skills into your Flows app:
 
 ```bash
-npx @cognite/dune skills pull
+npx @cognite/cli@latest apps skills pull
 ```
 
 Pull a specific skill:
 
 ```bash
-npx @cognite/dune skills pull --skill create-client-tool
+npx @cognite/cli@latest apps skills pull --skill create-client-tool
 ```
 
 ## Available Skills
