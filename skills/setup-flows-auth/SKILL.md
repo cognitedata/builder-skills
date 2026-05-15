@@ -76,6 +76,7 @@ export default defineConfig({
 ### Apps API flow
 
 ```ts
+// or see @cognite/cli/_templates/app/new/config/vite.config.ts.ejs.t source file for newest config
 import { fusionOpenPlugin, manifestCspPlugin } from "@cognite/app-sdk/vite";
 import mkcert from "vite-plugin-mkcert";
 
