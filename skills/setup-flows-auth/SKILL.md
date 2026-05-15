@@ -19,7 +19,7 @@ Read `app.json` if present:
 | `"appsApi"` | **Apps API** (new Fusion app host) | `connectToHostApp` from `@cognite/app-sdk` | `@cognite/app-sdk` |
 | missing / other | **Classic** (legacy Files API) | `DuneAuthProvider` + `useDune()` from `@cognite/dune` | — |
 
-No `app.json`? Ask the user. Default to **Apps API** — it's the default for `npx @cognite/dune create`.
+No `app.json`? Ask the user. Default to **Apps API** — it's the default for `npx @cognite/cli@latest apps create`.
 
 ## Step 1 — Read state, decide whether to act
 
@@ -35,26 +35,31 @@ Detect the package manager from the lock file (`pnpm-lock.yaml` → pnpm, `yarn.
 
 ## Step 2 — Install missing deps
 
-Required for **both** flows:
+**Classic flow:**
 
 | Package | Type |
 |---|---|
-| `@cognite/dune` | runtime (provides Vite plugin even in Apps API mode) |
+| `@cognite/dune` | runtime |
 | `@cognite/sdk` | runtime |
 | `@tanstack/react-query` | runtime |
 | `vite-plugin-mkcert` | dev |
 
-**Apps API only**, also install:
+**Apps API flow:**
 
 | Package | Type |
 |---|---|
 | `@cognite/app-sdk` | runtime |
+| `@cognite/sdk` | runtime |
+| `@tanstack/react-query` | runtime |
+| `vite-plugin-mkcert` | dev |
 
 Skip anything already in `package.json`. Use the detected package manager (`pnpm add`, `npm install`, `yarn add`; `-D` / `--save-dev` for dev deps).
 
 ## Step 3 — Vite config
 
-`vite.config.ts` must contain:
+Add only what's missing. Don't remove existing plugins.
+
+### Classic flow
 
 ```ts
 import { fusionOpenPlugin } from "@cognite/dune/vite";
@@ -68,12 +73,27 @@ export default defineConfig({
 });
 ```
 
+### Apps API flow
+
+```ts
+// or see @cognite/cli/_templates/app/new/config/vite.config.ts.ejs.t source file for newest config
+import { fusionOpenPlugin, manifestCspPlugin } from "@cognite/app-sdk/vite";
+import mkcert from "vite-plugin-mkcert";
+
+export default defineConfig({
+  base: "./",
+  // manifestCspPlugin() must be first — its middleware sets the CSP header before any HTML response
+  plugins: [manifestCspPlugin(), react(), mkcert(), fusionOpenPlugin(), /* ... */],
+  server: { port: 3001 },
+  worker: { format: "es" },
+});
+```
+
 - `base: "./"` — required for Fusion iframe deployment.
 - `mkcert()` — provides HTTPS for the dev server (the Fusion parent is HTTPS).
 - `fusionOpenPlugin()` — opens the dev URL inside Fusion automatically.
+- `manifestCspPlugin()` (Apps API only) — enforces the CSP declared in `manifest.json`; must be first.
 - `server.port: 3001` — convention; the plugin falls back to 3001 if no port is set.
-
-Add only what's missing. Don't remove existing plugins.
 
 ## Step 4 — Wire up the entry file and component
 
