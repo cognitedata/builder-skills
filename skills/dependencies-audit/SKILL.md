@@ -1,6 +1,6 @@
 ---
 name: dependencies-audit
-description: "MUST be used whenever fixing dependency issues in a Dune app. This skill finds AND fixes vulnerabilities, outdated packages, deprecated dependencies, and license issues — it does not just report them. Triggers: dependencies, packages, fix dependencies, update packages, fix vulnerabilities, npm audit fix, pnpm audit fix, CVE fix, outdated, deprecated, supply chain, license."
+description: "MUST be used whenever fixing dependency issues in a Flows app. This skill finds AND fixes vulnerabilities, outdated packages, deprecated dependencies, and license issues — it does not just report them. Triggers: dependencies, packages, fix dependencies, update packages, fix vulnerabilities, npm audit fix, pnpm audit fix, CVE fix, outdated, deprecated, supply chain, license."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[path to package.json, or leave blank to audit the root package.json]"
@@ -8,7 +8,7 @@ metadata:
 
 # Dependencies Fix
 
-Find and fix all dependency issues in **$ARGUMENTS** (or the root `package.json` if no argument is given) — vulnerabilities, outdated packages, deprecated dependencies, license problems, and supply-chain risks. This skill produces the `review-packages.md` artifact required by the Dune app review process.
+Find and fix all dependency issues in **$ARGUMENTS** (or the root `package.json` if no argument is given) — vulnerabilities, outdated packages, deprecated dependencies, license problems, and supply-chain risks. This skill produces the `review-packages.md` artifact required by the Flows app review process.
 
 ---
 
@@ -208,7 +208,7 @@ npx license-checker --summary 2>/dev/null || node -e "
 "
 ```
 
-Acceptable licenses for Dune apps (commercial distribution):
+Acceptable licenses for Flows apps (commercial distribution):
 - MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, Unlicense, CC0-1.0
 
 Licenses that need legal review:
@@ -227,7 +227,7 @@ After each replacement, run `pnpm install` and `pnpm run build` to verify.
 
 ## Step 7 — Generate the review-packages.md artifact (post-fix state)
 
-Re-run the metadata lookups after all fixes have been applied to capture the post-fix state. Then produce the output in the format required by the Dune app review process:
+Re-run the metadata lookups after all fixes have been applied to capture the post-fix state. Then produce the output in the format required by the Flows app review process:
 
 ```markdown
 ## Package audit: [app name]

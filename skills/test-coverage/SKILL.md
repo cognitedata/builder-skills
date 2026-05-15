@@ -1,6 +1,6 @@
 ---
 name: test-coverage
-description: "MUST be used whenever fixing test coverage for a Dune app to meet the 80% line coverage hard gate. This skill finds AND fixes coverage gaps — it configures tooling, writes missing tests, covers untested paths, and refactors code for testability. It does not just report. Triggers: test coverage, fix tests, write tests, add tests, coverage fix, 80% coverage, coverage gate, missing tests, testability, vitest coverage, jest coverage."
+description: "MUST be used whenever fixing test coverage for a Flows app to meet the 80% line coverage hard gate. This skill finds AND fixes coverage gaps — it configures tooling, writes missing tests, covers untested paths, and refactors code for testability. It does not just report. Triggers: test coverage, fix tests, write tests, add tests, coverage fix, 80% coverage, coverage gate, missing tests, testability, vitest coverage, jest coverage."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[directory or file to audit, or leave blank for the whole app]"
@@ -8,7 +8,7 @@ metadata:
 
 # Test Coverage Fix
 
-Fix test coverage for **$ARGUMENTS** (or the whole app if no argument is given). This skill enforces the **80% line coverage hard gate** required for Dune app approval by finding AND fixing coverage gaps. Work through every step in order.
+Fix test coverage for **$ARGUMENTS** (or the whole app if no argument is given). This skill enforces the **80% line coverage hard gate** required for Flows app approval by finding AND fixing coverage gaps. Work through every step in order.
 
 ---
 

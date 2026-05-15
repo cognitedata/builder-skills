@@ -1,6 +1,6 @@
 ---
 name: integrate-atlas-chat
-description: "MUST be used whenever building a chat UI with Atlas agents in a Dune app. Do NOT manually write useAtlasChat integration code — this skill handles installation, component structure, and hook wiring. Triggers: useAtlasChat, atlas chat, streaming chat, agent chat, chat interface, chat component, chat UI. For a full chat app, run skills in order: (1) integrate-atlas-chat, (2) create-client-tool (per tool), (3) setup-python-tools (if Python tools needed)."
+description: "MUST be used whenever building a chat UI with Atlas agents in a Flows app. Do NOT manually write useAtlasChat integration code — this skill handles installation, component structure, and hook wiring. Triggers: useAtlasChat, atlas chat, streaming chat, agent chat, chat interface, chat component, chat UI. For a full chat app, run skills in order: (1) integrate-atlas-chat, (2) create-client-tool (per tool), (3) setup-python-tools (if Python tools needed)."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[agent-external-id]"
@@ -8,9 +8,23 @@ metadata:
 
 # Integrate Atlas Agent Chat
 
-Add a streaming Atlas Agent chat UI to this Dune app.
+Add a streaming Atlas Agent chat UI to this Flows app.
 
 Agent external ID: **$ARGUMENTS**
+
+## Dependencies
+
+The atlas-agent library files (copied in Step 2) require these npm packages:
+
+| Package | Version |
+|---|---|
+| `@sinclair/typebox` | `^0.33.0` |
+| `ajv` | `^8.17.1` |
+| `ajv-formats` | `^2.1.1` |
+
+`@cognite/sdk` is assumed to already be present in Flows apps.
+
+---
 
 ## Your job
 
@@ -27,21 +41,37 @@ Read these files before touching anything:
 
 ---
 
-## Step 2 — Install dependencies
+## Step 2 — Copy the atlas-agent source files
 
-Install the package and its required peer deps using the app's package manager:
+The atlas-agent library lives in the `code/` directory next to this skill file. Read and copy
+the following files into `src/atlas-agent/` inside the app:
 
-- pnpm → `pnpm add "github:cognitedata/dune-industrial-components#semver:*" @sinclair/typebox ajv ajv-formats`
-- npm  → `npm install "github:cognitedata/dune-industrial-components#semver:*" @sinclair/typebox ajv ajv-formats`
-- yarn → `yarn add "github:cognitedata/dune-industrial-components#semver:*" @sinclair/typebox ajv ajv-formats`
+- `code/types.ts`
+- `code/validation.ts`
+- `code/client.ts`
+- `code/session.ts`
+- `code/react.ts`
+
+> The Python-related files (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts`)
+> are only needed if the agent uses Python tools. The `setup-python-tools` skill copies those.
 
 ---
 
-## Step 3 — Build the chat component
+## Step 3 — Install dependencies
+
+Install the required peer packages (see **Dependencies** above) using the app's package manager:
+
+- pnpm → `pnpm add @sinclair/typebox@^0.33.0 ajv@^8.17.1 ajv-formats@^2.1.1`
+- npm  → `npm install @sinclair/typebox@^0.33.0 ajv@^8.17.1 ajv-formats@^2.1.1`
+- yarn → `yarn add @sinclair/typebox@^0.33.0 ajv@^8.17.1 ajv-formats@^2.1.1`
+
+---
+
+## Step 4 — Build the chat component
 
 Replace (or create) the main `App.tsx` with a full chat UI. The component must:
 
-1. **Import** `useAtlasChat` and `ChatMessage` from `@cognite/dune-industrial-components/atlas-agent/react`
+1. **Import** `useAtlasChat` and `ChatMessage` from `./atlas-agent/react` (relative to the component)
 2. **Get the SDK** via `useDune()` from `@cognite/dune`
 3. **Pass `null` while loading** — `client: isLoading ? null : sdk`
 4. **Show streaming text** in real time using `msg.isStreaming` with a blinking cursor
@@ -57,8 +87,8 @@ Replace (or create) the main `App.tsx` with a full chat UI. The component must:
 ### Key hook API
 
 ```ts
-import { useAtlasChat } from "@cognite/dune-industrial-components/atlas-agent/react";
-import type { ChatMessage } from "@cognite/dune-industrial-components/atlas-agent/react";
+import { useAtlasChat } from "./atlas-agent/react";
+import type { ChatMessage } from "./atlas-agent/react";
 
 const { messages, send, isStreaming, progress, error, reset, abort } = useAtlasChat({
   client: isLoading ? null : sdk,   // null-safe — hook waits for a real client
@@ -90,7 +120,7 @@ const { messages, send, isStreaming, progress, error, reset, abort } = useAtlasC
 
 ---
 
-## Step 4 — Python tools (optional)
+## Step 5 — Python tools (optional)
 
 If the agent has Python tools (type `runPythonCode` in its CDF config), run the
 `setup-python-tools` skill to add Pyodide-based client-side execution:
@@ -99,7 +129,8 @@ If the agent has Python tools (type `runPythonCode` in its CDF config), run the
 /setup-python-tools $ARGUMENTS
 ```
 
-That skill installs `pyodide`, sets up `usePyodideRuntime`, and wires the runtime into
+That skill copies the Python-related source files from `@skills/integrate-atlas-chat/code`,
+installs `pyodide`, sets up `usePyodideRuntime`, and wires the runtime into
 `useAtlasChat` via `pythonRuntime`. The library fetches Python tool code from the agent
 config automatically — no `PythonToolConfig` entries needed.
 

@@ -1,4 +1,4 @@
-# Vite Configuration for @cognite/reveal in a Dune monorepo app
+# Vite Configuration for @cognite/reveal in a Flows monorepo app
 
 ## src/main.tsx — process polyfill must be the very first two lines
 
@@ -17,7 +17,7 @@ The rest of `main.tsx` stays as-is. Order matters — the polyfill must run befo
 
 ## vite.config.ts — standalone config (not mergeConfig)
 
-Dune apps use a standalone `vite.config.ts` (not a shared base config from the monorepo root).
+Flows apps use a standalone `vite.config.ts` (not a shared base config from the monorepo root).
 Replace the file entirely with the following:
 
 ```typescript

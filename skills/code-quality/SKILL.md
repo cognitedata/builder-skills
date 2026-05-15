@@ -1,6 +1,6 @@
 ---
 name: code-quality
-description: "MUST be used whenever reviewing a Dune app for code quality, maintainability, or clean code issues — before a PR review, after a feature is complete, or when the user asks for a code review. Do NOT skip linting steps. Triggers: code quality, code review, clean code, refactor, maintainability, technical debt, any type, naming, dead code, duplication, DRY, single responsibility, component size, lint, linting, TypeScript strict, dependency injection, file structure."
+description: "MUST be used whenever reviewing a Flows app for code quality, maintainability, or clean code issues — before a PR review, after a feature is complete, or when the user asks for a code review. Do NOT skip linting steps. Triggers: code quality, code review, clean code, refactor, maintainability, technical debt, any type, naming, dead code, duplication, DRY, single responsibility, component size, lint, linting, TypeScript strict, dependency injection, file structure."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[file, directory, or PR branch to review — e.g. 'src/components/AssetPanel.tsx']"
@@ -185,7 +185,7 @@ Flag any direct client construction outside of the app's bootstrap / auth setup 
 ```ts
 // GOOD — client comes from context
 export function useMyData() {
-  const sdk = useCogniteClient(); // from Dune auth context
+  const sdk = useCogniteClient(); // from Flows auth context
   // ...
 }
 
@@ -199,7 +199,7 @@ Similarly, Atlas tools should receive their dependencies via `execute`'s closure
 
 ## Step 6 — Verify coding patterns and testability
 
-Check that the codebase follows the three core patterns required by the Dune app review process. These patterns keep code testable, maintainable, and consistent.
+Check that the codebase follows the three core patterns required by the Flows app review process. These patterns keep code testable, maintainable, and consistent.
 
 ### 6a — Dependency injection via React context
 
