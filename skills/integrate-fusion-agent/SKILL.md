@@ -65,7 +65,13 @@ export function useHostApp(): HostAppAPI | null {
 
   useEffect(() => {
     connectToHostApp({ applicationName: 'my-app' })
-      .then(({ api }) => setApi(api))
+      .then(({ api: resolvedApi }) => {
+        // IMPORTANT: use the updater form here. Comlink proxies are callable
+        // objects, so setApi(proxy) causes React to invoke the proxy as a
+        // state-updater function — storing a Promise instead of the proxy.
+        // setApi(() => proxy) returns the proxy as the new state value.
+        setApi(() => resolvedApi);
+      })
       .catch(() => {
         // Running outside Fusion — agent features disabled, no-op
       });
@@ -238,10 +244,14 @@ export function useAgentServer(api: HostAppAPI | null): void {
       resources: buildAgentResources(storage),
     });
 
-    void registerAgentServer(api, server);
+    void registerAgentServer(api, server).catch((err: unknown) => {
+      console.warn('[agent] registerAgentServer failed:', err);
+    });
 
     return () => {
-      void api.unregisterAgentServer('my-app');
+      void api.unregisterAgentServer('my-app').catch((err: unknown) => {
+        console.warn('[agent] unregisterAgentServer failed:', err);
+      });
     };
   }, [api, storage, dataService]);
 }
@@ -302,12 +312,30 @@ expect(result.content[0].data).toEqual({ id: '1', name: 'Test' });
 
 ---
 
+## Known pitfalls
+
+### `setApi(resolvedApi)` stores a Promise, not the proxy
+
+Comlink proxies are callable objects. React's `useState` setter, when given a function, calls it as `fn(prevState)` to compute the new state. Because a Comlink proxy responds to function calls (forwarding them to the remote), `setApi(proxy)` causes React to invoke the proxy, and the resulting Promise becomes the state value.
+
+**Symptom:** `api` appears non-null (a Promise is truthy), but calling `api.sendAgentLayoutMode(...)` or checking `typeof api.sendAgentLayoutMode` returns nonsense.
+
+**Fix:** Always use the updater form: `setApi(() => resolvedApi)`.
+
+### `typeof proxy.method === 'function'` is always `true`
+
+Comlink Proxy objects return `'function'` for any property access via `typeof`. This means you cannot use `typeof` guards to detect whether a method is actually supported by the host. Use `try/catch` or `.catch()` on the call instead.
+
+---
+
 ## Checklist
 
 - [ ] `@cognite/app-sdk@0.3.1+` installed
-- [ ] `useHostApp` hook created — catches rejection, stores `api` in state
+- [ ] `useHostApp` hook uses `setApi(() => resolvedApi)` — NOT `setApi(resolvedApi)`
+- [ ] `useHostApp` hook catches rejection (outside Fusion), stores `api` in state
 - [ ] Agent UI buttons only render when `api` is not null
 - [ ] `useAgentServer` registered on mount, unregistered on unmount
+- [ ] `registerAgentServer` and `unregisterAgentServer` calls have `.catch()` handlers
 - [ ] Resource `description` fields explain what data is returned and when to read it
 - [ ] Action `name` fields are `snake_case`
 - [ ] Mutating actions warn in their `description` that confirmation is required
