@@ -30,7 +30,7 @@ Then proceed through Steps 2–5.
 
 ## Step 2 — Update `app.json`
 
-Set `"infra": "appsApi"` if it is missing or set to anything else:
+If `infra` is already `"appsApi"`, skip this step. Otherwise, add or update the field:
 
 ```json
 {
@@ -41,8 +41,6 @@ Set `"infra": "appsApi"` if it is missing or set to anything else:
   "deployments": [...]
 }
 ```
-
-If `deployments` is empty or missing `deployClientId`/`deploySecretName`, flag it to the user — these require a service account in CDF and are needed before the first deploy.
 
 ---
 
@@ -73,8 +71,25 @@ The Flows host uses `manifest.json` to enforce a Content Security Policy for the
 grep -rn "fetch\|axios\|new XMLHttpRequest" src/ --include="*.ts" --include="*.tsx"
 ```
 
-For each external hostname found (e.g. `api.example.com`), add it to the `network` array. Rules:
-- Hostname only — no protocol, no path.
+For each group of external URLs found, add an entry to the `network` array using the `sources`/`directives` shape:
+
+```json
+{
+  "manifestVersion": 1,
+  "permissions": {
+    "network": [
+      {
+        "sources": ["https://api.example.com", "https://maps.googleapis.com"],
+        "directives": ["connect-src"]
+      }
+    ]
+  }
+}
+```
+
+Rules:
+- Use full origin (scheme + hostname) in `sources`, not just the hostname.
+- `"connect-src"` covers `fetch`/`XMLHttpRequest`. Use `"img-src"` for image URLs, `"font-src"` for fonts.
 - The CDF cluster URL is allowed automatically; do not list it.
 - If no external calls exist, leave `"network": []`.
 - Flag any dynamic URLs the user needs to verify manually.
