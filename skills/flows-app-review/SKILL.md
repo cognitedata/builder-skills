@@ -53,6 +53,8 @@ Before starting, create tasks for every phase and step below so nothing is skipp
 
 ## Phase 2: Perform the review
 
+Follow the **Review process** defined in `scoring-criteria.md`. Produce three artifacts — `review-files.md`, `review-packages.md`, `review-report.md` — following the templates in `artifact-templates.md`.
+
 ### Step 1: Build the file inventory (`review-files.md`)
 
 List **all `.ts` and `.tsx` files** in the app. For each file assess — Structure (1–5), Quality (1–5), Patterns (1–5 or N/A), Tests (✓/⚠/✗/N/A) — and note criterion refs in the Notes column. While building the inventory, note for each non-trivial file: test file exists? context injection or direct imports? interface-based services? ViewModel separation?
@@ -88,7 +90,10 @@ Go through `review-files.md` file by file. Apply the checklists from the skills 
 
 ### Step 5: Write the review report (`review-report.md`)
 
-Read `artifact-templates.md` (relative to this SKILL.md) for the exact report template before writing. Ensure all 12 criteria are scored and every must-fix item has an `_Impact:_` note.
+Produce the final report following `artifact-templates.md` exactly. Ensure:
+- All 12 criteria are scored
+- Every must-fix item has an `_Impact:_` note
+- Categorization: score 1–2 = must fix, 3 = should fix, 4 = nice to fix
 
 ---
 
