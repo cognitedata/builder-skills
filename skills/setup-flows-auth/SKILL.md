@@ -28,8 +28,9 @@ Read `package.json`, `src/main.tsx` (or `src/index.tsx`), `vite.config.ts`, `app
 **A valid setup already exists if any of these is true — in which case do nothing and report no-op:**
 
 - **Classic**: `<DuneAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file.
-- **Apps API, generator pattern**: `connectToHostApp` from `@cognite/app-sdk` is called inside `App.tsx` (or any component) and feeds the auth state into the rest of the app.
-- **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it back to the generator default.)
+- **Apps API, provider pattern**: `<CogniteSdkProvider>` from `@cognite/app-sdk/react` wraps the app (in `App.tsx` or `main.tsx`), and nested components consume the client via `useCogniteSdk()`.
+- **Apps API, manual pattern (legacy)**: `connectToHostApp` from `@cognite/app-sdk` is called manually inside `App.tsx` with a `useEffect`. Valid but legacy — don't force-migrate, but don't generate new code this way.
+- **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it.)
 
 Detect the package manager from the lock file (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, otherwise npm).
 
@@ -155,43 +156,34 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`src/App.tsx` calls `connectToHostApp` from `@cognite/app-sdk`. The handshake is async, so render a loader until it resolves:
+`src/App.tsx` uses `CogniteSdkProvider` from `@cognite/app-sdk/react`. The provider handles the Comlink handshake, loading, and error states internally. Nested components read the client via `useCogniteSdk()`:
 
 ```tsx
-import { connectToHostApp } from "@cognite/app-sdk";
-import { useEffect, useState } from "react";
+import { CogniteSdkProvider, useCogniteSdk } from "@cognite/app-sdk/react";
+
+function AppContent() {
+  const client = useCogniteSdk();
+  // client is an authenticated CogniteClient
+  return <div>{client.project}</div>;
+}
 
 function App() {
-  const [project, setProject] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
-
-  useEffect(() => {
-    let cancelled = false;
-    connectToHostApp({ applicationName: "<your-app-name>" })
-      .then(async ({ api }) => {
-        if (cancelled) return;
-        setProject(await api.getProject());
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  // render isLoading / error / authenticated UI
+  return (
+    <CogniteSdkProvider
+      loadingFallback={<div>Loading...</div>}
+      errorFallback={<div>Failed to connect to Fusion</div>}
+    >
+      <AppContent />
+    </CogniteSdkProvider>
+  );
 }
 ```
 
-Use `applicationName: appConfig.externalId` (from `app.json`) so the host can identify the app.
+`useCogniteSdk()` throws if called outside `CogniteSdkProvider` — always nest it inside.
 
 ### Apps API flow — wrapper alternative
 
-If the project already uses `<AppSdkAuthProvider>` from `@cognite/dune`, leave it. It wraps the same `connectToHostApp` handshake and gives a `useDune()` API identical to the classic flow. Both patterns are valid for Apps API mode.
+If the project already uses `<AppSdkAuthProvider>` from `@cognite/dune`, leave it. It wraps the same handshake and gives a `useDune()` API identical to the classic flow. Both patterns are valid for Apps API mode.
 
 ## Step 5 — Clean up superseded code
 
