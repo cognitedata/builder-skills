@@ -16,7 +16,7 @@ Read `app.json` if present:
 
 | `app.json` `infra` | Flow | Auth source | Extra package |
 |---|---|---|---|
-| `"appsApi"` | **Apps API** (new Fusion app host) | `connectToHostApp` from `@cognite/app-sdk` | `@cognite/app-sdk` |
+| `"appsApi"` | **Apps API** (new Fusion app host) | `CogniteSdkProvider` (new SDK) or `connectToHostApp` (legacy SDK) | `@cognite/app-sdk` |
 | missing / other | **Classic** (legacy Files API) | `DuneAuthProvider` + `useDune()` from `@cognite/dune` | — |
 
 No `app.json`? Ask the user. Default to **Apps API** — it's the default for `npx @cognite/cli@latest apps create`.
@@ -28,8 +28,9 @@ Read `package.json`, `src/main.tsx` (or `src/index.tsx`), `vite.config.ts`, `app
 **A valid setup already exists if any of these is true — in which case do nothing and report no-op:**
 
 - **Classic**: `<DuneAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file.
-- **Apps API, generator pattern**: `connectToHostApp` from `@cognite/app-sdk` is called inside `App.tsx` (or any component) and feeds the auth state into the rest of the app.
-- **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it back to the generator default.)
+- **Apps API, provider pattern**: `<CogniteSdkProvider>` from `@cognite/app-sdk/react` wraps the app (in `App.tsx` or `main.tsx`), and nested components consume the client via `useCogniteSdk()`.
+- **Apps API, manual pattern (legacy)**: `connectToHostApp` from `@cognite/app-sdk` is called manually inside `App.tsx` with a `useEffect`. Valid but legacy — don't force-migrate existing apps, but don't generate new code this way when the new SDK is available.
+- **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it.)
 
 Detect the package manager from the lock file (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, otherwise npm).
 
@@ -54,6 +55,19 @@ Detect the package manager from the lock file (`pnpm-lock.yaml` → pnpm, `yarn.
 | `vite-plugin-mkcert` | dev |
 
 Skip anything already in `package.json`. Use the detected package manager (`pnpm add`, `npm install`, `yarn add`; `-D` / `--save-dev` for dev deps).
+
+## Step 2b — Detect SDK generation (Apps API only)
+
+After installing (or if already installed), check whether the installed `@cognite/app-sdk` exposes the `./react` subpath:
+
+```bash
+node -e "require.resolve('@cognite/app-sdk/react')" 2>/dev/null && echo "new" || echo "legacy"
+```
+
+- **`new`** — `@cognite/app-sdk/react` is available → use the **provider pattern** (`CogniteSdkProvider` + `useCogniteSdk()`).
+- **`legacy`** — subpath not found → use the **manual pattern** (`connectToHostApp` + `useEffect`).
+
+If `node_modules` isn't populated yet (deps not installed), fall back to inspecting `node_modules/@cognite/app-sdk/package.json` for an `exports["./react"]` field. If the package isn't installed at all, run the install in Step 2 first, then re-check.
 
 ## Step 3 — Vite config
 
@@ -132,7 +146,55 @@ const { sdk, isLoading, error } = useDune();
 // sdk is an authenticated CogniteClient
 ```
 
-### Apps API flow (generator default)
+### Apps API flow — provider pattern (new SDK, `@cognite/app-sdk/react` available)
+
+`src/main.tsx` does **not** wrap in any auth provider — auth is handled inside `App.tsx`:
+
+```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000 } },
+});
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </React.StrictMode>
+);
+```
+
+`src/App.tsx` uses `CogniteSdkProvider` from `@cognite/app-sdk/react`. The provider handles the Comlink handshake, loading, and error states internally. Nested components read the client via `useCogniteSdk()`:
+
+```tsx
+import { CogniteSdkProvider, useCogniteSdk } from "@cognite/app-sdk/react";
+
+function AppContent() {
+  const client = useCogniteSdk();
+  // client is an authenticated CogniteClient
+  return <div>{client.project}</div>;
+}
+
+function App() {
+  return (
+    <CogniteSdkProvider
+      loadingFallback={<div>Loading...</div>}
+      errorFallback={<div>Failed to connect to Fusion</div>}
+    >
+      <AppContent />
+    </CogniteSdkProvider>
+  );
+}
+```
+
+`useCogniteSdk()` throws if called outside `CogniteSdkProvider` — always nest it inside.
+
+### Apps API flow — manual pattern (legacy SDK, no `@cognite/app-sdk/react`)
 
 `src/main.tsx` does **not** wrap in any auth provider — auth is handled inside `App.tsx`:
 
@@ -191,7 +253,7 @@ Use `applicationName: appConfig.externalId` (from `app.json`) so the host can id
 
 ### Apps API flow — wrapper alternative
 
-If the project already uses `<AppSdkAuthProvider>` from `@cognite/dune`, leave it. It wraps the same `connectToHostApp` handshake and gives a `useDune()` API identical to the classic flow. Both patterns are valid for Apps API mode.
+If the project already uses `<AppSdkAuthProvider>` from `@cognite/dune`, leave it. It wraps the same handshake and gives a `useDune()` API identical to the classic flow. Both patterns are valid for Apps API mode.
 
 ## Step 5 — Clean up superseded code
 
