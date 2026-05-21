@@ -26,7 +26,7 @@ npx @cognite/cli@latest apps skills pull --skill create-client-tool
 | **code-quality** | Reviews Flows apps for code quality, maintainability, and clean code issues |
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
 | **dm-limits-and-best-practices** | CDF Data Modeling API best practices — concurrency, pagination, batching |
-| **flows-app-review** | Runs the official Flows app platform review flow against a local app workspace and writes artifacts under `reviews/flows-app-review/feedback-round-N/` |
+| **flows-code-review** | Runs the official Flows app platform review flow against a local app workspace and writes artifacts under `reviews/flows-code-review/feedback-round-N/` |
 | **integrate-file-viewer** | Integrates CogniteFileViewer to preview CDF files (PDFs, images, text) |
 | **performance** | Optimizes Flows apps for speed, render counts, and bundle size |
 | **pull-changes-resolve-conflicts** | Merge or rebase workflow — list conflicts, analyze ours/theirs, get user approval before resolving |
