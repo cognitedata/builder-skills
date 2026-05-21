@@ -29,8 +29,6 @@ Read `package.json`, `src/main.tsx` (or `src/index.tsx`), `vite.config.ts`, `app
 
 - **Classic**: `<DuneAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file.
 - **Apps API, provider pattern**: `<CogniteSdkProvider>` from `@cognite/app-sdk/react` wraps the app (in `App.tsx` or `main.tsx`), and nested components consume the client via `useCogniteSdk()`. Requires `@cognite/app-sdk >= 0.5.1`.
-- **Apps API, manual pattern (legacy)**: `connectToHostApp` from `@cognite/app-sdk` is called manually inside `App.tsx` with a `useEffect`. Valid but legacy — don't force-migrate, but don't generate new code this way.
-- **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it.)
 
 Detect the package manager from the lock file (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, otherwise npm).
 
@@ -180,10 +178,6 @@ function App() {
 ```
 
 `useCogniteSdk()` throws if called outside `CogniteSdkProvider` — always nest it inside.
-
-### Apps API flow — wrapper alternative
-
-If the project already uses `<AppSdkAuthProvider>` from `@cognite/dune`, leave it. It wraps the same handshake and gives a `useDune()` API identical to the classic flow. Both patterns are valid for Apps API mode.
 
 ## Step 5 — Clean up superseded code
 
