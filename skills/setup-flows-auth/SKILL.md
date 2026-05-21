@@ -28,7 +28,7 @@ Read `package.json`, `src/main.tsx` (or `src/index.tsx`), `vite.config.ts`, `app
 **A valid setup already exists if any of these is true — in which case do nothing and report no-op:**
 
 - **Classic**: `<DuneAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file.
-- **Apps API, provider pattern**: `<CogniteSdkProvider>` from `@cognite/app-sdk/react` wraps the app (in `App.tsx` or `main.tsx`), and nested components consume the client via `useCogniteSdk()`.
+- **Apps API, provider pattern**: `<CogniteSdkProvider>` from `@cognite/app-sdk/react` wraps the app (in `App.tsx` or `main.tsx`), and nested components consume the client via `useCogniteSdk()`. Requires `@cognite/app-sdk >= 0.5.1`.
 - **Apps API, manual pattern (legacy)**: `connectToHostApp` from `@cognite/app-sdk` is called manually inside `App.tsx` with a `useEffect`. Valid but legacy — don't force-migrate, but don't generate new code this way.
 - **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it.)
 
@@ -133,7 +133,7 @@ const { sdk, isLoading, error } = useDune();
 // sdk is an authenticated CogniteClient
 ```
 
-### Apps API flow (generator default)
+### Apps API flow (generator default, `@cognite/app-sdk >= 0.5.1`)
 
 `src/main.tsx` does **not** wrap in any auth provider — auth is handled inside `App.tsx`:
 
