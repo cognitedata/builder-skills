@@ -75,53 +75,35 @@ Apply `React.memo` to pure presentational components that receive stable props. 
 
 ---
 
-## Step 3 — Find and fix DMS query patterns
+## Step 3 — Find and fix inefficient data fetching
 
-For **read-heavy** workloads, prefer APIs that hit the **search/Elasticsearch path** (`query` or `search` on instances) rather than `list` paths that stress **Postgres**.
+**If a generated SDK exists under `src/generated_sdks/`**, all reads should go through it — not through `client.instances.*` directly. Direct DMS calls from app code are a performance and correctness risk; the generated SDK handles query planning, relation resolution, and backend path selection internally.
 
 ```bash
-# Find all DMS instance API calls
-grep -rn --include="*.ts" --include="*.tsx" -E "instances\.(list|search|query|aggregate|retrieve)" src/
+# Flag any direct DMS instance reads — these should be replaced with generated SDK calls
+grep -rn --include="*.ts" --include="*.tsx" -E "client\.instances\.(list|search|query|retrieve|aggregate)" src/
+```
 
+For each match, replace with the equivalent generated SDK call:
+
+```ts
+// BAD — calling DMS directly, bypasses query planning
+const result = await client.instances.list({ ... });
+
+// FIX — use the generated SDK
+const result = await sdk.queryMyView({ filter: { ... }, limit: 100 });
+```
+
+See the **`query-with-sdk`** skill for the full generated SDK API.
+
+**For other CDF resource reads** (assets, timeseries, files, etc.) that don't have a generated SDK, check for unbounded fetches:
+
+```bash
 # Find direct SDK calls to other CDF resources
 grep -rn --include="*.ts" --include="*.tsx" -E "\.(assets|timeseries|events|files|sequences|relationships)\.(list|search|retrieve)" src/
 ```
 
-For each `instances.list` call in a read-heavy path (e.g. populating a table, dropdown, or search results), **rewrite it to use `instances.query`** with the equivalent filter. Preserve the existing filter logic but express it in the query API format:
-
-```ts
-// BAD — instances.list hits Postgres, expensive for read-heavy UI
-const result = await client.instances.list({
-  instanceType: "node",
-  filter: { equals: { property: ["node", "space"], value: "my-space" } },
-  limit: 100,
-});
-
-// FIX — rewrite to instances.query which hits Elasticsearch
-const result = await client.instances.query({
-  with: {
-    nodes: {
-      nodes: {
-        filter: { equals: { property: ["node", "space"], value: "my-space" } },
-      },
-      limit: 100,
-    },
-  },
-  select: {
-    nodes: {},
-  },
-});
-```
-
-| API used | When it's correct | When to rewrite |
-|----------|-------------------|-----------------|
-| `instances.query` | Read with filters that map to Elasticsearch (text, equals, range) | — |
-| `instances.search` | Full-text or fuzzy search | — |
-| `instances.list` | Writing, syncing, or need for semantics not available on query/search | Rewrite to `instances.query` if used for read-heavy UI display |
-| `instances.retrieve` | Fetching by known external IDs | — |
-| `instances.aggregate` | Counts, histograms | — |
-
-For deeper rationale on search vs relational paths, cardinality, and materialization tradeoffs, consult the `semantic-knowledge/` directory if available in the workspace.
+Ensure these are paginated and wrapped in `cdfTaskRunner.schedule()` — see the **`dm-limits-and-best-practices`** skill.
 
 ---
 
@@ -137,39 +119,28 @@ grep -rn --include="*.ts" --include="*.tsx" -B 5 "\.filter(" src/ | grep -B 5 "d
 grep -rn --include="*.ts" --include="*.tsx" -E "\.(map|reduce|find|some|every)\(" src/hooks/ src/services/ src/api/
 ```
 
-For each client-side filter pattern, **move the filter logic into the SDK call's `filter` parameter and remove the `.filter()` call**:
+For each client-side filter pattern, **move the filter logic into the call's `filter` parameter and remove the `.filter()` call**.
+
+If a generated SDK exists under `src/generated_sdks/`, pass filter params directly to it:
 
 ```ts
 // BAD — fetches all nodes then filters client-side
-const result = await client.instances.query({ ... });
-const activeNodes = result.items.nodes.filter(n => n.properties.status === "active");
+const result = await sdk.queryMyView({});
+const activeNodes = result.items.filter(n => n.status === "active");
 
-// FIX — move filter into the API request, remove client-side .filter()
-const result = await client.instances.query({
-  with: {
-    nodes: {
-      nodes: {
-        filter: {
-          and: [
-            existingFilters,
-            { equals: { property: ["mySpace", "myView/v1", "status"], value: "active" } },
-          ],
-        },
-      },
-      limit: 100,
-    },
-  },
-  select: { nodes: {} },
+// FIX — pass filter to the generated SDK
+const result = await sdk.queryMyView({
+  filter: { status: { eq: "active" } },
+  limit: 100,
 });
-const activeNodes = result.items.nodes; // no client-side filter needed
+// result.items already filtered server-side
 ```
 
 | Issue | Fix |
 |-------|-----|
-| `.filter()` after SDK call on full result set | Move the filter into the API request's `filter` parameter and delete the `.filter()` |
-| No `properties` selection in DMS query | Add a `sources` or `properties` parameter to fetch only needed fields |
-| Fetching all items then rendering a subset | Add `limit` and `filter` to the API call to fetch only what's displayed |
-| Client-side text search on fetched array | Replace with the SDK's `search` endpoint |
+| `.filter()` after SDK call on full result set | Move the filter into the call's `filter` parameter and delete the `.filter()` |
+| Fetching all items then rendering a subset | Add `limit` and `filter` to the SDK call to fetch only what's displayed |
+| Client-side text search on fetched array | Use `sdk.searchMyView({ query: '...' })` instead |
 
 **Hard rule:** If the API supports a filter for the criterion being applied client-side, **move it server-side now**. Client-side filtering is acceptable only for trivial local state (e.g. filtering a cached list of 10 user preferences). If the API does not support the exact filter, add a code comment explaining why client-side filtering is necessary.
 
@@ -204,32 +175,22 @@ For each call, find the issue and **apply the fix**:
 ```ts
 // BAD — fetches ALL pages before rendering
 let allItems = [];
-let cursor = undefined;
+let pageInfo = undefined;
 while (true) {
-  const result = await client.instances.list({ limit: 1000, cursor });
+  const result = await sdk.queryMyView({ limit: 1000, cursor: pageInfo?.endCursor });
   allItems.push(...result.items);
-  if (!result.nextCursor) break;
-  cursor = result.nextCursor;
+  if (!result.pageInfo.hasNextPage) break;
+  pageInfo = result.pageInfo;
 }
 
 // FIX — paginate on demand with useInfiniteQuery
 const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
-  queryKey: ["instances", filters],
+  queryKey: ["myView", filters],
   queryFn: ({ pageParam }) =>
-    client.instances.list({ limit: 100, cursor: pageParam, ...filters }),
-  getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    sdk.queryMyView({ limit: 100, cursor: pageParam, filter: filters }),
+  getNextPageParam: (lastPage) => lastPage.pageInfo.hasNextPage ? lastPage.pageInfo.endCursor : undefined,
   staleTime: 30_000,
 });
-```
-
-**Fixing offset-based pagination** — switch to cursor-based:
-
-```ts
-// BAD — offset pagination degrades at scale
-const result = await client.instances.list({ limit: 100, offset: page * 100 });
-
-// FIX — cursor-based pagination
-const result = await client.instances.list({ limit: 100, cursor: nextCursor });
 ```
 
 ---
