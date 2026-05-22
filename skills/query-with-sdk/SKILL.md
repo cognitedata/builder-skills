@@ -27,6 +27,12 @@ Each subdirectory is one SDK. Its `index.ts` exports:
 - `Sdk` — the fully-typed SDK interface
 - Per-view operation types (re-exported)
 
+To discover what views, properties, and relations are available, read `schema.graphql` in the SDK directory — it is the authoritative description of the data model:
+
+```bash
+cat src/generated_sdks/<name>/schema.graphql
+```
+
 ---
 
 ## Step 2 — Instantiate the SDK
@@ -88,6 +94,29 @@ const result = await sdk.search<ViewName>({
   limit: 10,
 });
 ```
+
+---
+
+## Step 3b — Querying relations
+
+If a view has relation properties (direct relations, edges, or reverse relations), they are resolved automatically in a single SDK call — no extra fetches needed. Check `schema.graphql` to see which fields are relations (they reference other types rather than scalars).
+
+```ts
+const result = await sdk.queryWorkOrder({
+  filter: { status: { eq: 'active' } },
+  limit: 25,
+});
+
+// Scalar fields
+result.items[0].title          // string
+result.items[0].createdTime    // number
+
+// Relation fields — resolved in the same call
+result.items[0].assignedTo     // Asset | null  (direct relation)
+result.items[0].operations     // Operation[]   (reverse relation or edge)
+```
+
+The SDK handles the multi-step DMS query internally. Never write separate queries to follow relations manually — just select the relation field and let the SDK resolve it.
 
 ---
 
