@@ -22,15 +22,11 @@ allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
 flows-app-brief  →  build  →  flows-code-review  →  flows-design-review (this skill)  →  flows-external-app-submit
 ```
 
-Target average: **≥ 3.8** to be launch-ready ([quality guidelines](https://docs.cognite.com/cdf/flows/guides/quality-guidelines)).
-
-**Two rules that keep this fast:**
-- Run all Q1–Q10 probes in Step 0 — before and during the walkthrough, not after.
-- Score all 10 questions in one batch after the walkthrough. One `AskQuestion` for overrides.
+Target average: **≥ 3.8** ([quality guidelines](https://docs.cognite.com/cdf/flows/guides/quality-guidelines)).
 
 ## Step 0 — Run all probes + choose feedback round
 
-Run these before prompting the user for anything. Check `reviews/design-review/` for the next round number (`feedback-round-1/` if none exist).
+Run all probes before prompting the user for anything. Determine the next round number from `reviews/design-review/` (`feedback-round-1/` if none exist).
 
 Read silently: `App-Brief.md` frontmatter (user/tasks/success criteria), `package.json` (Aura version), latest `reviews/code-review/.../code-review-report.md` (design-adjacent findings for Q4/Q10).
 
@@ -137,76 +133,29 @@ Using Step 0 probe results + Step 2 walkthrough notes:
 | 15+ matches or pervasive | 2 |
 | Anti-pattern is the default style | 1 |
 
-**Q1 — Aura.** Hard-coded colors + overriding-styles warnings → score.
+**Q1 — Aura.** Hard-coded colors + CSS overrides → score. All Aura tokens, no overrides → 5; no Aura at all → 1.
 
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| All tokens, no overrides | Mostly tokens, 1–2 exceptions | Mix, some overrides | Heavy custom, breaks patterns | No Aura |
+**Q2 — Navigation.** Walkthrough is authoritative; probe gives baseline. Location always clear → 5; no location cues → 1.
 
-**Q2 — Navigation.** Probe gives baseline; walkthrough is authoritative.
+**Q3 — Labels.** Vague-label + placeholder-as-label count. Every element clearly labeled → 5; labels missing → 1.
 
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Location always clear, consistent nav | Usually clear | Sometimes unclear | Often confusing | No location cues |
+**Q4 — Feedback.** Loading + error state coverage per fetch/mutation. Every case covered → 5; silent failures → 1.
 
-**Q3 — Labels.** Vague labels + placeholder-as-label count.
+**Q5 — Clickability.** `<div onClick>` count + hover/focus utilities; walkthrough overrides. All obvious → 5; can't tell → 1.
 
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Every element clearly labeled | Mostly clear | Some vague ("Submit", "OK") | Many unclear | Labels missing |
+**Q6 — Error prevention.** Destructive verbs vs confirm-dialog pairings. No destructive actions in app → **5** automatically.
 
-**Q4 — Feedback.** Loading + error state coverage per fetch/mutation.
+**Q7 — Responsive.** Tailwind responsive utilities vs fixed-px count. "Desktop/control room" in `App-Brief.md` → desktop-only acceptable; score 5 if clean at 13".
 
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Every fetch/mutation covered | Most covered | Inconsistent | Minimal | Silent failures |
+**Q8 — Empty states.** Empty-state components + `items.length === 0` branches per panel. All helpful with next steps → 5; blank everywhere → 1.
 
-**Q5 — Clickability.** `<div onClick>` count + hover/focus utilities. Cross-check walkthrough.
+**Q9 — Performance.** `dist/` > 2 MB → flag; code-splitting present; pagination coverage. Fast + progressive + code-split → 5.
 
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| All interactive elements obvious | Most obvious | Inconsistent hover | Many don't look clickable | Can't tell |
-
-**Q6 — Error prevention.** Destructive verbs vs confirm-dialog pairings. Read-only apps with no destructive actions → **5** automatically.
-
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Confirmations present (or no destructive actions) | Most covered | Some warnings | Few warnings, no undo | No warnings |
-
-**Q7 — Responsive.** Tailwind responsive utilities vs fixed-px count. `App-Brief.md` "desktop/control room" → desktop-only is acceptable; score 5 if clean at 13".
-
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Seamless (or intentionally desktop-only + clean) | Works on most | Functional, not optimized | Poor mobile/tablet | Broken |
-
-**Q8 — Empty states.** Empty-state components + `items.length === 0` branches per panel.
-
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| All states helpful with next steps | Most helpful | Some explained | Many blank pages | Blank everywhere |
-
-**Q9 — Performance.** `dist/` size (flag > 2 MB), code-splitting, pagination coverage.
-
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Fast, progressive, paginated, code-split | Reasonable | Acceptable | Slow | Very slow |
-
-**Q10 — Accessibility.** `<img>` without `alt`, icon buttons without `aria-label`, focus styles.
-
-| 5 | 4 | 3 | 2 | 1 |
-|---|---|---|---|---|
-| Full keyboard, WCAG AA, ARIA, alt text | Most met | Basic keyboard | Limited keyboard | No keyboard nav |
+**Q10 — Accessibility.** `<img>` without `alt`, icon buttons without `aria-label`, focus styles. Full keyboard + WCAG AA → 5; no keyboard nav → 1.
 
 ## Step 4 — Compute average
 
-Average = sum ÷ 10.
-
-| Average | Level |
-|---|---|
-| 4.5–5.0 | Excellent |
-| 3.8–4.4 | Good — launch-ready |
-| 3.0–3.7 | Average — fix before launch |
-| < 3.0 | Needs significant work |
+Average = sum ÷ 10. Levels: ≥ 4.5 Excellent, 3.8–4.4 Good (launch-ready), 3.0–3.7 Average (fix before launch), < 3.0 Needs significant work.
 
 Gate: `flows-external-app-submit` requires **≥ 3.8**.
 

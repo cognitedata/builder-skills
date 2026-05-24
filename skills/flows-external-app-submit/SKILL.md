@@ -17,14 +17,6 @@ allowed-tools: Read, Glob, Grep, Shell, AskQuestion
 flows-app-brief  →  build  →  flows-code-review  →  flows-design-review  →  flows-external-app-submit (this skill)
 ```
 
-Verifies four gates, then runs `npx @cognite/cli apps submit`:
-
-1. `App-Brief.md` — exists and all required frontmatter fields populated
-2. Latest code review committed and `Must Fix open: 0`
-3. Latest design review committed and `Average score ≥ 3.8`
-4. Deploy bundle `.cognite-bundles/*.zip` present
-5. Uncommitted changes warned (not blocked) — they won't appear in the archive
-
 ## Step 1 — Verify App-Brief.md
 
 ```bash
