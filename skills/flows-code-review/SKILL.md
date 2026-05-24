@@ -13,43 +13,36 @@ allowed-tools: Read, Glob, Grep, Shell, Write
 
 # Flows Code Review
 
-This skill is the **technical review** step of the Flows app certification flow:
-
 ```
-flows-app-brief  →  build  →  flows-code-review (this skill, repeat until clean)  →  flows-design-review  →  flows-external-app-submit
+flows-app-brief  →  build  →  flows-code-review (repeat until clean)  →  flows-design-review  →  flows-external-app-submit
 ```
 
 ## Pre-conditions
 
-Check before starting (fail fast if any are missing):
-- `package.json` exists — Node/TS project
-- Inside a git repository (`git rev-parse --show-toplevel`)
-- `App-Brief.md` exists at the repo root — if missing, warn the user to run `flows-app-brief` first, then continue
+- `package.json` exists (Node/TS project)
+- Inside a git repository
+- `App-Brief.md` at repo root — warn if missing, then continue
 
 ## Scoring criteria
 
-Review against the 12 Dune app platform criteria (1–5 scale). For each criterion's detailed rubric, `Read` the referenced local skill file before scoring — they contain concrete thresholds and examples.
+Review against 12 Dune app platform criteria (1–5). Read the referenced skill files from `.agents/skills/<name>/SKILL.md` for detailed rubrics before scoring.
 
-| # | Criterion | Local skill rubric |
+| # | Criterion | Skill rubric |
 |---|---|---|
-| 1.1 | No known bugs | `correctness-and-error-handling/SKILL.md` |
-| 1.2 | CDF access via Cognite SDK only | `security/SKILL.md` |
-| 1.3 | Dependencies and packages | `dependencies-audit/SKILL.md` |
-| 1.4 | Test coverage (**hard gate: ≥ 80% line coverage**) | `test-coverage/SKILL.md` |
-| 1.5 | Dead code and maintainability | `code-quality/SKILL.md` |
-| 1.6 | Coding patterns and testability | `code-quality/SKILL.md` |
-| 2.1 | DM query patterns (search vs relational paths) | `dm-limits-and-best-practices/SKILL.md` |
-| 2.2 | Server-side filtering — no bulk fetch-and-filter | `performance/SKILL.md` |
-| 2.3 | Limits, pagination, no aggressive prefetch | `dm-limits-and-best-practices/SKILL.md` |
-| 2.4 | Rate of calls — debounce, batch, no tight loops | `performance/SKILL.md` |
-| 2.5 | Throttling — exponential backoff + jitter on 429 | `dm-limits-and-best-practices/SKILL.md` |
-| 3.1 | Aura design system consistency | (scored in `flows-design-review`) — mark N/A |
+| 1.1 | No known bugs | `correctness-and-error-handling` |
+| 1.2 | CDF access via Cognite SDK only | `security` |
+| 1.3 | Dependencies and packages | `dependencies-audit` |
+| 1.4 | Test coverage (**hard gate: ≥ 80% line coverage**) | `test-coverage` |
+| 1.5 | Dead code and maintainability | `code-quality` |
+| 1.6 | Coding patterns and testability | `code-quality` |
+| 2.1 | DM query patterns (search vs relational) | `dm-limits-and-best-practices` |
+| 2.2 | Server-side filtering — no bulk fetch-and-filter | `performance` |
+| 2.3 | Limits, pagination, no aggressive prefetch | `dm-limits-and-best-practices` |
+| 2.4 | Rate of calls — debounce, batch, no tight loops | `performance` |
+| 2.5 | Throttling — exponential backoff + jitter on 429 | `dm-limits-and-best-practices` |
+| 3.1 | Aura design system | N/A — scored in `flows-design-review` |
 
-The local skill files are at `.agents/skills/<name>/SKILL.md` in the app workspace (placed there by `npx @cognite/cli apps skills pull`). Read them with e.g. `Read .agents/skills/code-quality/SKILL.md`.
-
-## Step 1 — Run all probes upfront
-
-Run these all at once before reading any source files. They provide the hard evidence for scoring.
+## Step 1 — Run all probes
 
 **Test coverage** (try in order until one succeeds):
 ```bash
@@ -67,29 +60,26 @@ pnpm exec tsc --noEmit 2>&1 | tail -20
 **Dependency audit:**
 ```bash
 pnpm audit --json 2>/dev/null | head -150
-npm audit --json 2>/dev/null | head -150
 ```
 
-**CDF SDK check — flag any raw HTTP calls to CDF-like hosts:**
+**CDF SDK — flag raw HTTP to CDF hosts:**
 ```bash
 rg 'fetch\(|axios\.' src --type ts --type tsx -l 2>/dev/null
 rg 'cogniteapi\.omnia|api\.cognitedata|\.fusion\.cognite' src --type ts --type tsx -l 2>/dev/null
 ```
 
-**DMS query patterns — unbounded fetches:**
+**DMS patterns:**
 ```bash
 rg '\.list\(' src --type ts --type tsx -c 2>/dev/null
 rg '\blimit:' src --type ts --type tsx -c 2>/dev/null
 rg 'cursor|nextCursor' src --type ts --type tsx -c 2>/dev/null
-rg 'React\.query|useInfiniteQuery|useSuspenseInfiniteQuery' src --type ts --type tsx -c 2>/dev/null
 ```
 
-**Testability patterns:**
+**Testability:**
 ```bash
 rg 'vi\.mock\(' src --type ts --type tsx -c 2>/dev/null
 rg 'useContext.*Context\b' src --type ts --type tsx -c 2>/dev/null
 rg 'as unknown as ' src --type ts --type tsx -c 2>/dev/null
-rg 'ViewModel\b' src --type ts --type tsx -l 2>/dev/null
 ```
 
 **Dead code:**
@@ -98,50 +88,43 @@ rg 'TODO|FIXME|HACK|console\.log' src --type ts --type tsx -c 2>/dev/null
 find src -name '*.ts' -o -name '*.tsx' | wc -l
 ```
 
-## Step 2 — Write the file inventory (`review-files.md`)
+## Step 2 — File inventory (`review-files.md`)
 
-List all `.ts` / `.tsx` files under `src/`. For each non-trivial file note: test file exists (✓ / ✗ / N/A), and any finding from Step 1 probes that targets this file. Keep to one line per file. This is `review-files.md`.
+List all `.ts`/`.tsx` files under `src/`. Per non-trivial file: test exists (✓/✗/N/A), any probe hit. One line per file.
 
-## Step 3 — Write the package inventory (`review-packages.md`)
+## Step 3 — Package inventory (`review-packages.md`)
 
-From `package.json` and the audit output from Step 1, write a package health table. For each production dependency: used version, latest, weekly downloads (rough), last-published (rough), deprecated, CVEs, health (Pass / Warn / Fail). Fail = known CVE, deprecated, or unmaintained. Warn = significantly outdated.
+From `package.json` + audit output: per production dependency — version used, latest, deprecated, CVEs, health (Pass/Warn/Fail).
 
-## Step 4 — Score all 12 criteria and write the report
+## Step 4 — Score and write the report
 
-Using the Step 1 probe results and the local skill rubrics, score every criterion in one pass. Then write `reviews/code-review/feedback-round-<N>/code-review-report.md` using this template:
+Score all 12 criteria using probe results + skill rubrics. Write `reviews/code-review/feedback-round-<N>/code-review-report.md`:
 
 ```markdown
 # [App name] — Dune app review
 
-## What this review covers
-
-- **Protect the user and the customer** — no known bugs, correct SDK usage, healthy dependencies, adequate test coverage, clean codebase.
-- **Protect Cognite services** — efficient DMS patterns, server-side filtering, bounded pagination, graceful rate-limit handling.
-- **Protect the brand** — Aura consistency (scored in `flows-design-review`).
-
 ## Path to approval
 
-This review found **[N] must-fix item(s)**. [One sentence on should-fix count.] Once must-fix items are addressed, re-run this skill in a new feedback round.
+**[N] must-fix item(s).** [One sentence on should-fix count.]
 
 ---
 
 ## Reviewed commit
 
-`<full SHA>` ([link])
+`<sha>` ([link])
 
 ## Test coverage
 
-- **Framework:** [Vitest / Jest / None]
-- **Tests run:** [N passed / N failed]
+- **Framework:** Vitest / Jest / None
+- **Tests run:** N passed / N failed
 - **Coverage:** Statements: X% | Branches: X% | Functions: X% | Lines: X%
 - **Notable gaps:** ...
 
 ## Package & security summary
 
-- **Total packages:** N deps, N devDeps
-- **Health:** N pass, N warn, N fail
+- **Total:** N deps, N devDeps — N pass, N warn, N fail
 - **Vulnerabilities:** N critical, N high, N moderate, N low
-- Full details: see `review-packages.md`
+- Full details: `review-packages.md`
 
 ## Scores
 
@@ -158,7 +141,7 @@ This review found **[N] must-fix item(s)**. [One sentence on should-fix count.] 
 | Cognite services | 2.3 Limits & pages | /5 | |
 | Cognite services | 2.4 Call rate | /5 | |
 | Cognite services | 2.5 429 backoff | /5 | |
-| Brand | 3.1 Aura | N/A | Covered in flows-design-review |
+| Brand | 3.1 Aura | N/A | see flows-design-review |
 
 ## Must Fix
 
@@ -179,8 +162,8 @@ This review found **[N] must-fix item(s)**. [One sentence on should-fix count.] 
 - Nice Fix open: <integer>
 ```
 
-Write all three artifacts to `reviews/code-review/feedback-round-<N>/`. Use `feedback-round-1/` on first run; increment on reruns. Print the three counts to the terminal.
+Use `feedback-round-1/` on first run; increment on reruns. Print the three summary counts to the terminal.
 
 ## When to stop
 
-Re-run until `Must Fix open: 0` in the latest round. Only then proceed to `flows-design-review`.
+Re-run until `Must Fix open: 0`. Only then proceed to `flows-design-review`.
