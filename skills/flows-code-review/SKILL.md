@@ -44,6 +44,8 @@ Review against 12 Dune app platform criteria (1–5). Read the referenced skill 
 
 ## Step 1 — Run all probes
 
+Issue all probe groups as a single parallel batch — do not wait for one to finish before starting the next.
+
 **Test coverage** (try in order until one succeeds):
 ```bash
 npx vitest run --coverage 2>&1 | tail -30
@@ -88,13 +90,13 @@ rg 'TODO|FIXME|HACK|console\.log' src --type ts --type tsx -c 2>/dev/null
 find src -name '*.ts' -o -name '*.tsx' | wc -l
 ```
 
-## Step 2 — File inventory (`review-files.md`)
+## Steps 2 & 3 — File and package inventories (parallelizable, delegation-friendly)
 
-List all `.ts`/`.tsx` files under `src/`. Per non-trivial file: test exists (✓/✗/N/A), any probe hit. One line per file.
+Steps 2 and 3 are mechanical enumeration with no reasoning required. Run them in parallel with each other, and delegate to a sub-agent or lighter model if your platform supports it.
 
-## Step 3 — Package inventory (`review-packages.md`)
+**Step 2 — File inventory (`review-files.md`):** List all `.ts`/`.tsx` files under `src/`. Per non-trivial file: test exists (✓/✗/N/A), any probe hit. One line per file.
 
-From `package.json` + audit output: per production dependency — version used, latest, deprecated, CVEs, health (Pass/Warn/Fail).
+**Step 3 — Package inventory (`review-packages.md`):** From `package.json` + audit output: per production dependency — version used, latest, deprecated, CVEs, health (Pass/Warn/Fail).
 
 ## Step 4 — Score and write the report
 

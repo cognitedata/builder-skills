@@ -26,7 +26,7 @@ Target average: **≥ 3.8** ([quality guidelines](https://docs.cognite.com/cdf/f
 
 ## Step 0 — Run all probes + choose feedback round
 
-Run all probes before prompting the user for anything. Determine the next round number from `reviews/design-review/` (`feedback-round-1/` if none exist).
+Run all probes before prompting the user for anything. Issue all Q1–Q10 probe groups as a single parallel batch — do not wait for one to finish before starting the next. Determine the next round number from `reviews/design-review/` (`feedback-round-1/` if none exist).
 
 Read silently: `App-Brief.md` frontmatter (user/tasks/success criteria), `package.json` (Aura version), latest `reviews/code-review/.../code-review-report.md` (design-adjacent findings for Q4/Q10).
 
