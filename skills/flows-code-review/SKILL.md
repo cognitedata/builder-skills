@@ -3,7 +3,7 @@ name: flows-code-review
 description: >-
   Run the technical (code) review step of Flows app certification. Produces three
   artifacts under reviews/code-review/feedback-round-<N>/: review-files.md
-  (per-file inventory), review-packages.md (dependency audit), and
+  (file inventory), review-packages.md (dependency audit), and
   code-review-report.md (scored report with Must Fix / Should Fix / Nice Fix
   items). Use when the user asks for a Flows code review, technical review,
   pre-submit review, app certification code review, or "run flows-code-review".
@@ -19,46 +19,159 @@ This skill is the **technical review** step of the Flows app certification flow:
 flows-app-brief  →  build  →  flows-code-review (this skill, repeat until clean)  →  flows-design-review  →  flows-external-app-submit
 ```
 
-## Pre-scan policy: do not run your own
+## Pre-conditions
 
-Unlike `flows-app-brief` and `flows-design-review`, this skill **must not** add its own exploratory pre-scan of the repo. The upstream `cognitedata/dune-app-reviews` command already performs a structured scan (per-file inventory, dependency audit, pattern checks) against the official scoring criteria. A second scan layered on top would:
+Check before starting (fail fast if any are missing):
+- `package.json` exists — Node/TS project
+- Inside a git repository (`git rev-parse --show-toplevel`)
+- `App-Brief.md` exists at the repo root — if missing, warn the user to run `flows-app-brief` first, then continue
 
-- duplicate work the upstream command does better,
-- risk biasing the reviewer with stale or partial findings, and
-- diverge from the official scoring rubric.
+## Scoring criteria
 
-The only pre-checks this skill should perform are deterministic preconditions:
-- `package.json` exists and we are in a Node/TS project
-- we are inside a git repository
-- `App-Brief.md` exists at the repo root (a context hint for the reviewer — if missing, warn the user that `flows-app-brief` should be run first, but continue)
+Review against the 12 Dune app platform criteria (1–5 scale). For each criterion's detailed rubric, `Read` the referenced local skill file before scoring — they contain concrete thresholds and examples.
 
-Anything substantive belongs in the upstream command.
+| # | Criterion | Local skill rubric |
+|---|---|---|
+| 1.1 | No known bugs | `correctness-and-error-handling/SKILL.md` |
+| 1.2 | CDF access via Cognite SDK only | `security/SKILL.md` |
+| 1.3 | Dependencies and packages | `dependencies-audit/SKILL.md` |
+| 1.4 | Test coverage (**hard gate: ≥ 80% line coverage**) | `test-coverage/SKILL.md` |
+| 1.5 | Dead code and maintainability | `code-quality/SKILL.md` |
+| 1.6 | Coding patterns and testability | `code-quality/SKILL.md` |
+| 2.1 | DM query patterns (search vs relational paths) | `dm-limits-and-best-practices/SKILL.md` |
+| 2.2 | Server-side filtering — no bulk fetch-and-filter | `performance/SKILL.md` |
+| 2.3 | Limits, pagination, no aggressive prefetch | `dm-limits-and-best-practices/SKILL.md` |
+| 2.4 | Rate of calls — debounce, batch, no tight loops | `performance/SKILL.md` |
+| 2.5 | Throttling — exponential backoff + jitter on 429 | `dm-limits-and-best-practices/SKILL.md` |
+| 3.1 | Aura design system consistency | (scored in `flows-design-review`) — mark N/A |
 
-## Step 1 — Fetch the upstream review command
+The local skill files are at `.agents/skills/<name>/SKILL.md` in the app workspace (placed there by `npx @cognite/cli apps skills pull`). Read them with e.g. `Read .agents/skills/code-quality/SKILL.md`.
 
-Fetch the official review command and follow it exactly:
+## Step 1 — Run all probes upfront
 
+Run these all at once before reading any source files. They provide the hard evidence for scoring.
+
+**Test coverage** (try in order until one succeeds):
 ```bash
-gh api repos/cognitedata/dune-app-reviews/contents/.claude/commands/dune-review.md \
-  --jq '.content' | base64 -d
+npx vitest run --coverage 2>&1 | tail -30
+npx jest --coverage 2>&1 | tail -30
+npm test -- --coverage 2>&1 | tail -30
 ```
 
-## Step 2 — Adapt for a local developer review
+**Lint and type safety:**
+```bash
+pnpm run lint 2>&1 | tail -20
+pnpm exec tsc --noEmit 2>&1 | tail -20
+```
 
-- Treat the **current workspace** as the app under review.
-- Skip all ticket, PR, overview, submodule, and `reviews/<TICKET-ID>/...` setup steps.
-- If the upstream command asks for Jira ticket or PR input, ignore that requirement and continue with the local codebase.
-- Write artifacts to **`reviews/code-review/feedback-round-<N>/`**:
-  - `code-review-report.md` (this is the renamed `review-report.md` from upstream — use this filename always)
-  - `review-files.md`
-  - `review-packages.md`
-- If no local feedback round exists yet, use `reviews/code-review/feedback-round-1/`. For reruns, increment the round number (`feedback-round-2/`, `feedback-round-3/`, ...).
+**Dependency audit:**
+```bash
+pnpm audit --json 2>/dev/null | head -150
+npm audit --json 2>/dev/null | head -150
+```
 
-## Step 3 — Surface the Must-Fix count
+**CDF SDK check — flag any raw HTTP calls to CDF-like hosts:**
+```bash
+rg 'fetch\(|axios\.' src --type ts --type tsx -l 2>/dev/null
+rg 'cogniteapi\.omnia|api\.cognitedata|\.fusion\.cognite' src --type ts --type tsx -l 2>/dev/null
+```
 
-The final section of `code-review-report.md` MUST include a machine-readable summary block so `flows-external-app-submit` can gate on it deterministically:
+**DMS query patterns — unbounded fetches:**
+```bash
+rg '\.list\(' src --type ts --type tsx -c 2>/dev/null
+rg '\blimit:' src --type ts --type tsx -c 2>/dev/null
+rg 'cursor|nextCursor' src --type ts --type tsx -c 2>/dev/null
+rg 'React\.query|useInfiniteQuery|useSuspenseInfiniteQuery' src --type ts --type tsx -c 2>/dev/null
+```
+
+**Testability patterns:**
+```bash
+rg 'vi\.mock\(' src --type ts --type tsx -c 2>/dev/null
+rg 'useContext.*Context\b' src --type ts --type tsx -c 2>/dev/null
+rg 'as unknown as ' src --type ts --type tsx -c 2>/dev/null
+rg 'ViewModel\b' src --type ts --type tsx -l 2>/dev/null
+```
+
+**Dead code:**
+```bash
+rg 'TODO|FIXME|HACK|console\.log' src --type ts --type tsx -c 2>/dev/null
+find src -name '*.ts' -o -name '*.tsx' | wc -l
+```
+
+## Step 2 — Write the file inventory (`review-files.md`)
+
+List all `.ts` / `.tsx` files under `src/`. For each non-trivial file note: test file exists (✓ / ✗ / N/A), and any finding from Step 1 probes that targets this file. Keep to one line per file. This is `review-files.md`.
+
+## Step 3 — Write the package inventory (`review-packages.md`)
+
+From `package.json` and the audit output from Step 1, write a package health table. For each production dependency: used version, latest, weekly downloads (rough), last-published (rough), deprecated, CVEs, health (Pass / Warn / Fail). Fail = known CVE, deprecated, or unmaintained. Warn = significantly outdated.
+
+## Step 4 — Score all 12 criteria and write the report
+
+Using the Step 1 probe results and the local skill rubrics, score every criterion in one pass. Then write `reviews/code-review/feedback-round-<N>/code-review-report.md` using this template:
 
 ```markdown
+# [App name] — Dune app review
+
+## What this review covers
+
+- **Protect the user and the customer** — no known bugs, correct SDK usage, healthy dependencies, adequate test coverage, clean codebase.
+- **Protect Cognite services** — efficient DMS patterns, server-side filtering, bounded pagination, graceful rate-limit handling.
+- **Protect the brand** — Aura consistency (scored in `flows-design-review`).
+
+## Path to approval
+
+This review found **[N] must-fix item(s)**. [One sentence on should-fix count.] Once must-fix items are addressed, re-run this skill in a new feedback round.
+
+---
+
+## Reviewed commit
+
+`<full SHA>` ([link])
+
+## Test coverage
+
+- **Framework:** [Vitest / Jest / None]
+- **Tests run:** [N passed / N failed]
+- **Coverage:** Statements: X% | Branches: X% | Functions: X% | Lines: X%
+- **Notable gaps:** ...
+
+## Package & security summary
+
+- **Total packages:** N deps, N devDeps
+- **Health:** N pass, N warn, N fail
+- **Vulnerabilities:** N critical, N high, N moderate, N low
+- Full details: see `review-packages.md`
+
+## Scores
+
+| Area | Criterion | Score | Notes |
+|---|---|---|---|
+| User & customer | 1.1 Known bugs | /5 | |
+| User & customer | 1.2 CDF via SDK | /5 | |
+| User & customer | 1.3 Packages | /5 | |
+| User & customer | 1.4 Tests & coverage | /5 | |
+| User & customer | 1.5 Dead code | /5 | |
+| User & customer | 1.6 Patterns & testability | /5 | |
+| Cognite services | 2.1 DMS query patterns | /5 | |
+| Cognite services | 2.2 Server-side filter | /5 | |
+| Cognite services | 2.3 Limits & pages | /5 | |
+| Cognite services | 2.4 Call rate | /5 | |
+| Cognite services | 2.5 429 backoff | /5 | |
+| Brand | 3.1 Aura | N/A | Covered in flows-design-review |
+
+## Must Fix
+
+- [ ] ...
+
+## Should Fix
+
+- [ ] ...
+
+## Nice to Fix
+
+- [ ] ...
+
 ## Summary
 
 - Must Fix open: <integer>
@@ -66,24 +179,8 @@ The final section of `code-review-report.md` MUST include a machine-readable sum
 - Nice Fix open: <integer>
 ```
 
-Use exactly those labels and the singular line format above. When all Must Fix items are resolved, the line MUST read `Must Fix open: 0`.
-
-Print the same three counts to the terminal at the end of the run so the user sees the gate status without opening the report.
-
-## Step 4 — Verify
-
-After the review artifacts are written, fetch the official verification command and follow it too:
-
-```bash
-gh api repos/cognitedata/dune-app-reviews/contents/.claude/commands/dune-review-verify.md \
-  --jq '.content' | base64 -d
-```
-
-Adapt verification the same way:
-- Skip ticket and feedback-round lookup.
-- Read the three artifacts from `reviews/code-review/feedback-round-<N>/` (note `code-review-report.md`, not `review-report.md`).
-- Verify the review against the local source code before declaring it complete.
+Write all three artifacts to `reviews/code-review/feedback-round-<N>/`. Use `feedback-round-1/` on first run; increment on reruns. Print the three counts to the terminal.
 
 ## When to stop
 
-Re-run this skill until `Must Fix open: 0` in the latest round's `code-review-report.md`. Only then proceed to `flows-design-review`.
+Re-run until `Must Fix open: 0` in the latest round. Only then proceed to `flows-design-review`.

@@ -26,9 +26,10 @@ This skill **does not** rerun any review. It verifies the artifacts from the pri
 Before doing anything, print this checklist so the user knows exactly what is being verified:
 
 1. `App-Brief.md` exists at repo root and all **required** frontmatter fields are populated.
-2. The latest `reviews/code-review/feedback-round-<N>/code-review-report.md` exists and reports **`Must Fix open: 0`**.
-3. The latest `reviews/design-review/feedback-round-<N>/design-review-report.md` exists and reports **`Average score: X.X`** with **X.X ≥ 3.8**.
-4. The working tree is clean (uncommitted changes are warned, not blocked).
+2. Latest `reviews/code-review/feedback-round-<N>/code-review-report.md` is **committed** and reports **`Must Fix open: 0`**.
+3. Latest `reviews/design-review/feedback-round-<N>/design-review-report.md` is **committed** and reports **`Average score: X.X`** with **X.X ≥ 3.8**.
+4. Deploy bundle `.cognite-bundles/*.zip` exists (required for a complete submission zip).
+5. Uncommitted changes are warned (not blocked) — they will not appear in the source archive.
 
 ## Step 1 — Verify App-Brief.md
 
@@ -56,10 +57,12 @@ Optional (not blocking): `userCount`, `businessValue`, `milestones`, `repoUrl`.
 ## Step 2 — Verify code review
 
 ```bash
-ls -d reviews/code-review/feedback-round-* 2>/dev/null | sort -V | tail -1
+git ls-files 'reviews/code-review/' | grep 'code-review-report.md' | sort -V | tail -1
 ```
 
-Pick the highest-numbered round. If the directory does not exist or has no `code-review-report.md`, fail with: *"Run `flows-code-review` first."*
+Pick the highest-numbered round. If the command returns nothing, fail with: *"Run `flows-code-review` first, then commit the artifacts with `git add reviews/ && git commit`."*
+
+> **Why `git ls-files`?** `apps submit` uses `git archive HEAD` — it only packages committed files. An artifact on disk but not committed will pass this skill's check and then silently disappear from the submission zip. Always commit review artifacts before submitting.
 
 Parse the Summary block from `code-review-report.md`. It must contain a line matching this exact regex:
 
@@ -74,10 +77,10 @@ If the line is missing entirely → fail with: *"Latest code review report is mi
 ## Step 3 — Verify design review
 
 ```bash
-ls -d reviews/design-review/feedback-round-* 2>/dev/null | sort -V | tail -1
+git ls-files 'reviews/design-review/' | grep 'design-review-report.md' | sort -V | tail -1
 ```
 
-Pick the highest-numbered round. If the directory does not exist or has no `design-review-report.md`, fail with: *"Run `flows-design-review` first."*
+Pick the highest-numbered round. If the command returns nothing, fail with: *"Run `flows-design-review` first, then commit the artifacts with `git add reviews/ && git commit`."*
 
 Parse the Summary block from `design-review-report.md`. It must contain a line matching:
 
@@ -87,13 +90,27 @@ Parse the Summary block from `design-review-report.md`. It must contain a line m
 
 If the number is **≥ 3.8** → pass. Otherwise → fail with: *"Design review average is below the launch threshold (3.8). Address the Must Fix and Should Fix items in `reviews/design-review/feedback-round-<N>/design-review-report.md` and re-run `flows-design-review` in a new feedback round."*
 
-## Step 4 — Working tree check
+## Step 4 — Working tree and deploy bundle check
+
+**Uncommitted changes:**
+
+`apps submit` uses `git archive HEAD` — only committed files land in the zip. Uncommitted content is never packaged, which prevents accidental `.env` / secret leakage. Warn (do not block) if there are uncommitted changes:
 
 ```bash
 git status --porcelain
 ```
 
-If non-empty → **warn** (do not block): *"You have uncommitted changes. The submit command will zip your current working tree, including those changes."*
+If non-empty → **warn**: *"You have uncommitted changes. They will **not** appear in the source archive — `git archive HEAD` only packages committed files. Run `git add` + `git commit` if these changes should be part of the certification."*
+
+**Deploy bundle:**
+
+`apps submit` requires a deploy bundle (`.cognite-bundles/<externalId>-<versionTag>.zip`) for a complete submission. Check:
+
+```bash
+ls .cognite-bundles/*.zip 2>/dev/null | head -1
+```
+
+If nothing found → **fail**: *"No deploy bundle found in `.cognite-bundles/`. Run `npx @cognite/cli apps deploy` first to build and package the app."*
 
 ## Step 5 — Print pass/fail table
 

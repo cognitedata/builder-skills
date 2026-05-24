@@ -30,40 +30,97 @@ Target overall average: **3.8 or higher** to be launch-ready.
 
 ## Operating rules
 
-- **Automate first, ask second.** For every question Q1–Q10, run the probes listed below to gather hard evidence from the repo and **propose a draft score (1–5) with rationale** *before* asking the user. The user's job is to confirm or override the proposed score, not to grade from scratch. This dramatically reduces the manual burden.
-- The **task walkthrough (Step 2)** is the one part that cannot be skipped — automation cannot tell whether a user "gets lost" navigating a screen. Capture it manually and use it to override the auto-derived scores where lived experience disagrees.
-- Use `AskQuestion` for every score so answers are structured. For each question present three options: *(a) accept the draft score*, *(b) override with a specific score*, *(c) override + add a note*.
+- **Run all probes before sending the user to do the walkthrough.** The Q1–Q10 probe commands are pure shell — they have no dependency on walkthrough results. Fire them all in Step 0, then dispatch the user to walk the app. By the time they return, the probe evidence is ready and scoring is one pass, not ten.
+- **Score all 10 questions in one batch.** After the walkthrough returns, build a draft score table using all probe evidence and present it in a single message. One `AskQuestion` covers all overrides — no per-question confirm loops.
 - Pre-fill user, tasks, and persona context from `App-Brief.md` frontmatter when present.
 
-## Step 0 — Pre-scan before prompting
+## Step 0 — Run ALL probes and choose feedback round
 
-**Always pre-scan before asking the user anything.** Read these sources silently and surface what you found as *evidence* — never as scores, never auto-saved:
+**Run every probe below before doing anything else or prompting the user.** The probes are independent of the walkthrough and provide the hard evidence for all 10 questions.
 
-| Source | Use it for |
-| --- | --- |
-| `App-Brief.md` frontmatter | Pre-fill primary user (`userRole`), tasks (`oneSentenceStory`), success criteria |
-| `package.json` | Confirm `@cognite/aura` is installed and surface its version (informs Q1) |
-| Latest `reviews/code-review/feedback-round-<N>/code-review-report.md` | Pull design-adjacent findings (accessibility, error handling, UX copy) and present them as evidence under Q4/Q10 |
-| `src/**/*.{ts,tsx,css}` | Q1 probe — grep for hard-coded hex/rgb colors and raw `px`/`rem` values outside Aura tokens |
-| `src/**/*.{ts,tsx}` | Q5 probe — `onClick` on non-button elements without `role`/`tabIndex` |
-| `src/**/*.{ts,tsx}` | Q10 probe — icon buttons missing `aria-label`, `<img>` without `alt`, missing focus styles |
+**Feedback round:** Check `reviews/design-review/`. If it doesn't exist, use `feedback-round-1/`. Otherwise increment to the next missing `feedback-round-<N>/` directory.
 
-Show the user the pre-scan results in your opening message before any scoring. They are starting points, not verdicts. The manual task walkthrough (Step 2) and user-assigned scores remain authoritative.
+**Context sources (read silently):**
+- `App-Brief.md` frontmatter — primary user, tasks, success criteria
+- `package.json` — confirm `@cognite/aura` version (Q1)
+- Latest `reviews/code-review/feedback-round-<N>/code-review-report.md` — design-adjacent findings for Q4/Q10
 
-## Step 0b — Choose feedback round
+**Q1 — Aura consistency:**
+```bash
+rg '#[0-9a-fA-F]{3,8}\b' src --type css --type tsx --type ts -l 2>/dev/null
+rg '\b(rgb|rgba|hsl|hsla)\(' src --type tsx --type css -l 2>/dev/null
+grep -c '@cognite/aura' package.json
+```
 
-Look at `reviews/design-review/`. If it doesn't exist, this is round 1. Otherwise increment to the next missing `feedback-round-<N>/` directory.
+**Q2 — Navigation (relies on walkthrough — collect route count as baseline):**
+```bash
+rg '<Route\b' src --type tsx -c 2>/dev/null
+rg 'Breadcrumb' src --type tsx -l 2>/dev/null
+rg '<Topbar|<Sidebar|<Header' src --type tsx -l 2>/dev/null
+```
+
+**Q3 — Labels and language:**
+```bash
+rg '>(Submit|OK|Click here|Go|Yes|No)<' src --type tsx -c 2>/dev/null
+rg 'placeholder=' src --type tsx -c 2>/dev/null
+```
+
+**Q4 — System feedback:**
+```bash
+rg 'isLoading|isPending|<Skeleton|<Loader|<Spinner' src --type tsx -l 2>/dev/null
+rg 'isError|onError|<Alert|toast\.' src --type tsx -l 2>/dev/null
+rg 'useMutation' src --type tsx -l 2>/dev/null
+```
+
+**Q5 — Clickability:**
+```bash
+rg '<div[^>]*onClick' src --type tsx -c 2>/dev/null
+rg '<span[^>]*onClick' src --type tsx -c 2>/dev/null
+rg 'hover:|focus:' src --type tsx -c 2>/dev/null
+```
+
+**Q6 — Error prevention:**
+```bash
+rg 'delete|remove|archive|reset' src --type tsx -i -l 2>/dev/null | head -20
+rg 'AlertDialog|ConfirmDialog|window\.confirm' src --type tsx -l 2>/dev/null
+```
+
+**Q7 — Responsive:**
+```bash
+rg '\b(sm|md|lg|xl|2xl):' src --type tsx -c 2>/dev/null
+rg '\bw-\[[0-9]+px\]|\bh-\[[0-9]+px\]' src --type tsx -c 2>/dev/null
+```
+
+**Q8 — Empty states:**
+```bash
+rg -i 'empty|no\s+(data|results|items)' src --type tsx -l 2>/dev/null
+rg '<EmptyState|EmptyPlaceholder' src --type tsx -l 2>/dev/null
+rg 'items\.length === 0' src --type tsx -c 2>/dev/null
+```
+
+**Q9 — Performance (use existing build if fresh; only rebuild if dist/ is stale or missing):**
+```bash
+find dist -maxdepth 1 -newer package.json -name '*.js' 2>/dev/null | wc -l
+du -sh dist/ 2>/dev/null
+rg 'React\.lazy|lazy\(' src --type tsx -c 2>/dev/null
+rg '\.list\([^)]*\)' src --type ts --type tsx -l 2>/dev/null | xargs -I{} grep -l 'limit:' {} 2>/dev/null | wc -l
+```
+
+**Q10 — Accessibility:**
+```bash
+rg '<img\b(?![^>]*\balt=)' src --type tsx -c 2>/dev/null
+rg '<button[^>]*>\s*<(svg|Icon)' src --type tsx -c 2>/dev/null
+rg 'aria-label=' src --type tsx -c 2>/dev/null
+rg 'focus-visible:|focus:' src --type tsx -c 2>/dev/null
+```
+
+After all probes complete, show the user a summary of what was found and tell them:
+
+> "Probe collection complete. Now please do the manual task walkthrough (Step 2) and return here with your findings."
 
 ## Step 1 — Confirm user and tasks
 
-Per the docs, "the quality assessment is only as useful as the clarity of the user and tasks it's based on."
-
-If `App-Brief.md` exists, parse `userRole`, `oneSentenceStory`, and `successCriteria` from its frontmatter and propose them as the primary user and tasks. Ask the user to confirm or extend.
-
-Capture, via `AskQuestion`:
-- **Primary user** — specific role and context (e.g. "Maintenance engineers on offshore platforms").
-- **2–3 critical tasks** — the workflows this user needs to complete (e.g. "Check pump vibration alerts", "Schedule maintenance work").
-- **Context** — experience level, time constraints, device, success criteria.
+Parse `userRole`, `oneSentenceStory`, and `successCriteria` from `App-Brief.md` frontmatter and propose them as the primary user and 2–3 critical tasks. Ask the user to confirm or extend via `AskQuestion` (one call, batched with the probe summary).
 
 ## Step 2 — Walk each task end-to-end (manual)
 
@@ -72,23 +129,21 @@ Instruct the user to:
 2. Complete each task from beginning to end without shortcuts.
 3. Note pain points: where they get stuck, confused, or make errors.
 
-For each task, prompt the user to paste back: what happened, where they got stuck, and any screenshots / notes. Capture these as `taskWalkthroughs[]` for the report.
+For each task, prompt the user to paste back: what happened, where they got stuck, and any screenshots / notes. Capture as `taskWalkthroughs[]` for the report.
 
-Do NOT proceed to scoring until the user confirms they walked every task. If they refuse, write a stub report that records "task walkthrough skipped" and exits — do not score.
+Do NOT proceed to scoring until the user confirms they walked every task. If they refuse, write a stub report recording "task walkthrough skipped" and exit — do not score.
 
-## Step 3 — Score the 10 questions (probe → propose → confirm)
+## Step 3 — Score all 10 questions in one batch
 
-For every question Q1–Q10, follow the same loop:
+All probes already ran in Step 0. Using those results plus the walkthrough findings from Step 2:
 
-1. **Run the listed probes.** They are concrete shell / grep / lint / build commands that produce hard evidence from the repo.
-2. **Propose a draft score (1–5)** based on the probe results and the rubric. Show your work: which probe results led to which score.
-3. **Cross-check** against the user's task-walkthrough notes from Step 2 (especially for navigation, clickability, error prevention).
-4. **Ask the user via `AskQuestion`** with three options: *(a) accept the proposed score `N`*, *(b) override with a specific score*, *(c) override + add a note*.
-5. Capture the final score, a one-line rationale, and an improvement note.
+1. Apply the heuristic table below to translate probe counts into a draft score for each of Q1–Q10.
+2. Cross-check navigation (Q2), clickability (Q5), and error prevention (Q6) against the walkthrough notes — lived experience overrides probe counts for these.
+3. Present a **single score table** with all 10 proposed scores and a one-line rationale each.
+4. Use one `AskQuestion` call: *"Here are the proposed scores. Reply with any overrides as `Q<N>: <score> — <reason>`, or 'all good'."*
+5. Apply any overrides and capture final scores.
 
-### Heuristics for translating probe results into a draft score
-
-These thresholds are starting points — adjust based on the specific evidence and the rubric language. The user always has the final say.
+### Heuristics for translating probe counts into a draft score
 
 | Signal | Drift toward |
 | --- | --- |
@@ -98,181 +153,67 @@ These thresholds are starting points — adjust based on the specific evidence a
 | 15+ matches, or pervasive anti-pattern | 2 |
 | Anti-pattern is the default style | 1 |
 
-### Per-question automated probes
-
-Each question's probe list is the *first* thing the agent should run before asking the user anything about that question. Always state which probes were run and what they returned.
-
 ### The 10 questions and rubric
 
-**Q1 — Aura design system consistency.** Are you using Aura tokens, layouts, components and patterns correctly?
+**Q1 — Aura consistency.** Probe evidence: hard-coded hex/rgb colors, `aura/no-overriding-styles` warnings, Aura import count. Score 5 = no hard-coded colors + lint clean. Score 2–3 = many warnings or no Aura imports.
 
-**Probes (automatable):**
-- `grep -c '@cognite/aura' package.json` — confirm Aura is a dependency
-- `rg "from '@cognite/aura" src --type ts --type tsx -l | wc -l` — count files importing Aura
-- `rg '#[0-9a-fA-F]{3,8}\b' src --type css --type tsx --type ts -l` — files with hard-coded hex colors
-- `rg '\b(rgb|rgba|hsl|hsla)\(' src --type tsx --type css -l` — files with raw rgb/hsl values
-- `npx eslint . --ext .ts,.tsx --rule '{"aura/no-overriding-styles":"error"}' --no-eslintrc --quiet 2>&1 | tail -5` or read the existing lint output for `aura/no-overriding-styles` warning counts
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| All Aura tokens, no overrides, no hard-coded values | Mostly Aura, 1–2 exceptions | Mix of Aura and custom, some overrides | Heavy custom colors/spacing, breaks patterns | No Aura usage at all |
 
-**Translate to draft score:** 0 hard-coded colors + 0 `aura/no-overriding-styles` warnings → 5. Few warnings (1–5) → 4. Many warnings (>15) or no Aura imports → 2–3.
+**Q2 — Navigation and hierarchy.** Probe evidence: route count, breadcrumb usage, top-level chrome. **Default to the walkthrough finding** — navigation feel is not statically measurable.
 
-- **5 Excellent:** All Aura tokens applied correctly, no hard-coded values. Proper responsive sizing and page layouts. Aura components used without style overrides. Best practices followed.
-- **4 Good:** Mostly Aura tokens and components with 1–2 minor exceptions. Layout spacing mostly consistent. Minimal style overrides.
-- **3 Average:** Mix of Aura and custom elements. Some proper spacing, some random values. Overriding styles in multiple places.
-- **2 Below average:** Frequently custom colors, typography, or spacing instead of Aura tokens. Heavy customization that breaks patterns.
-- **1 Poor:** Not using Aura at all. Custom colors, fonts, spacing throughout.
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Location always clear, consistent nav, strong hierarchy | Usually clear, minor exceptions | Sometimes unclear, works but not intuitive | Often confusing, nav changes between pages | No location cues, no navigation |
 
-**Q2 — Navigation, layout and hierarchy.** Can users tell where they are and navigate easily?
+**Q3 — Labels and language.** Probe evidence: vague button labels count, placeholder-as-label count, input-to-label ratio.
 
-**Probes (partially automatable — relies on Step 2 walkthrough):**
-- `rg '<Route\b' src --type tsx -c` — count routes (informs navigation surface)
-- `rg 'Breadcrumb' src --type tsx -l` — files using breadcrumb components (location cues)
-- `rg 'NavLink|Link to=|useLocation' src --type tsx -l` — navigation primitives in use
-- `rg '<Topbar|<Sidebar|<Header' src --type tsx -l` — top-level chrome
-- Look at the route tree (`src/routes/`) and ask: does each non-trivial page show its own title and a way back?
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Every element clearly labeled, action-oriented language | Mostly clear, minor ambiguity | Some vague labels ("Submit", "OK"), some jargon | Many unclear labels, heavy technical terms | Labels missing or confusing |
 
-**Translate to draft score:** Default to **the walkthrough finding** since navigation feel is hard to measure statically. Use probes to flag risks (e.g. routes without breadcrumbs).
+**Q4 — System feedback.** Probe evidence: loading/skeleton coverage per fetch file, mutation error-handler coverage.
 
-- **5:** Current location always clear. Easy navigation forward/back. Consistent menus. Strong visual hierarchy. Content flows logically (F/Z pattern).
-- **4:** Usually clear. Navigation mostly consistent. Minor exceptions.
-- **3:** Sometimes unclear. Navigation works but not always intuitive. Hierarchy exists but not always clear.
-- **2:** Often lost or confused. Navigation changes between pages. Weak hierarchy.
-- **1:** No indication of current location. No clear navigation. Inconsistent structure.
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Every fetch/mutation has loading + error state | Most covered, few gaps | Inconsistent — some loading states missing | Minimal feedback, users don't know if actions worked | No feedback, silent failures |
 
-**Q3 — Clear labels and language.** Are buttons, inputs, and actions labeled clearly?
+**Q5 — Clickability.** Probe evidence: `<div onClick>` without role count, hover/focus utility count. Cross-check walkthrough.
 
-**Probes (automatable):**
-- `rg ">(Submit|OK|Click here|Go|Yes|No)<" src --type tsx -c` — count vague button labels
-- `rg '<Button[^>]*>\s*</Button>' src --type tsx -c` — empty buttons (icon-only without label needs aria-label, handled in Q10)
-- `rg '<Label\b' src --type tsx -l` and `rg '<input\b' src --type tsx -l` — input elements vs labels; mismatch suggests unlabeled inputs
-- `rg 'placeholder=' src --type tsx -c` — placeholder-as-label is an anti-pattern; high count without matching `<Label>` is a smell
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| All clickable elements look clickable, hover/focus on all | Most obvious, hover mostly present | Inconsistent hover states | Many elements don't look clickable | Can't tell what's interactive |
 
-**Translate to draft score:** 0 vague labels + every input has a matching label → 5. Few placeholder-only inputs → 4. Vague labels in several places → 3.
+**Q6 — Error prevention.** Probe evidence: destructive verbs vs confirm-dialog pairings. **N/A rule:** read-only apps with no destructive actions score **5** automatically — do not penalize for lacking confirmations they don't need.
 
-- **5:** Every element has a clear, specific label. Plain, action-oriented language ("Save changes", "Delete item").
-- **4:** Most labels clear. Minor ambiguity.
-- **3:** Labels present but sometimes vague ("Submit", "OK"). Some unnecessary jargon.
-- **2:** Many labels unclear. Heavy technical terms without explanation.
-- **1:** Labels missing, confusing, or jargon-laden.
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Confirmations before destructive actions (OR no destructive actions) | Most covered, some auto-save | Some warnings for major actions | Few warnings, no undo | No warnings, frequent accidental data loss |
 
-**Q4 — System feedback and validation.** Do users know what's happening? Are forms easy to use?
+**Q7 — Responsive.** Probe evidence: Tailwind responsive utilities count, fixed-px sizing count. If `App-Brief.md` `userRole` says "desktop/control room", desktop-only is acceptable — score 5 if clean at 13".
 
-**Probes (automatable):**
-- `rg 'isLoading|isPending|<Skeleton|<Loader|<Spinner' src --type tsx -l` — files with loading affordances
-- `rg 'isError|onError|<Alert|toast\.' src --type tsx -l` — files with error/success affordances
-- `rg 'useMutation' src --type tsx -l` — mutation sites; cross-check that each has `onSuccess`/`onError` handlers
-- `rg 'ErrorBoundary' src --type tsx -l` — error boundaries (also cross-checked in code review)
-- For each route/feature folder, ratio of (loading + error files) ÷ (data-fetching files) should be ≈ 1
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Seamless across sizes (OR intentionally desktop-only and clean) | Works on most, minor issues | Functional but not optimized | Poor mobile/tablet | Desktop only, broken on other sizes |
 
-**Translate to draft score:** Loading and error states present on every fetch/mutation → 5. A few mutations without explicit error handling → 4. Mixed coverage → 3.
+**Q8 — Empty states.** Probe evidence: empty-state component count, `items.length === 0` branch count per data-fetching panel.
 
-- **5:** Immediate feedback. Clear loading states. Helpful success/error messages. All fields labeled, required fields marked, real-time validation with specific messages.
-- **4:** Most actions provide feedback. Loading states present. Validation mostly helpful.
-- **3:** Some feedback but inconsistent. Loading states sometimes missing. Generic error messages.
-- **2:** Minimal feedback. Users often don't know if actions worked. Validation only on submit.
-- **1:** No feedback. Silent failures. Technical error codes.
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| All empty states helpful with next steps | Most helpful, minor gaps | Some explained | Many blank pages | Blank pages everywhere |
 
-**Q5 — Clickability and interactions.** Is it obvious what's clickable?
+**Q9 — Performance.** Probe evidence: `dist/` size (from Step 0 — skip rebuild if fresh), code-splitting, pagination coverage. Flag dist > 2 MB.
 
-**Probes (automatable):**
-- `rg '<div[^>]*onClick' src --type tsx -c` — `onClick` on `<div>` (non-semantic, often missing keyboard support)
-- `rg '<span[^>]*onClick' src --type tsx -c` — same for `<span>`
-- `rg 'role="button"' src --type tsx -c` — explicit role assignments (good if `<div onClick>` is unavoidable)
-- `rg 'hover:|focus:' src --type tsx -c` — Tailwind hover/focus utility usage (high = good)
-- `rg 'cursor-pointer' src --type tsx -c` — explicit pointer cursor
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Fast, progressive, paginated, code-split | Reasonable, most tasks streamlined | Acceptable, some slow spots | Slow, tasks require many steps | Very slow or unresponsive |
 
-**Translate to draft score:** 0 `<div onClick>` without role + many hover/focus utilities → 5. 1–3 violations → 4. Many `onClick` on non-button elements → 2–3.
+**Q10 — Accessibility.** Probe evidence: `<img>` without `alt`, icon-only buttons without `aria-label`, focus styles.
 
-- **5:** All clickable items look clickable. Hover effects on interactive elements. Cursor changes appropriately.
-- **4:** Most interactive elements obvious. Hover effects mostly present.
-- **3:** Inconsistent hover states. Occasionally unclear what's interactive.
-- **2:** Many interactive elements don't look clickable. Few hover effects.
-- **1:** Can't tell what's clickable. No visual feedback.
-
-**Q6 — Error prevention and recovery.** Can users undo or cancel destructive actions?
-
-**Probes (partially automatable):**
-- `rg 'delete|remove|archive|reset' src --type tsx -i -l | head -20` — files with potentially destructive actions
-- `rg 'AlertDialog|ConfirmDialog|window\.confirm' src --type tsx -l` — confirm-dialog usage
-- `rg 'variant="destructive"|destructive' src --type tsx -c` — destructive button styling
-- For each file with destructive verbs, check there is a corresponding `AlertDialog`/`ConfirmDialog` invocation in the same file or its imports
-
-**N/A guidance:** Read-only viewer apps (the common case for Flows demos) have no destructive actions and should score **5 by default with a "no destructive actions" rationale**. Do not penalize an app for not having confirmations it does not need.
-
-- **5:** Confirmation dialogs before destructive actions. Auto-save prevents data loss. Clear undo or cancel options. **OR** the app has no destructive actions.
-- **4:** Most destructive actions have warnings. Some auto-save or undo.
-- **3:** Some warnings for major actions. Limited undo/cancel.
-- **2:** Few warnings. No undo. Easy to lose work.
-- **1:** No warnings. No undo. Frequent accidental data loss.
-
-**Q7 — Responsive design and multi-device support.** Does it work on different screen sizes?
-
-**Probes (automatable):**
-- `rg '\b(sm|md|lg|xl|2xl):' src --type tsx -c` — Tailwind responsive utility usage (high = good)
-- `grep -E '<meta name="viewport"' index.html` — viewport meta tag present
-- `rg 'overflow-x-auto|overflow-x-scroll' src --type tsx -c` — horizontal scroll containers (often a smell)
-- `rg '\bw-\[[0-9]+px\]|\bh-\[[0-9]+px\]' src --type tsx -c` — fixed-px sizing (usually breaks small screens)
-- Read `App-Brief.md` `userRole` — if it says "desktop or laptop in control room" the app may be intentionally desktop-only; this is acceptable per the rubric ("Hidden or limited on mobile if not intended for mobile")
-
-**Translate to draft score:** If app is desktop-only by design (per App-Brief) and renders cleanly on laptop down to 13" → 5. Mixed responsive utility usage → 4. Many fixed-px sizes → 3.
-
-- **5:** Seamless across desktop, tablet, mobile. Touch targets 40px+. Text readable. No horizontal scrolling. Hover states accounted for on touch. **OR** intentionally desktop-only per the brief and clean on supported sizes.
-- **4:** Works well on most devices. Minor issues.
-- **3:** Functional on multiple devices but not optimized. Some layout issues on smaller screens.
-- **2:** Poor mobile/tablet experience. Layouts break.
-- **1:** Desktop only. Broken on mobile/tablet.
-
-**Q8 — Empty states and first-time experience.** When there's no data, is it clear what to do next?
-
-**Probes (automatable):**
-- `rg -i 'empty|no\s+(data|results|items|files|matches)' src --type tsx -l` — files with empty-state copy
-- `rg '<EmptyState|EmptyPlaceholder' src --type tsx -l` — explicit empty-state components
-- For each panel/list module (anything with `.list(` or `.items.map(`), check there is at least one branch handling `items.length === 0` with user-visible copy. List the panels that DO and DO NOT.
-- `rg 'items\.length === 0|items\.length > 0' src --type tsx -c` — explicit empty checks
-
-**Translate to draft score:** Every data-fetching panel has an empty-state branch with copy → 5. One or two missing → 4. Many panels missing → 2–3.
-
-- **5:** All empty states show helpful messages and clear next steps. First-time users know exactly what to do.
-- **4:** Most empty states helpful. Minor gaps.
-- **3:** Some empty states explained. First-time users can figure it out.
-- **2:** Many blank pages with no guidance.
-- **1:** Blank pages everywhere. No guidance.
-
-**Q9 — Performance and efficiency.** Does the app load quickly?
-
-**Probes (automatable):**
-- `npm run build 2>&1 | tail -20` — capture bundle sizes (sum of JS chunks; flag > 2 MB)
-- `rg 'React\.lazy|lazy\(' src --type tsx -c` — code-split routes (good)
-- `rg 'useMemo|useCallback' src --type tsx -c` — memoization usage (informs render efficiency)
-- `rg 'useVirtual|react-window|react-virtual' src --type tsx -l` — list virtualization (good for big lists)
-- `rg '\.list\([^)]*\)' src --type ts --type tsx -l | xargs -I{} grep -l 'limit:' {} 2>/dev/null | wc -l` vs total list call sites — pagination coverage
-- Cross-reference the latest `code-review-report.md` criterion 2.3 (Limits & pages) score
-
-**Translate to draft score:** Build under 1 MB gzipped + every list has a limit + react-query in use → 5. Bundle 1–2 MB or some lists missing limits → 4. Bundle > 2 MB or systemic unbounded fetches → 2–3.
-
-- **5:** Fast loading with progressive content. Bulk actions, keyboard shortcuts. Common tasks take minimal clicks.
-- **4:** Reasonable loading. Most tasks streamlined.
-- **3:** Acceptable performance. Tasks moderate effort. Few shortcuts.
-- **2:** Slow loading. Tasks require many steps.
-- **1:** Very slow or unresponsive.
-
-**Q10 — Accessibility (WCAG AA 2.1).** Can people use it with assistive tech?
-
-**Probes (automatable):**
-- `rg '<img\b(?![^>]*\balt=)' src --type tsx -c` — `<img>` without `alt`
-- `rg '<button[^>]*>\s*<(svg|Icon)' src --type tsx -c` — icon-only buttons (need `aria-label`)
-- `rg 'aria-label=' src --type tsx -c` — ARIA label usage
-- `rg 'focus-visible:|focus:' src --type tsx -c` — focus styles
-- `rg 'tabIndex={-1}|tabIndex="?-1' src --type tsx -c` — elements removed from tab order (sometimes intentional, sometimes a bug)
-- If `eslint-plugin-jsx-a11y` is installed: `npx eslint . --ext .ts,.tsx --no-eslintrc --rule '{"jsx-a11y/alt-text":"error","jsx-a11y/anchor-is-valid":"error","jsx-a11y/click-events-have-key-events":"error"}' 2>&1 | tail -10`
-- If `axe-core` is available: suggest the user run an axe scan in the running app and paste results — automation can flag candidates, not enforce contrast
-
-**Translate to draft score:** 0 missing alts + 0 icon-only buttons without aria-label + focus styles everywhere → 5. A few violations → 4. Systemic gaps → 2–3.
-
-- **5:** All interactions via keyboard. Text contrast meets WCAG AA. Clear focus indicators. Proper ARIA labels. Alt text on images. Touch targets 40px+ / mouse targets 20px+. Form errors announced to screen readers.
-- **4:** Most requirements met. Minor exceptions.
-- **3:** Basic keyboard support but missing for some features. Mostly acceptable contrast. Focus indicators present but not always clear.
-- **2:** Limited keyboard support. Multiple contrast failures. Weak focus indicators.
-- **1:** No keyboard navigation. Poor contrast. No focus indicators. Not usable with assistive tech.
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| Full keyboard nav, WCAG AA contrast, ARIA labels, alt text | Most requirements met | Basic keyboard, mostly acceptable contrast | Limited keyboard, contrast failures | No keyboard nav, no focus indicators |
 
 ## Step 4 — Compute average and quality level
 
