@@ -4,7 +4,7 @@ description: >-
   Step 2 of the Flows certification flow. Runs a technical review of the app
   and writes reviews/code-review/feedback-round-<N>/code-review-report.md.
   Re-run until Must Fix open: 0 before moving on to flows-design-review.
-allowed-tools: Read, Glob, Grep, Shell, Write
+allowed-tools: Read, Glob, Grep, Bash, Write
 ---
 
 # Flows Code Review

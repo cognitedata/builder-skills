@@ -4,7 +4,7 @@ description: >-
   Step 4 (final) of the Flows certification flow. Verifies App-Brief.md, code
   review (Must Fix open: 0), and design review (average >= 3.8) are all
   committed, then runs npx @cognite/cli apps submit.
-allowed-tools: Read, Glob, Grep, Shell, AskQuestion
+allowed-tools: Read, Glob, Grep, Bash, AskQuestion
 ---
 
 # Flows External App Submit

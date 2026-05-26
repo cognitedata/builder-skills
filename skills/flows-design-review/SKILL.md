@@ -4,7 +4,7 @@ description: >-
   Step 3 of the Flows certification flow. Scores 10 design quality questions
   and writes reviews/design-review/feedback-round-<N>/design-review-report.md.
   Re-run until average score >= 3.8 before moving on to flows-external-app-submit.
-allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
+allowed-tools: Read, Glob, Grep, Bash, Write, AskQuestion
 ---
 
 # Flows Design Review
