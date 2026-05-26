@@ -32,4 +32,3 @@ All checks pass → confirm with the user, then:
 npx @cognite/cli@latest apps submit
 ```
 
-If `apps submit` is not yet available, print: *"Verification passed. Re-run when the CLI ships `apps submit`."*

@@ -16,15 +16,6 @@ Pull a specific skill:
 npx @cognite/cli@latest apps skills pull --skill create-client-tool
 ```
 
-## Certification flow
-
-Four skills drive the Flows app certification flow end to end. Run them in order:
-
-1. **flows-app-brief** — Right after `npx @cognite/cli apps create`. Coaches you through the App Brief and writes `App-Brief.md`.
-2. **flows-code-review** — Technical review. Writes `reviews/code-review/feedback-round-<N>/`. Re-run until 0 Must Fix.
-3. **flows-design-review** — Manual design quality assessment (10 questions). Writes `reviews/design-review/feedback-round-<N>/`. Target average ≥ 3.8.
-4. **flows-external-app-submit** — Verifies the prior three artifacts and runs `npx @cognite/cli apps submit`.
-
 ## Available Skills
 
 | Skill | Description |

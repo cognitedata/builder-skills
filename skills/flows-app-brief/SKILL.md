@@ -13,13 +13,7 @@ allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
 flows-app-brief (this skill)  →  build  →  flows-code-review  →  flows-design-review  →  flows-external-app-submit
 ```
 
-Pre-scan the repo before asking anything:
-
-```bash
-bash .agents/skills/flows-app-brief/scripts/prescan.sh
-```
-
-Collect the following fields through conversation. Required fields must be non-empty; optional fields may be left blank.
+Before asking anything, read `app.json`, `package.json`, `specs/*/spec.md` (if present), and any existing `App-Brief.md` to seed draft values. Present what you found, then collect the following fields through conversation. Required fields must be non-empty; optional fields may be left blank.
 
 **Required:** `appName`, `customer`, `tier` (Tier 1/2/3), `owner`, `userRole`, `currentProblem`, `oneSentenceStory`, `successCriteria`, `userEvidence`
 
