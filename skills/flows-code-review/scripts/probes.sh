@@ -24,22 +24,22 @@ npm audit --json 2>/dev/null | head -150 || echo "no audit output"
 
 echo ""
 echo "=== Raw HTTP to CDF hosts ==="
-rg 'fetch\(|axios\.' src --type ts -l 2>/dev/null || echo "none"
-rg 'cogniteapi\.omnia|api\.cognitedata|\.fusion\.cognite' src --type ts -l 2>/dev/null || echo "none"
+grep -rlE 'fetch\(|axios\.' --include='*.ts' --include='*.tsx' src 2>/dev/null || echo "none"
+grep -rlE 'cogniteapi\.omnia|api\.cognitedata|\.fusion\.cognite' --include='*.ts' --include='*.tsx' src 2>/dev/null || echo "none"
 
 echo ""
 echo "=== DMS list patterns ==="
-echo "list() calls:"; rg '\.list\(' src --type ts -c 2>/dev/null || echo "0"
-echo "limit clauses:"; rg '\blimit:' src --type ts -c 2>/dev/null || echo "0"
-echo "cursor usage:";  rg 'cursor|nextCursor' src --type ts -c 2>/dev/null || echo "0"
+echo "list() calls:";  grep -rlE '\.list\(' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
+echo "limit clauses:"; grep -rlE '\blimit:' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
+echo "cursor usage:";  grep -rlE 'cursor|nextCursor' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
 
 echo ""
 echo "=== Testability ==="
-echo "vi.mock:";         rg 'vi\.mock\(' src --type ts -c 2>/dev/null || echo "0"
-echo "useContext:";      rg 'useContext.*Context\b' src --type ts -c 2>/dev/null || echo "0"
-echo "as unknown as:";   rg 'as unknown as ' src --type ts -c 2>/dev/null || echo "0"
+echo "vi.mock:";        grep -rlE 'vi\.mock\(' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
+echo "useContext:";     grep -rlE 'useContext' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
+echo "as unknown as:";  grep -rlE 'as unknown as ' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
 
 echo ""
 echo "=== Dead code / console ==="
-rg 'TODO|FIXME|HACK|console\.log' src --type ts -c 2>/dev/null || echo "0"
-echo "TS files total:"; find src -name '*.ts' -o -name '*.tsx' 2>/dev/null | wc -l
+grep -rlE 'TODO|FIXME|HACK|console\.log' --include='*.ts' --include='*.tsx' src 2>/dev/null | wc -l
+echo "TS files total:"; find src \( -name '*.ts' -o -name '*.tsx' \) 2>/dev/null | wc -l

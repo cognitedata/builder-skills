@@ -5,58 +5,59 @@
 set -u
 
 echo "=== Q1 Aura ==="
-rg '#[0-9a-fA-F]{3,8}\b' src --type css --type tsx --type ts -l 2>/dev/null || echo "none"
-rg '\b(rgb|rgba|hsl|hsla)\(' src --type tsx --type css -l 2>/dev/null || echo "none"
+grep -rlE '#[0-9a-fA-F]{3,8}' --include='*.css' --include='*.tsx' --include='*.ts' src 2>/dev/null || echo "none"
+grep -rlE '\b(rgb|rgba|hsl|hsla)\(' --include='*.tsx' --include='*.css' src 2>/dev/null || echo "none"
 echo "aura dep:"; grep -c '@cognite/aura' package.json 2>/dev/null || echo "0"
 
 echo ""
 echo "=== Q2 Navigation ==="
-rg '<Route\b' src --type tsx -c 2>/dev/null || echo "0"
-rg 'Breadcrumb' src --type tsx -l 2>/dev/null || echo "none"
-rg '<Topbar|<Sidebar|<Header' src --type tsx -l 2>/dev/null || echo "none"
+grep -rcE '<Route\b' --include='*.tsx' src 2>/dev/null | grep -v ':0' || echo "0"
+grep -rlE 'Breadcrumb' --include='*.tsx' src 2>/dev/null || echo "none"
+grep -rlE '<Topbar|<Sidebar|<Header' --include='*.tsx' src 2>/dev/null || echo "none"
 
 echo ""
 echo "=== Q3 Labels ==="
-rg '>(Submit|OK|Click here|Go|Yes|No)<' src --type tsx -c 2>/dev/null || echo "0"
-echo "placeholders:"; rg 'placeholder=' src --type tsx -c 2>/dev/null || echo "0"
+grep -rcE '>(Submit|OK|Click here|Go|Yes|No)<' --include='*.tsx' src 2>/dev/null | grep -v ':0' || echo "0"
+echo "placeholders:"; grep -rcE 'placeholder=' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
 
 echo ""
 echo "=== Q4 Feedback ==="
-rg 'isLoading|isPending|<Skeleton|<Loader|<Spinner' src --type tsx -l 2>/dev/null || echo "none"
-rg 'isError|onError|<Alert|toast\.' src --type tsx -l 2>/dev/null || echo "none"
-rg 'useMutation' src --type tsx -l 2>/dev/null || echo "none"
+grep -rlE 'isLoading|isPending|<Skeleton|<Loader|<Spinner' --include='*.tsx' src 2>/dev/null || echo "none"
+grep -rlE 'isError|onError|<Alert|toast\.' --include='*.tsx' src 2>/dev/null || echo "none"
+grep -rlE 'useMutation' --include='*.tsx' src 2>/dev/null || echo "none"
 
 echo ""
 echo "=== Q5 Clickability ==="
-echo "div onClick:";  rg '<div[^>]*onClick' src --type tsx -c 2>/dev/null || echo "0"
-echo "span onClick:"; rg '<span[^>]*onClick' src --type tsx -c 2>/dev/null || echo "0"
-echo "hover/focus:";  rg 'hover:|focus:' src --type tsx -c 2>/dev/null || echo "0"
+echo "div onClick:";  grep -rcE '<div[^>]*onClick' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
+echo "span onClick:"; grep -rcE '<span[^>]*onClick' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
+echo "hover/focus:";  grep -rlE 'hover:|focus:' --include='*.tsx' src 2>/dev/null | wc -l
 
 echo ""
 echo "=== Q6 Error prevention ==="
-rg 'delete|remove|archive|reset' src --type tsx -i -l 2>/dev/null | head -20 || echo "none"
-rg 'AlertDialog|ConfirmDialog|window\.confirm' src --type tsx -l 2>/dev/null || echo "none"
+grep -rilE 'delete|remove|archive|reset' --include='*.tsx' src 2>/dev/null | head -20 || echo "none"
+grep -rlE 'AlertDialog|ConfirmDialog|window\.confirm' --include='*.tsx' src 2>/dev/null || echo "none"
 
 echo ""
 echo "=== Q7 Responsive ==="
-echo "responsive utils:"; rg '\b(sm|md|lg|xl|2xl):' src --type tsx -c 2>/dev/null || echo "0"
-echo "fixed px:";         rg '\bw-\[[0-9]+px\]|\bh-\[[0-9]+px\]' src --type tsx -c 2>/dev/null || echo "0"
+echo "responsive utils:"; grep -rlE '\b(sm|md|lg|xl|2xl):' --include='*.tsx' src 2>/dev/null | wc -l
+echo "fixed px:";         grep -rlE '\bw-\[[0-9]+px\]|\bh-\[[0-9]+px\]' --include='*.tsx' src 2>/dev/null | wc -l
 
 echo ""
 echo "=== Q8 Empty states ==="
-rg -i 'empty|no\s+(data|results|items)' src --type tsx -l 2>/dev/null || echo "none"
-rg '<EmptyState|EmptyPlaceholder' src --type tsx -l 2>/dev/null || echo "none"
-echo "length===0:"; rg 'items\.length === 0' src --type tsx -c 2>/dev/null || echo "0"
+grep -rilE 'empty|no[[:space:]]+(data|results|items)' --include='*.tsx' src 2>/dev/null || echo "none"
+grep -rlE '<EmptyState|EmptyPlaceholder' --include='*.tsx' src 2>/dev/null || echo "none"
+echo "length===0:"; grep -rcE 'items\.length === 0' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
 
 echo ""
 echo "=== Q9 Performance ==="
 find dist -maxdepth 1 -newer package.json -name '*.js' 2>/dev/null | wc -l
 du -sh dist/ 2>/dev/null || echo "no dist"
-echo "code-split:"; rg 'React\.lazy|lazy\(' src --type tsx -c 2>/dev/null || echo "0"
+echo "code-split:"; grep -rlE 'React\.lazy|lazy\(' --include='*.tsx' src 2>/dev/null | wc -l
 
 echo ""
 echo "=== Q10 Accessibility ==="
-echo "img without alt:"; rg '<img\b(?![^>]*\balt=)' src --type tsx -c 2>/dev/null || echo "0"
-echo "icon buttons:";    rg '<button[^>]*>\s*<(svg|Icon)' src --type tsx -c 2>/dev/null || echo "0"
-echo "aria-label:";      rg 'aria-label=' src --type tsx -c 2>/dev/null || echo "0"
-echo "focus styles:";    rg 'focus-visible:|focus:' src --type tsx -c 2>/dev/null || echo "0"
+echo "img tags:";       grep -rcE '<img\b' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
+echo "img with alt:";   grep -rcE '<img[^>]*alt=' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
+echo "icon buttons:";   grep -rcE '<button[^>]*>[[:space:]]*<(svg|Icon)' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
+echo "aria-label:";     grep -rcE 'aria-label=' --include='*.tsx' src 2>/dev/null | grep -v ':0' | wc -l
+echo "focus styles:";   grep -rlE 'focus-visible:|focus:' --include='*.tsx' src 2>/dev/null | wc -l
