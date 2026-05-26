@@ -13,7 +13,9 @@ allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
 flows-app-brief (this skill)  →  build  →  flows-code-review  →  flows-design-review  →  flows-external-app-submit
 ```
 
-Before asking anything, read `app.json`, `package.json`, `specs/*/spec.md` (if present), and any existing `App-Brief.md` to seed draft values. Present what you found, then collect the following fields through conversation. Required fields must be non-empty; optional fields may be left blank.
+**Inputs → output:** `app.json`, `package.json`, and `specs/*/spec.md` are read-only sources used to propose draft values. `App-Brief.md` is the output — the user confirms or overrides every field before it is written.
+
+Before asking anything, read those sources and propose drafts for as many fields as possible. Then collect the remaining fields through conversation. Required fields must be non-empty; optional fields may be left blank.
 
 **Required:** `appName`, `customer`, `tier` (Tier 1/2/3), `owner`, `userRole`, `currentProblem`, `oneSentenceStory`, `successCriteria`, `userEvidence`
 
