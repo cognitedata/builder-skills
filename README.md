@@ -20,6 +20,7 @@ npx @cognite/cli@latest apps skills pull --skill create-client-tool
 
 | Skill | Description |
 |-------|-------------|
+| **entor** | Onboarding guide for new Flows app developers — CLI quickstart, app lifecycle, examples, and next steps |
 | **create-client-tool** | Scaffolds an `AtlasTool` and wires it into `useAtlasChat` |
 | **integrate-atlas-chat** | Adds streaming Atlas Agent chat UI to a Flows app |
 | **setup-python-tools** | Adds Pyodide-based Python tool execution |
