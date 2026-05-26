@@ -4,7 +4,7 @@ description: >-
   Step 1 of the Flows certification flow. Coaches the app brief and writes
   App-Brief.md with all fields that apps submit requires. Run right after
   npx @cognite/cli apps create, before building.
-allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
+allowed-tools: Read, Glob, Grep, Shell, Write
 ---
 
 # Flows App Brief
