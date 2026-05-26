@@ -1,40 +1,38 @@
 ---
 name: flows-code-review
 description: >-
-  Run a full Flows app platform review against a React/TypeScript CDF codebase,
-  following the cognitedata/dune-app-reviews scoring criteria. Produces three
-  artifacts: review-files.md (per-file inventory), review-packages.md (dependency
-  audit), and review-report.md (scored report with must/should/nice-fix items).
-  Use when the user asks for a Flows app review, pre-submit review, approval
-  review, app certification review, code quality audit, CDF platform review, or
-  "run dune-review" on a codebase before submission.
+  Step 2 of the Flows certification flow. Runs a technical review of the app
+  and writes reviews/code-review/feedback-round-<N>/code-review-report.md.
+  Re-run until Must Fix open: 0 before moving on to flows-design-review.
 allowed-tools: Read, Glob, Grep, Shell, Write
 ---
 
 # Flows Code Review
 
-Fetch the official review command and follow it exactly:
-
-```bash
-gh api repos/cognitedata/dune-app-reviews/contents/.claude/commands/dune-review.md \
-  --jq '.content' | base64 -d
+```
+flows-app-brief  →  build  →  flows-code-review (repeat until clean)  →  flows-design-review  →  flows-external-app-submit
 ```
 
-Adapt it for a **local developer review**:
-- Treat the **current workspace** as the app under review.
-- Skip all ticket, PR, overview, submodule, and `reviews/<TICKET-ID>/...` setup steps.
-- If the upstream command asks for Jira ticket or PR input, ignore that requirement and continue with the local codebase.
-- Use `reviews/flows-code-review/feedback-round-<N>/` as the artifact directory for local reviews.
-- If no local feedback round exists yet, use `reviews/flows-code-review/feedback-round-1/`. For reruns, increment the round number.
-
-After the review artifacts are written, fetch the official verification command and follow it too:
+Run all probes:
 
 ```bash
-gh api repos/cognitedata/dune-app-reviews/contents/.claude/commands/dune-review-verify.md \
-  --jq '.content' | base64 -d
+bash .agents/skills/flows-code-review/scripts/probes.sh 2>&1
 ```
 
-Adapt verification the same way:
-- Skip ticket and feedback-round lookup.
-- Read the three artifacts from `reviews/flows-code-review/feedback-round-<N>/` instead of `reviews/<TICKET-ID>/feedback-round-N/`.
-- Verify the review against the local source code before declaring it complete.
+Review the output. Identify Must Fix / Should Fix / Nice to Fix items across: bugs, CDF SDK usage, dependencies, test coverage, code quality, DMS patterns, performance, and accessibility.
+
+Determine the next round number from `reviews/code-review/` (`feedback-round-1/` if none exist).
+
+Write `reviews/code-review/feedback-round-<N>/code-review-report.md`. The Summary block at the end **must** use this exact format:
+
+```markdown
+## Summary
+
+- Must Fix open: <integer>
+- Should Fix open: <integer>
+- Nice Fix open: <integer>
+```
+
+Also write `review-files.md` (one line per source file) and `review-packages.md` (one line per production dependency).
+
+Print the three counts to the terminal. Re-run this skill until `Must Fix open: 0`.
