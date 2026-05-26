@@ -15,7 +15,7 @@ fi
 echo ""
 echo "=== package.json ==="
 if [ -f package.json ]; then
-  node -e "const p = require('./package.json'); console.log('name:', p.name); console.log('description:', p.description || '')" 2>/dev/null || cat package.json | head -10
+  head -10 package.json
 else
   echo "not found"
 fi

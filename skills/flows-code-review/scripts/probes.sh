@@ -12,15 +12,15 @@ npx vitest run --coverage 2>&1 | tail -30 \
 
 echo ""
 echo "=== Lint ==="
-pnpm run lint 2>&1 | tail -20 || echo "no lint script"
+npm run lint 2>&1 | tail -20 || echo "no lint script"
 
 echo ""
 echo "=== TypeScript ==="
-pnpm exec tsc --noEmit 2>&1 | tail -20 || echo "no tsconfig"
+npx tsc --noEmit 2>&1 | tail -20 || echo "no tsconfig"
 
 echo ""
 echo "=== Dependency audit ==="
-pnpm audit --json 2>/dev/null | head -150 || echo "no pnpm"
+npm audit --json 2>/dev/null | head -150 || echo "no audit output"
 
 echo ""
 echo "=== Raw HTTP to CDF hosts ==="
