@@ -142,36 +142,87 @@ export function useSdk(): Sdk | null {
 
 ### Apps API flow (`@cognite/app-sdk`)
 
+`CogniteSdkProvider` handles the loading and error states itself via `loadingFallback` / `errorFallback` — so `useCogniteSdk()` always returns a ready, authenticated client. No null check or `isLoading` guard is needed.
+
+The canonical wiring (matches the `@cognite/cli` app template):
+
+```tsx
+// src/App.tsx
+import type { ComponentProps } from 'react';
+import { CogniteSdkProvider, useCogniteSdk } from '@cognite/app-sdk/react';
+import { createSdk } from '../generated_sdks/<name>';
+
+function AppContent() {
+  // client is always authenticated here — provider handles loading/error states
+  const client = useCogniteSdk();
+  const sdk = createSdk(client);
+  // ... use sdk
+}
+
+type AppProps = {
+  deps?: ComponentProps<typeof CogniteSdkProvider>['deps'];
+};
+
+function App({ deps }: AppProps) {
+  return (
+    <CogniteSdkProvider
+      loadingFallback={<div>Loading project...</div>}
+      errorFallback={<div>Failed to connect to Fusion host</div>}
+      deps={deps}
+    >
+      <AppContent />
+    </CogniteSdkProvider>
+  );
+}
+```
+
+The `deps` prop is forwarded from `App` to `CogniteSdkProvider` specifically to enable testing — pass mock `connectToHostApp` / `createClient` implementations without touching real auth (see Step 5).
+
+For hooks that are used across many components, wrap with `useMemo` to keep the SDK reference stable:
+
 ```ts
 import { useMemo } from 'react';
 import { useCogniteSdk } from '@cognite/app-sdk/react';
 import { createSdk, type Sdk } from '../generated_sdks/<name>';
 
 export function useSdk(): Sdk {
-  const client = useCogniteSdk(); // throws if called outside <CogniteSdkProvider>
+  const client = useCogniteSdk();
   return useMemo(() => createSdk(client), [client]);
 }
 ```
 
 ### Querying data with TanStack Query
 
-Wire the SDK into `useQuery` for caching, loading states, and error handling:
+Wire the SDK into `useQuery` for caching, loading states, and error handling.
+
+**Classic flow** — `useSdk()` returns `Sdk | null`, so guard with `enabled`:
 
 ```ts
 import { useQuery } from '@tanstack/react-query';
 
 export function use<ViewName>List(filter?: { status?: { eq: string } }) {
-  const generatedSdk = useSdk();
+  const sdk = useSdk(); // Sdk | null
   return useQuery({
     queryKey: ['<viewName>', filter],
-    queryFn: () => generatedSdk!.query<ViewName>({ filter, limit: 25 }),
-    enabled: generatedSdk !== null,
+    queryFn: () => sdk!.query<ViewName>({ filter, limit: 25 }),
+    enabled: sdk !== null,
   });
 }
 ```
 
-- `useMemo` prevents a new SDK instance on every render — omitting it creates a new object reference each time, which breaks `useQuery`'s `enabled` check and causes infinite re-renders.
-- `enabled: generatedSdk !== null` ensures the query only fires once the client is authenticated.
+**Apps API flow** — `useSdk()` always returns `Sdk` (provider guarantees auth), no guard needed:
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+
+export function use<ViewName>List(filter?: { status?: { eq: string } }) {
+  const sdk = useSdk(); // always Sdk
+  return useQuery({
+    queryKey: ['<viewName>', filter],
+    queryFn: () => sdk.query<ViewName>({ filter, limit: 25 }),
+  });
+}
+```
 
 ---
 
