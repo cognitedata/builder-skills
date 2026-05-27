@@ -122,18 +122,56 @@ The SDK handles the multi-step DMS query internally. Never write separate querie
 
 ## Step 4 — Use in a React component or hook
 
-Keep data fetching in custom hooks, not in components directly:
+Keep data fetching in custom hooks, not in components directly. The auth hook to use depends on which Flows auth flow the app uses — check `app.json` (`"infra": "appsApi"` → Apps API flow, otherwise Classic). See the **`setup-flows-auth`** skill for full details.
+
+### Classic flow (`@cognite/dune`)
 
 ```ts
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { useDune } from '@cognite/dune';
 import { createSdk, type Sdk } from '../generated_sdks/<name>';
-import { useDune } from '@cognite/cli/react';
 
 export function useSdk(): Sdk | null {
-  const { client } = useDune();
-  return client ? createSdk(client) : null;
+  const { sdk, isLoading } = useDune();
+  return useMemo(
+    () => (!isLoading && sdk ? createSdk(sdk) : null),
+    [sdk, isLoading]
+  );
 }
 ```
+
+### Apps API flow (`@cognite/app-sdk`)
+
+```ts
+import { useMemo } from 'react';
+import { useCogniteSdk } from '@cognite/app-sdk/react';
+import { createSdk, type Sdk } from '../generated_sdks/<name>';
+
+export function useSdk(): Sdk {
+  const client = useCogniteSdk(); // throws if called outside <CogniteSdkProvider>
+  return useMemo(() => createSdk(client), [client]);
+}
+```
+
+### Querying data with TanStack Query
+
+Wire the SDK into `useQuery` for caching, loading states, and error handling:
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+
+export function use<ViewName>List(filter?: { status?: { eq: string } }) {
+  const generatedSdk = useSdk();
+  return useQuery({
+    queryKey: ['<viewName>', filter],
+    queryFn: () => generatedSdk!.query<ViewName>({ filter, limit: 25 }),
+    enabled: generatedSdk !== null,
+  });
+}
+```
+
+- `useMemo` prevents a new SDK instance on every render — omitting it creates a new object reference each time, which breaks `useQuery`'s `enabled` check and causes infinite re-renders.
+- `enabled: generatedSdk !== null` ensures the query only fires once the client is authenticated.
 
 ---
 
