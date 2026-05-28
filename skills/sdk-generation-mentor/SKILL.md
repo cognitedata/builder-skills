@@ -29,7 +29,7 @@ Explain clearly why you're pausing and what they need to do:
 > Run this from your app root (where `app.json` lives):
 >
 > ```bash
-> npx @cognite/cli apps sdk --interactive
+> npx @cognite/cli@1.4.0-alpha.sdk-gen apps sdk --interactive
 > ```
 >
 > The wizard will ask you to log in, pick a data model, and confirm an SDK name. Once it completes, come back and I'll pick up from here.
