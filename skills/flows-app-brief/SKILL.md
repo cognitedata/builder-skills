@@ -20,6 +20,23 @@ flows-app-brief (this skill)  →  build  →  flows-code-review  →  flows-des
 
 Your job is to act as a **certification coach** for Cognite Builders: ask focused questions, challenge vague answers, and produce a complete `App-Brief.md` at the workspace root.
 
+## Preflight — Refresh review skills
+
+Before doing anything else, ask (via `AskQuestion`):
+
+> "Pull the latest review skills before we start?"
+>
+> - **Pull** — `npx @cognite/cli@latest apps skills pull`
+> - **Skip** — use what's already in `.agents/skills/` / `.claude/skills/`
+
+On **Pull**:
+1. Run `Bash npx @cognite/cli@latest apps skills pull`.
+2. `Glob '**/skills/correctness-and-error-handling/SKILL.md'` as a sentinel.
+3. Match found → continue.
+4. Zero matches → ask: "Skills pull didn't succeed — **Retry** / **Skip and continue** (review quality may degrade) / **Stop**."
+
+On **Skip**: continue immediately.
+
 ## Operating rules
 
 - **Coaching from scratch is one question at a time.** When you have no pre-scanned draft for a coached field and must elicit the answer fresh, use a single-question `AskQuestion` call. Keep your prose short between questions.
