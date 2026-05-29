@@ -32,7 +32,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **flows-app-brief** | Certification coach (step 1) — captures app details, persona, problem, and success criteria, writes `App-Brief.md` |
 | **flows-code-review** | Technical review (step 3) — writes `reviews/code-review/feedback-round-<N>/{code-review-report.md, review-files.md, review-packages.md}` |
 | **flows-design-review** | Manual design quality assessment (step 4) — scores the 10 quality-guidelines questions, writes `reviews/design-review/feedback-round-<N>/design-review-report.md` |
-| **flows-external-app-submit** | Submission gate (step 4) — verifies brief + code review (0 Must Fix) + design review (avg ≥ 3.8), then runs `npx @cognite/cli apps submit` |
+| **flows-external-app-submit** | Submission gate (step 5) — verifies brief + code review (0 Must Fix) + design review (avg ≥ 3.8), then runs `npx @cognite/cli apps submit` |
 | **create-client-tool** | Scaffolds an `AtlasTool` and wires it into `useAtlasChat` |
 | **integrate-atlas-chat** | Adds streaming Atlas Agent chat UI to a Flows app |
 | **setup-python-tools** | Adds Pyodide-based Python tool execution |
