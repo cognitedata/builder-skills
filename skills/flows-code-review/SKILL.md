@@ -75,16 +75,20 @@ Write to `reviews/code-review/feedback-round-<N>/review-files.md`:
 
 ## Step 3 — Build the package inventory (`review-packages.md`)
 
-For every package in `dependencies` and `devDependencies`, look up npm metadata via `npm view <pkg> --json` or the npm registry API:
+Gather dependency state with two one-shot commands — do **not** loop per package (`npm view <pkg>` is one network call per package; 40–80 calls = 2–4 minutes):
 
-- **Weekly downloads**
-- **Latest version** vs version in use
-- **Last published date**
-- **Deprecated** status
+```bash
+npm outdated --json 2>/dev/null || true   # exits 1 when outdated packages exist — normal; parse stdout regardless
+npm audit --json 2>/dev/null || true       # exits 1 when vulnerabilities exist — parse stdout regardless
+```
 
-Assign health: **Pass** (popular >100k/week, updated <12 mo, not deprecated, near-current) | **Warn** (10k–100k, or >12 mo since publish, or >1 major behind) | **Fail** (<10k, or >2 years stale, or deprecated, or CVE).
+From `npm outdated --json`: packages absent from the output are up-to-date; packages present show `current` / `wanted` / `latest`. Flag any in `dependencies` (not `devDependencies`) that are ≥ 1 major behind.
 
-Run `npm audit --json` (or `pnpm audit --json`) and parse severity counts.
+From `npm audit --json`: parse severity counts and per-package advisory details.
+
+**Deprecated status:** `npm outdated` does not report this. Only spot-check with `npm view <pkg> deprecated` for packages that already triggered another flag (≥ 1 major behind, in audit advisories, or unfamiliar name).
+
+Assign health: **Pass** (up-to-date or ≤ 1 minor behind, 0 critical/high CVEs) | **Warn** (1 major behind in `dependencies`, or moderate CVE) | **Fail** (≥ 2 majors behind, or high/critical CVE, or deprecated).
 
 Write to `reviews/code-review/feedback-round-<N>/review-packages.md`:
 
@@ -93,11 +97,11 @@ Write to `reviews/code-review/feedback-round-<N>/review-packages.md`:
 
 ### Dependencies
 
-| Package | Used version | Latest | Weekly downloads | Last published | Deprecated | CVEs | Health |
-| ------- | ------------ | ------ | ---------------- | -------------- | ---------- | ---- | ------ |
-| react | ^18.2.0 | 18.3.1 | 25M | 2024-04-26 | No | 0 | Pass |
-| some-old-lib | ^1.0.0 | 1.0.3 | 5k | 2021-03-15 | No | 0 | Fail |
-| ... | ... | ... | ... | ... | ... | ... | ... |
+| Package | Used version | Latest | Deprecated | CVEs | Health |
+| ------- | ------------ | ------ | ---------- | ---- | ------ |
+| react | ^18.2.0 | 18.3.1 | No | 0 | Pass |
+| some-old-lib | ^1.0.0 | 1.0.3 | No | 0 | Fail |
+| ... | ... | ... | ... | ... | ... |
 
 ### Security audit
 
