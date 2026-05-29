@@ -8,7 +8,7 @@ description: >-
   `npx @cognite/cli apps submit` to zip the repo and pre-populate the submission
   form. Use when the user asks to submit a Flows app for certification, run
   flows-external-app-submit, or finalize an app for external review.
-allowed-tools: Read, Glob, Grep, Bash, AskQuestion
+allowed-tools: Read, Glob, Grep, Bash, AskQuestion, Write
 ---
 
 # Flows External App Submit
@@ -30,6 +30,47 @@ Before doing anything, print this checklist so the user knows exactly what is be
 3. The latest `reviews/design-review/feedback-round-<N>/design-review-report.md` is **committed to git** and reports **`Average score: X.X`** with **X.X ≥ 3.8**.
 4. Certification artifacts are committed — `apps submit` uses `git archive HEAD` and silently excludes uncommitted files.
 5. A deploy bundle exists in `.cognite-bundles/` and is not older than HEAD.
+
+## Step 0 — Air-hatch preflight (offer stubs if reviews are missing)
+
+`App-Brief.md` is non-negotiable — it captures the value case the certification reviewer reads first. The code and design reviews, however, can be air-hatched with a clear "SKIPPED" status that the reviewer will see and act on. Use this when the user wants to submit without spending the 20+ minutes each review takes.
+
+Probe for each review artifact via `git ls-files`:
+
+```bash
+git ls-files 'reviews/code-review/'   | grep -q 'code-review-report.md'   && echo code_present   || echo code_missing
+git ls-files 'reviews/design-review/' | grep -q 'design-review-report.md' && echo design_present || echo design_missing
+```
+
+- Both reports present → skip Step 0, continue at Step 1.
+- `App-Brief.md` missing → continue to Step 1, which fails with the standard "Run `flows-app-brief` first" message. The air-hatch does **not** cover App-Brief.
+- Either review missing → offer the air-hatch via `AskQuestion`:
+
+> "Review artifacts missing: <list which>. Choose:
+>
+> - **Run real reviews** — exit here; user runs `flows-code-review` / `flows-design-review` first (~20 min each). Recommended for first-time submissions.
+> - **Quick submit (stubs)** — write SKIPPED stub reports for the missing reviews. The Cognite certification reviewer will see the SKIPPED status and request real reviews before approval, but you can submit now.
+> - **Cancel** — stop without doing anything."
+
+On **Run real reviews**: print the next-step command (`flows-code-review` and/or `flows-design-review`) and exit.
+
+On **Cancel**: exit.
+
+On **Quick submit**: for each missing review, write the stub using the templates in "Stub templates" at the end of this skill:
+
+- `reviews/code-review/feedback-round-0/code-review-report.md`
+- `reviews/design-review/feedback-round-0/design-review-report.md`
+
+Round 0 is intentional — real review skills start at `feedback-round-1`. When the user later runs a real review, `sort -V | tail -1` picks the higher round number, so the stub is automatically superseded without manual cleanup.
+
+After writing the stubs, tell the user:
+
+> "Stub reports written. Commit them along with `App-Brief.md`, then re-run this skill:
+>
+>     git add App-Brief.md reviews/
+>     git commit -m 'chore: certification artifacts (reviews skipped)'"
+
+Exit. The user re-runs the skill after committing.
 
 ## Step 1 — Verify App-Brief.md
 
@@ -64,7 +105,11 @@ git ls-files 'reviews/code-review/' | grep 'code-review-report.md' | sort -V | t
 
 If no result → fail with: *"Run `flows-code-review` first, then commit the artifacts."*
 
-Parse the Summary block from that `code-review-report.md`. It must contain a line matching this exact regex:
+Parse the Summary block from that `code-review-report.md`.
+
+If the Summary block contains a line matching `^- Status: SKIPPED$` → mark this check as **SKIPPED** (not PASS, not FAIL) and skip the numeric check. The stub came from the Step 0 air-hatch; the reviewer will see the SKIPPED status.
+
+Otherwise, it must contain a line matching this exact regex:
 
 ```
 ^- Must Fix open: (\d+)$
@@ -72,7 +117,7 @@ Parse the Summary block from that `code-review-report.md`. It must contain a lin
 
 If the integer is `0` → pass. Otherwise → fail with: *"Open Must Fix items remain in the latest `code-review-report.md`. Re-run `flows-code-review` until `Must Fix open: 0`."*
 
-If the line is missing entirely → fail with: *"Latest code review report is missing the Summary block. Re-run `flows-code-review`."*
+If neither the Status nor the Must Fix line is present → fail with: *"Latest code review report is missing the Summary block. Re-run `flows-code-review`."*
 
 ## Step 3 — Verify design review
 
@@ -84,7 +129,11 @@ git ls-files 'reviews/design-review/' | grep 'design-review-report.md' | sort -V
 
 If no result → fail with: *"Run `flows-design-review` first, then commit the artifacts."*
 
-Parse the Summary block from that `design-review-report.md`. It must contain a line matching:
+Parse the Summary block from that `design-review-report.md`.
+
+If the Summary block contains a line matching `^- Status: SKIPPED$` → mark this check as **SKIPPED** (not PASS, not FAIL) and skip the numeric check. The stub came from the Step 0 air-hatch; the reviewer will see the SKIPPED status.
+
+Otherwise, it must contain a line matching:
 
 ```
 ^- Average score: (\d+(?:\.\d+)?)$
@@ -143,17 +192,23 @@ Print a table like:
 Check                                  Result
 -----                                  ------
 App-Brief.md complete                  PASS / FAIL — reason
-Code review Must Fix open: 0           PASS / FAIL — reason
-Design review average ≥ 3.8            PASS / FAIL — reason
+Code review Must Fix open: 0           PASS / FAIL / SKIPPED — reason
+Design review average ≥ 3.8            PASS / FAIL / SKIPPED — reason
 Certification artifacts committed      PASS / FAIL — reason
 Deploy bundle present and current      PASS / WARN — reason
 ```
 
-If **any** check is FAIL: stop here. Do not run the CLI. Print the precise next-step skill the user should run.
+`SKIPPED` only applies to the code and design review rows and only when Step 0's air-hatch wrote a stub. Render SKIPPED rows with the note `SKIPPED — user opted out via Step 0 air-hatch`.
+
+If **any** check is FAIL: stop here. Do not run the CLI. Print the precise next-step skill the user should run. SKIPPED rows do **not** block — they pass through to Step 7, which adds an explicit confirmation.
 
 ## Step 7 — Confirm and submit
 
-If all checks pass (warnings are OK), use `AskQuestion` to confirm:
+If any check is `SKIPPED`, prepend an explicit warning to the confirm prompt:
+
+> "WARNING — the following reviews are SKIPPED: <list>. The Cognite certification reviewer will see the SKIPPED status in the submitted reports and will request a real review before approval. Proceed with submit anyway?"
+
+Otherwise (all PASS, warnings OK), use the standard confirm prompt:
 > "All certification checks passed. Run `npx @cognite/cli apps submit` now? This will zip the repo and pre-populate the Zendesk submission form."
 
 On `yes`:
@@ -178,3 +233,43 @@ After the CLI finishes, print this to the user:
 > 4. Push your commits if the branch is ahead of origin.
 
 Then run `git status --short --branch` and surface the ahead/behind count explicitly under step 4 if the branch is ahead of origin.
+
+## Stub templates (used by Step 0 air-hatch)
+
+When the user picks **Quick submit (stubs)** in Step 0, write the missing reports using these exact templates. Create the parent directory first if it does not exist.
+
+### Code review stub
+
+Path: `reviews/code-review/feedback-round-0/code-review-report.md`
+
+````markdown
+# Code Review Report — Round 0
+
+**Status: SKIPPED** — user opted out of `flows-code-review` at submit time.
+
+The Cognite certification reviewer will see this SKIPPED status and request a real `flows-code-review` run before approval. Re-run `flows-code-review` to replace this stub with a real round.
+
+## Summary
+
+- Status: SKIPPED
+- Must Fix open: 0
+- Should Fix open: 0
+- Nit open: 0
+````
+
+### Design review stub
+
+Path: `reviews/design-review/feedback-round-0/design-review-report.md`
+
+````markdown
+# Design Review Report — Round 0
+
+**Status: SKIPPED** — user opted out of `flows-design-review` walkthrough at submit time.
+
+The Cognite certification reviewer will see this SKIPPED status and request a real `flows-design-review` walkthrough before approval. Re-run `flows-design-review` to replace this stub with a real round.
+
+## Summary
+
+- Status: SKIPPED
+- Average score: N/A
+````
