@@ -33,6 +33,7 @@ npx @cognite/cli@latest apps skills pull --skill create-client-tool
 | **security** | Reviews for security issues — credentials, user input, external data |
 | **setup-flows-auth** | Migrates React apps to Flows auth or adds DuneAuthProvider |
 | **design** | Aura UI — components and tokens, layouts, UX copy, forms/async feedback, accessibility (`skills/design/`) |
+| **flows-troubleshooting** | Diagnose and fix common Flows app issues: certificate errors, app not loading in CDF, Node.js version problems, port conflicts, deployment failures, and code-signing errors |
 
 ## Contributing
 
