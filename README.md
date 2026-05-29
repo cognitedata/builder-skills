@@ -20,13 +20,16 @@ npx @cognite/cli@latest apps skills pull --skill create-client-tool
 
 | Skill | Description |
 |-------|-------------|
+| **flows-app-brief** | Certification coach (step 1) — captures app details, persona, problem, and success criteria, writes `App-Brief.md` |
+| **flows-code-review** | Technical review (step 3) — writes `reviews/code-review/feedback-round-<N>/{code-review-report.md, review-files.md, review-packages.md}` |
+| **flows-design-review** | Manual design quality assessment (step 4) — scores the 10 quality-guidelines questions, writes `reviews/design-review/feedback-round-<N>/design-review-report.md` |
+| **flows-external-app-submit** | Submission gate (step 4) — verifies brief + code review (0 Must Fix) + design review (avg ≥ 3.8), then runs `npx @cognite/cli apps submit` |
 | **create-client-tool** | Scaffolds an `AtlasTool` and wires it into `useAtlasChat` |
 | **integrate-atlas-chat** | Adds streaming Atlas Agent chat UI to a Flows app |
 | **setup-python-tools** | Adds Pyodide-based Python tool execution |
 | **code-quality** | Reviews Flows apps for code quality, maintainability, and clean code issues |
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
 | **dm-limits-and-best-practices** | CDF Data Modeling API best practices — concurrency, pagination, batching |
-| **flows-code-review** | Runs the official Flows app platform review flow against a local app workspace and writes artifacts under `reviews/flows-code-review/feedback-round-N/` |
 | **integrate-file-viewer** | Integrates CogniteFileViewer to preview CDF files (PDFs, images, text) |
 | **performance** | Optimizes Flows apps for speed, render counts, and bundle size |
 | **pull-changes-resolve-conflicts** | Merge or rebase workflow — list conflicts, analyze ours/theirs, get user approval before resolving |
