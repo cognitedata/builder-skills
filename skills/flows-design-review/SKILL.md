@@ -13,7 +13,7 @@ description: >-
   Flows design review, run the design quality assessment, or run
   flows-design-review. Must be run AFTER flows-code-review reaches 0 Must Fix
   and BEFORE flows-external-app-submit.
-allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
+allowed-tools: Read, Glob, Grep, Bash, Write, AskQuestion
 ---
 
 # Flows Design Review
@@ -108,9 +108,9 @@ Each question's probe list is the *first* thing the agent should run before aski
 
 **Probes (automatable):**
 - `grep -c '@cognite/aura' package.json` — confirm Aura is a dependency
-- `rg "from '@cognite/aura" src --type ts --type tsx -l | wc -l` — count files importing Aura
-- `rg '#[0-9a-fA-F]{3,8}\b' src --type css --type tsx --type ts -l` — files with hard-coded hex colors
-- `rg '\b(rgb|rgba|hsl|hsla)\(' src --type tsx --type css -l` — files with raw rgb/hsl values
+- `grep -rlE "from '@cognite/aura'" --include='*.ts' --include='*.tsx' src | wc -l` — count files importing Aura
+- `grep -rlE '#[0-9a-fA-F]{3,8}' --include='*.css' --include='*.tsx' --include='*.ts' src` — files with hard-coded hex colors
+- `grep -rlE '\b(rgb|rgba|hsl|hsla)\(' --include='*.tsx' --include='*.css' src` — files with raw rgb/hsl values
 - `npx eslint . --ext .ts,.tsx --rule '{"aura/no-overriding-styles":"error"}' --no-eslintrc --quiet 2>&1 | tail -5` or read the existing lint output for `aura/no-overriding-styles` warning counts
 
 **Translate to draft score:** 0 hard-coded colors + 0 `aura/no-overriding-styles` warnings → 5. Few warnings (1–5) → 4. Many warnings (>15) or no Aura imports → 2–3.
@@ -124,10 +124,10 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q2 — Navigation, layout and hierarchy.** Can users tell where they are and navigate easily?
 
 **Probes (partially automatable — relies on Step 2 walkthrough):**
-- `rg '<Route\b' src --type tsx -c` — count routes (informs navigation surface)
-- `rg 'Breadcrumb' src --type tsx -l` — files using breadcrumb components (location cues)
-- `rg 'NavLink|Link to=|useLocation' src --type tsx -l` — navigation primitives in use
-- `rg '<Topbar|<Sidebar|<Header' src --type tsx -l` — top-level chrome
+- `grep -rcE '<Route\b' --include='*.tsx' src` — count routes (informs navigation surface)
+- `grep -rlE 'Breadcrumb' --include='*.tsx' src` — files using breadcrumb components (location cues)
+- `grep -rlE 'NavLink|Link to=|useLocation' --include='*.tsx' src` — navigation primitives in use
+- `grep -rlE '<Topbar|<Sidebar|<Header' --include='*.tsx' src` — top-level chrome
 - Look at the route tree (`src/routes/`) and ask: does each non-trivial page show its own title and a way back?
 
 **Translate to draft score:** Default to **the walkthrough finding** since navigation feel is hard to measure statically. Use probes to flag risks (e.g. routes without breadcrumbs).
@@ -141,10 +141,10 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q3 — Clear labels and language.** Are buttons, inputs, and actions labeled clearly?
 
 **Probes (automatable):**
-- `rg ">(Submit|OK|Click here|Go|Yes|No)<" src --type tsx -c` — count vague button labels
-- `rg '<Button[^>]*>\s*</Button>' src --type tsx -c` — empty buttons (icon-only without label needs aria-label, handled in Q10)
-- `rg '<Label\b' src --type tsx -l` and `rg '<input\b' src --type tsx -l` — input elements vs labels; mismatch suggests unlabeled inputs
-- `rg 'placeholder=' src --type tsx -c` — placeholder-as-label is an anti-pattern; high count without matching `<Label>` is a smell
+- `grep -rcE ">(Submit|OK|Click here|Go|Yes|No)<" --include='*.tsx' src` — count vague button labels
+- `grep -rcE '<Button[^>]*>[[:space:]]*</Button>' --include='*.tsx' src` — empty buttons (icon-only without label needs aria-label, handled in Q10)
+- `grep -rlE '<Label\b' --include='*.tsx' src` and `grep -rlE '<input\b' --include='*.tsx' src` — input elements vs labels; mismatch suggests unlabeled inputs
+- `grep -rcE 'placeholder=' --include='*.tsx' src` — placeholder-as-label is an anti-pattern; high count without matching `<Label>` is a smell
 
 **Translate to draft score:** 0 vague labels + every input has a matching label → 5. Few placeholder-only inputs → 4. Vague labels in several places → 3.
 
@@ -157,10 +157,10 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q4 — System feedback and validation.** Do users know what's happening? Are forms easy to use?
 
 **Probes (automatable):**
-- `rg 'isLoading|isPending|<Skeleton|<Loader|<Spinner' src --type tsx -l` — files with loading affordances
-- `rg 'isError|onError|<Alert|toast\.' src --type tsx -l` — files with error/success affordances
-- `rg 'useMutation' src --type tsx -l` — mutation sites; cross-check that each has `onSuccess`/`onError` handlers
-- `rg 'ErrorBoundary' src --type tsx -l` — error boundaries (also cross-checked in code review)
+- `grep -rlE 'isLoading|isPending|<Skeleton|<Loader|<Spinner' --include='*.tsx' src` — files with loading affordances
+- `grep -rlE 'isError|onError|<Alert|toast\.' --include='*.tsx' src` — files with error/success affordances
+- `grep -rlE 'useMutation' --include='*.tsx' src` — mutation sites; cross-check that each has `onSuccess`/`onError` handlers
+- `grep -rlE 'ErrorBoundary' --include='*.tsx' src` — error boundaries (also cross-checked in code review)
 - For each route/feature folder, ratio of (loading + error files) ÷ (data-fetching files) should be ≈ 1
 
 **Translate to draft score:** Loading and error states present on every fetch/mutation → 5. A few mutations without explicit error handling → 4. Mixed coverage → 3.
@@ -174,11 +174,11 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q5 — Clickability and interactions.** Is it obvious what's clickable?
 
 **Probes (automatable):**
-- `rg '<div[^>]*onClick' src --type tsx -c` — `onClick` on `<div>` (non-semantic, often missing keyboard support)
-- `rg '<span[^>]*onClick' src --type tsx -c` — same for `<span>`
-- `rg 'role="button"' src --type tsx -c` — explicit role assignments (good if `<div onClick>` is unavoidable)
-- `rg 'hover:|focus:' src --type tsx -c` — Tailwind hover/focus utility usage (high = good)
-- `rg 'cursor-pointer' src --type tsx -c` — explicit pointer cursor
+- `grep -rcE '<div[^>]*onClick' --include='*.tsx' src` — `onClick` on `<div>` (non-semantic, often missing keyboard support)
+- `grep -rcE '<span[^>]*onClick' --include='*.tsx' src` — same for `<span>`
+- `grep -rcE 'role="button"' --include='*.tsx' src` — explicit role assignments (good if `<div onClick>` is unavoidable)
+- `grep -rcE 'hover:|focus:' --include='*.tsx' src` — Tailwind hover/focus utility usage (high = good)
+- `grep -rcE 'cursor-pointer' --include='*.tsx' src` — explicit pointer cursor
 
 **Translate to draft score:** 0 `<div onClick>` without role + many hover/focus utilities → 5. 1–3 violations → 4. Many `onClick` on non-button elements → 2–3.
 
@@ -191,9 +191,9 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q6 — Error prevention and recovery.** Can users undo or cancel destructive actions?
 
 **Probes (partially automatable):**
-- `rg 'delete|remove|archive|reset' src --type tsx -i -l | head -20` — files with potentially destructive actions
-- `rg 'AlertDialog|ConfirmDialog|window\.confirm' src --type tsx -l` — confirm-dialog usage
-- `rg 'variant="destructive"|destructive' src --type tsx -c` — destructive button styling
+- `grep -rilE 'delete|remove|archive|reset' --include='*.tsx' src | head -20` — files with potentially destructive actions
+- `grep -rlE 'AlertDialog|ConfirmDialog|window\.confirm' --include='*.tsx' src` — confirm-dialog usage
+- `grep -rcE 'variant="destructive"|destructive' --include='*.tsx' src` — destructive button styling
 - For each file with destructive verbs, check there is a corresponding `AlertDialog`/`ConfirmDialog` invocation in the same file or its imports
 
 **N/A guidance:** Read-only viewer apps (the common case for Flows demos) have no destructive actions and should score **5 by default with a "no destructive actions" rationale**. Do not penalize an app for not having confirmations it does not need.
@@ -207,10 +207,10 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q7 — Responsive design and multi-device support.** Does it work on different screen sizes?
 
 **Probes (automatable):**
-- `rg '\b(sm|md|lg|xl|2xl):' src --type tsx -c` — Tailwind responsive utility usage (high = good)
+- `grep -rcE '\b(sm|md|lg|xl|2xl):' --include='*.tsx' src` — Tailwind responsive utility usage (high = good)
 - `grep -E '<meta name="viewport"' index.html` — viewport meta tag present
-- `rg 'overflow-x-auto|overflow-x-scroll' src --type tsx -c` — horizontal scroll containers (often a smell)
-- `rg '\bw-\[[0-9]+px\]|\bh-\[[0-9]+px\]' src --type tsx -c` — fixed-px sizing (usually breaks small screens)
+- `grep -rcE 'overflow-x-auto|overflow-x-scroll' --include='*.tsx' src` — horizontal scroll containers (often a smell)
+- `grep -rcE '\bw-\[[0-9]+px\]|\bh-\[[0-9]+px\]' --include='*.tsx' src` — fixed-px sizing (usually breaks small screens)
 - Read `App-Brief.md` `userRole` — if it says "desktop or laptop in control room" the app may be intentionally desktop-only; this is acceptable per the rubric ("Hidden or limited on mobile if not intended for mobile")
 
 **Translate to draft score:** If app is desktop-only by design (per App-Brief) and renders cleanly on laptop down to 13" → 5. Mixed responsive utility usage → 4. Many fixed-px sizes → 3.
@@ -224,10 +224,10 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q8 — Empty states and first-time experience.** When there's no data, is it clear what to do next?
 
 **Probes (automatable):**
-- `rg -i 'empty|no\s+(data|results|items|files|matches)' src --type tsx -l` — files with empty-state copy
-- `rg '<EmptyState|EmptyPlaceholder' src --type tsx -l` — explicit empty-state components
+- `grep -rilE 'empty|no\s+(data|results|items|files|matches)' --include='*.tsx' src` — files with empty-state copy
+- `grep -rlE '<EmptyState|EmptyPlaceholder' --include='*.tsx' src` — explicit empty-state components
 - For each panel/list module (anything with `.list(` or `.items.map(`), check there is at least one branch handling `items.length === 0` with user-visible copy. List the panels that DO and DO NOT.
-- `rg 'items\.length === 0|items\.length > 0' src --type tsx -c` — explicit empty checks
+- `grep -rcE 'items\.length === 0|items\.length > 0' --include='*.tsx' src` — explicit empty checks
 
 **Translate to draft score:** Every data-fetching panel has an empty-state branch with copy → 5. One or two missing → 4. Many panels missing → 2–3.
 
@@ -240,11 +240,26 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q9 — Performance and efficiency.** Does the app load quickly?
 
 **Probes (automatable):**
-- `npm run build 2>&1 | tail -20` — capture bundle sizes (sum of JS chunks; flag > 2 MB)
-- `rg 'React\.lazy|lazy\(' src --type tsx -c` — code-split routes (good)
-- `rg 'useMemo|useCallback' src --type tsx -c` — memoization usage (informs render efficiency)
-- `rg 'useVirtual|react-window|react-virtual' src --type tsx -l` — list virtualization (good for big lists)
-- `rg '\.list\([^)]*\)' src --type ts --type tsx -l | xargs -I{} grep -l 'limit:' {} 2>/dev/null | wc -l` vs total list call sites — pagination coverage
+
+First, check whether a recent build already exists — avoids a slow rebuild when `dist/` is fresh:
+
+```bash
+find dist -maxdepth 1 -newer package.json -name '*.js' 2>/dev/null | wc -l
+du -sh dist/ 2>/dev/null
+```
+
+If the count is 0 (no recent build), fall back to:
+
+```bash
+npm run build 2>&1 | tail -20
+```
+
+Then gather the remaining metrics:
+
+- `grep -rcE 'React\.lazy|lazy\(' --include='*.tsx' src` — code-split routes (good)
+- `grep -rcE 'useMemo|useCallback' --include='*.tsx' src` — memoization usage (informs render efficiency)
+- `grep -rlE 'useVirtual|react-window|react-virtual' --include='*.tsx' src` — list virtualization (good for big lists)
+- `grep -rlE '\.list\([^)]*\)' --include='*.ts' --include='*.tsx' src | xargs -I{} grep -l 'limit:' {} 2>/dev/null | wc -l` vs total list call sites — pagination coverage
 - Cross-reference the latest `code-review-report.md` criterion 2.3 (Limits & pages) score
 
 **Translate to draft score:** Build under 1 MB gzipped + every list has a limit + react-query in use → 5. Bundle 1–2 MB or some lists missing limits → 4. Bundle > 2 MB or systemic unbounded fetches → 2–3.
@@ -258,11 +273,16 @@ Each question's probe list is the *first* thing the agent should run before aski
 **Q10 — Accessibility (WCAG AA 2.1).** Can people use it with assistive tech?
 
 **Probes (automatable):**
-- `rg '<img\b(?![^>]*\balt=)' src --type tsx -c` — `<img>` without `alt`
-- `rg '<button[^>]*>\s*<(svg|Icon)' src --type tsx -c` — icon-only buttons (need `aria-label`)
-- `rg 'aria-label=' src --type tsx -c` — ARIA label usage
-- `rg 'focus-visible:|focus:' src --type tsx -c` — focus styles
-- `rg 'tabIndex={-1}|tabIndex="?-1' src --type tsx -c` — elements removed from tab order (sometimes intentional, sometimes a bug)
+- Count `<img>` tags and `<img>` tags with `alt` attributes separately to identify missing alt text:
+  ```bash
+  grep -rcE '<img\b' --include='*.tsx' src
+  grep -rcE '<img[^>]*\balt=' --include='*.tsx' src
+  ```
+  Any difference means images are missing `alt`.
+- `grep -rcE '<button[^>]*>[[:space:]]*<(svg|Icon)' --include='*.tsx' src` — icon-only buttons (need `aria-label`)
+- `grep -rcE 'aria-label=' --include='*.tsx' src` — ARIA label usage
+- `grep -rcE 'focus-visible:|focus:' --include='*.tsx' src` — focus styles
+- `grep -rcE 'tabIndex=\{-1\}|tabIndex="?-1' --include='*.tsx' src` — elements removed from tab order (sometimes intentional, sometimes a bug)
 - If `eslint-plugin-jsx-a11y` is installed: `npx eslint . --ext .ts,.tsx --no-eslintrc --rule '{"jsx-a11y/alt-text":"error","jsx-a11y/anchor-is-valid":"error","jsx-a11y/click-events-have-key-events":"error"}' 2>&1 | tail -10`
 - If `axe-core` is available: suggest the user run an axe scan in the running app and paste results — automation can flag candidates, not enforce contrast
 

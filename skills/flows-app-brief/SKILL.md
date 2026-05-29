@@ -7,7 +7,7 @@ description: >-
   certification flow — run it immediately after `npx @cognite/cli apps create`,
   before building. Use when the user asks to start an app brief, run the
   certification coach, fill out the app brief, or run flows-app-brief.
-allowed-tools: Read, Glob, Grep, Shell, Write, AskQuestion
+allowed-tools: Read, Glob, Grep, Bash, Write, AskQuestion
 ---
 
 # Flows App Brief (Certification Coach)
