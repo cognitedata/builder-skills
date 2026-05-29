@@ -163,3 +163,18 @@ npx @cognite/cli@latest apps submit
 ```
 
 Stream the output to the user.
+
+## Step 8 — Post-submit handoff
+
+When this skill invokes `apps submit` via `Bash`, the CLI runs non-interactively (`process.stdout.isTTY === false`) and skips its auto-open-browser / reveal-in-file-manager step. The CLI still prints the file list, screen-recording prompt, and Zendesk URL — but the user must act on them manually.
+
+After the CLI finishes, print this to the user:
+
+> The CLI ran non-interactively so it didn't open the browser or file manager. To finish:
+>
+> 1. Open the Zendesk URL from the CLI output above. **The URL requires a sign-in on `support.cognite.com` — create an account there if you don't have one, then revisit the link.**
+> 2. Open `dist/submit/` in your file manager and drop in a short screen recording of the certified user journey.
+> 3. Attach every file in `dist/submit/` (source archive, deploy bundle, screen recording) to the Zendesk ticket.
+> 4. Push your commits if the branch is ahead of origin.
+
+Then run `git status --short --branch` and surface the ahead/behind count explicitly under step 4 if the branch is ahead of origin.
