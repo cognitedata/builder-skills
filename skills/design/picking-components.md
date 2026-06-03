@@ -10,6 +10,7 @@ Published Aura resources (outside this repo): [Aura design system docs](https://
 |------|------|
 | Which primitive, when to use it, dos and don'ts | `primitive-usage.md` |
 | Page layouts and approved patterns | `building-pages.md` |
+| Topbar — header, breadcrumbs, theme switcher | `using-topbar.md` |
 | Interface copy | `writing-copy.md` |
 | Forms, loading, errors, confirmations, page a11y | `handling-states.md` |
 | Storybook URLs for foundations and components | `storybook-links.md` |
