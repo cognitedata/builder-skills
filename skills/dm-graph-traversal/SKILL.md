@@ -97,6 +97,7 @@ When combining multi-step outputs:
 | `Unexpected field - edges.limit` | limit nested under `edges` | move to `with.<step>.limit` |
 | `properties must not be null` | `sources` without `properties` | add explicit `properties: [...]` |
 | Traversal step returns empty, no error | non-versioned traversal ref | use `View/version` in property refs |
+| `Cannot traverse lists of direct relations inwards.` | inwards traversal through list direct relation | traverse from owning node with `outwards`, or remodel as edge |
 | Traversal step empty despite data | missing `hasData` or wrong direction/identifier | add `hasData`; verify `direction` + `through.identifier` |
 | First page works, later missing | cursor loop not step-scoped | iterate `nextCursor.<step>` |
 | Inflated totals | dedupe policy missing | dedupe and apply explicit tie-break |
@@ -183,8 +184,9 @@ Parity checks:
   - `node skills/dm-graph-traversal/code/validate-query-parity.cjs --query <path-to-query.json> --check all --expect pass`
 - Validate expected failures (negative tests) with:
   - `node skills/dm-graph-traversal/code/validate-query-parity.cjs --query <path-to-query.json> --check all --expect fail`
+- Add `--schema-hints <path-to-schema-hints.json>` when running schema-aware relation checks.
 - Check modes:
-  - `sources-properties`, `limit-placement`, `start-step-hasdata`, `versioned-traversal-refs`, `cursor-shape`, `all`
+  - `sources-properties`, `limit-placement`, `start-step-hasdata`, `versioned-traversal-refs`, `cursor-shape`, `inwards-list-direct-relations`, `all`
 
 ---
 

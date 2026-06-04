@@ -352,6 +352,26 @@
           "type": "content"
         }
       ]
+    },
+    {
+      "id": 20,
+      "prompt": "My query fails with 'Cannot traverse lists of direct relations inwards.' when traversing from equipment to production schedules. What should I change?",
+      "expected_output": "Explain that inwards traversal over list direct relations is invalid and recommend traversing from the owning side with outwards direction or remodeling as an edge relation.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response states the failure is caused by inwards traversal on list direct relations.",
+          "type": "content"
+        },
+        {
+          "text": "Response recommends traversing from the owning node with outwards direction.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes edge remodeling as an alternative fix.",
+          "type": "content"
+        }
+      ]
     }
   ]
 }

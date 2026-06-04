@@ -9,6 +9,7 @@ function parseArgs(argv) {
     check: "all",
     expect: "pass",
     json: false,
+    schemaHints: null,
   };
 
   for (let i = 2; i < argv.length; i += 1) {
@@ -27,6 +28,10 @@ function parseArgs(argv) {
       args.expect = value;
     } else if (token === "--json") {
       args.json = true;
+    } else if (token === "--schema-hints") {
+      const value = argv[++i];
+      if (!value) throw new Error("Missing value for --schema-hints");
+      args.schemaHints = value;
     } else if (token === "--help" || token === "-h") {
       args.help = true;
     } else {
@@ -42,12 +47,13 @@ function usage() {
     "Reusable CDF query payload validator",
     "",
     "Usage:",
-    "  node validate-query-parity.cjs --query <path> [--query <path> ...] [--check all|sources-properties|limit-placement|start-step-hasdata|versioned-traversal-refs|cursor-shape] [--expect pass|fail] [--json]",
+    "  node validate-query-parity.cjs --query <path> [--query <path> ...] [--check all|sources-properties|limit-placement|start-step-hasdata|versioned-traversal-refs|cursor-shape|inwards-list-direct-relations] [--expect pass|fail] [--schema-hints <path>] [--json]",
     "",
     "Examples:",
     "  node validate-query-parity.cjs --query ./query.json",
     "  node validate-query-parity.cjs --query ./query-fail.json --expect fail",
     "  node validate-query-parity.cjs --query ./query1.json --query ./query2.json --check all",
+    "  node validate-query-parity.cjs --query ./query.json --check inwards-list-direct-relations --schema-hints ./schema-hints.json",
   ].join("\n");
 }
 
@@ -232,10 +238,62 @@ function validateCursorShape(query) {
   return issues;
 }
 
-function runChecks(query, checkMode) {
+function normalizeListRelationHints(schemaHints) {
+  const list = schemaHints?.directRelationLists;
+  if (!Array.isArray(list)) return new Set();
+  const set = new Set();
+  for (const entry of list) {
+    const key = [
+      entry?.space ?? "",
+      entry?.externalId ?? "",
+      entry?.version ?? "",
+      entry?.identifier ?? "",
+    ].join("|");
+    if (key !== "|||") set.add(key);
+  }
+  return set;
+}
+
+function validateInwardsListDirectRelations(query, schemaHints) {
+  const issues = [];
+  const withBlock = query?.with;
+  if (!withBlock || typeof withBlock !== "object") return issues;
+  const hintSet = normalizeListRelationHints(schemaHints);
+  if (hintSet.size === 0) return issues;
+
+  for (const [step, stepDef] of Object.entries(withBlock)) {
+    const nodes = stepDef?.nodes;
+    if (!nodes || typeof nodes !== "object") continue;
+    if (nodes?.direction !== "inwards") continue;
+    if (!Object.prototype.hasOwnProperty.call(nodes, "from")) continue;
+    const through = nodes?.through;
+    const view = through?.view;
+    const identifier = through?.identifier;
+    if (!view || typeof view !== "object" || !identifier) continue;
+    const key = [view.space ?? "", view.externalId ?? "", view.version ?? "", identifier].join("|");
+    if (hintSet.has(key)) {
+      issues.push({
+        rule: "inwards-list-direct-relations",
+        path: `with.${step}.nodes`,
+        message:
+          "Cannot traverse lists of direct relations inwards. Use outwards traversal from the owning node or remodel as an edge.",
+      });
+    }
+  }
+  return issues;
+}
+
+function runChecks(query, checkMode, schemaHints) {
   const modes =
     checkMode === "all"
-      ? ["sources-properties", "limit-placement", "start-step-hasdata", "versioned-traversal-refs", "cursor-shape"]
+      ? [
+          "sources-properties",
+          "limit-placement",
+          "start-step-hasdata",
+          "versioned-traversal-refs",
+          "cursor-shape",
+          "inwards-list-direct-relations",
+        ]
       : [checkMode];
   let issues = [];
 
@@ -253,6 +311,9 @@ function runChecks(query, checkMode) {
   }
   if (modes.includes("cursor-shape")) {
     issues = issues.concat(validateCursorShape(query));
+  }
+  if (modes.includes("inwards-list-direct-relations")) {
+    issues = issues.concat(validateInwardsListDirectRelations(query, schemaHints));
   }
   return issues;
 }
@@ -283,10 +344,11 @@ function main() {
     "start-step-hasdata",
     "versioned-traversal-refs",
     "cursor-shape",
+    "inwards-list-direct-relations",
   ]);
   if (!validChecks.has(args.check)) {
     throw new Error(
-      `Invalid --check '${args.check}'. Use all|sources-properties|limit-placement|start-step-hasdata|versioned-traversal-refs|cursor-shape`
+      `Invalid --check '${args.check}'. Use all|sources-properties|limit-placement|start-step-hasdata|versioned-traversal-refs|cursor-shape|inwards-list-direct-relations`
     );
   }
 
@@ -295,12 +357,17 @@ function main() {
     throw new Error(`Invalid --expect '${args.expect}'. Use pass|fail`);
   }
 
+  let schemaHints = null;
+  if (args.schemaHints) {
+    schemaHints = readJson(args.schemaHints).data;
+  }
+
   const results = [];
   let hasError = false;
 
   for (const queryPath of args.queries) {
     const { abs, data } = readJson(queryPath);
-    const issues = runChecks(data, args.check);
+    const issues = runChecks(data, args.check, schemaHints);
     const passed = issues.length === 0;
     const expectPass = args.expect === "pass";
     const expectationMet = expectPass ? passed : !passed;
