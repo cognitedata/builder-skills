@@ -372,6 +372,30 @@
           "type": "content"
         }
       ]
+    },
+    {
+      "id": 21,
+      "prompt": "I need latest usage values per feature, but also need graph traversal to map customer -> PTTS nodes -> feature. What is the recommended query pattern?",
+      "expected_output": "Use a two-phase pattern: traverse with instances.query to collect timeseries instance IDs, then fetch latest values with batched datapoints.retrieveLatest and merge by stable entity key.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response recommends instances.query for graph traversal and ID collection.",
+          "type": "content"
+        },
+        {
+          "text": "Response recommends datapoints.retrieveLatest for latest-value retrieval.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes batching guidance and ignoreUnknownIds handling.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes deterministic merge-by-entity guidance.",
+          "type": "content"
+        }
+      ]
     }
   ]
 }

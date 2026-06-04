@@ -89,6 +89,37 @@ When combining multi-step outputs:
 
 ---
 
+## Two-Phase Latest Datapoint Rule
+
+When a use case asks for graph relationships plus the latest numeric value, use a two-phase read:
+
+1. Use `instances.query` to traverse and collect the relevant time-series node IDs.
+2. Use `datapoints.retrieveLatest` on those IDs in batches.
+3. Merge latest values back by stable business key.
+
+Why:
+
+- `instances.query` is best for relationship traversal and filtering.
+- `retrieveLatest` is the efficient API for last-value reads.
+- Keeping these responsibilities separate avoids over-fetching and expensive fan-out logic.
+
+Efficiency guardrails:
+
+- Query only IDs/properties needed for downstream latest reads.
+- Dedupe node IDs before latest retrieval.
+- Batch latest calls (for example, max 100 IDs per request).
+- Use `ignoreUnknownIds: true` to tolerate stale references.
+- Keep aggregation logic deterministic when many series map to one entity.
+
+Reference shape:
+
+```ts
+const nodeIds = queryResult.items.ptts.map((n) => ({ instanceId: { space: n.space, externalId: n.externalId } }));
+const latest = await client.datapoints.retrieveLatest(nodeIds, { ignoreUnknownIds: true });
+```
+
+---
+
 ## Failure Signature Playbook
 
 | Error / Symptom | Likely Cause | Fix |
@@ -96,6 +127,7 @@ When combining multi-step outputs:
 | `Unexpected field - nodes.limit` | limit nested under `nodes` | move to `with.<step>.limit` |
 | `Unexpected field - edges.limit` | limit nested under `edges` | move to `with.<step>.limit` |
 | `properties must not be null` | `sources` without `properties` | add explicit `properties: [...]` |
+| Unexpectedly slow latest-value endpoint | trying to read latest values via traversal-only flow | split into `instances.query` + batched `retrieveLatest` |
 | Traversal step returns empty, no error | non-versioned traversal ref | use `View/version` in property refs |
 | `Cannot traverse lists of direct relations inwards.` | inwards traversal through list direct relation | traverse from owning node with `outwards`, or remodel as edge |
 | Traversal step empty despite data | missing `hasData` or wrong direction/identifier | add `hasData`; verify `direction` + `through.identifier` |
@@ -187,6 +219,7 @@ Parity checks:
 - Add `--schema-hints <path-to-schema-hints.json>` when running schema-aware relation checks.
 - Check modes:
   - `sources-properties`, `limit-placement`, `start-step-hasdata`, `versioned-traversal-refs`, `cursor-shape`, `inwards-list-direct-relations`, `all`
+- For latest-value scenarios, apply the two-phase rule (`instances.query` IDs -> batched `retrieveLatest`) instead of forcing latest reads into traversal payloads.
 
 ---
 
