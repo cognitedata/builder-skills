@@ -252,19 +252,23 @@
     {
       "id": 15,
       "prompt": "How can we validate a new TypeScript query design quickly before wiring everything in frontend code?",
-      "expected_output": "Use Python SDK parity checks (dm.query.Query) to validate shape and traversal semantics before TS wiring.",
+      "expected_output": "Use Node.js/TypeScript parity checks to validate query payload shape and traversal semantics before wiring app integration.",
       "files": [],
       "assertions": [
         {
-          "text": "Response recommends Python SDK parity workflow.",
+          "text": "Response recommends a Node.js/TypeScript parity workflow.",
           "type": "content"
         },
         {
-          "text": "Response references dm.query.Query or equivalent SDK query builder.",
+          "text": "Response references the reusable Node validator or equivalent TypeScript-first validation flow.",
           "type": "content"
         },
         {
           "text": "Response validates both payload shape and semantics.",
+          "type": "content"
+        },
+        {
+          "text": "Response avoids defaulting to Python unless explicitly requested.",
           "type": "content"
         }
       ]

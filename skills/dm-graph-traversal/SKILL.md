@@ -1,6 +1,6 @@
 ---
 name: dm-graph-traversal
-description: CDF Data Modeling query-vs-list expert skill. Use for graph-native reads with instances.query, traversal payload design, failure debugging, pagination/dedupe semantics, and regression-proof tests (including Python SDK parity checks).
+description: CDF Data Modeling query-vs-list expert skill. Use for graph-native reads with instances.query, traversal payload design, failure debugging, pagination/dedupe semantics, and regression-proof tests (including Node.js/TypeScript parity checks).
 allowed-tools: Read, Glob, Grep, Edit, Write
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: Read, Glob, Grep, Edit, Write
 
 ## Outcome
 
-Ship correct, maintainable, graph-native CDF DM reads.
+Ship correct, maintainable, graph-native CDF Data Model reads.
 
 This skill turns query/list ambiguity into a deterministic workflow:
 
@@ -37,7 +37,16 @@ Use `instances/list` when **all** are true:
 
 Heuristic:
 
-- “If this read needs graph context, it is a query.”
+- "If this read needs graph context, it is a query."
+
+---
+
+## Operating Mode (Hard Rule)
+
+- Default to Node.js/TypeScript workflows for parity checks, examples, and validator tooling.
+- Use `code/validate-query-parity.cjs` for payload validation in all normal cases.
+- Do not introduce Python parity scripts by default in TypeScript repositories.
+- Use Python-based validation only if the user explicitly requests Python or no viable Node.js path exists.
 
 ---
 
@@ -103,7 +112,7 @@ When combining multi-step outputs:
 5. Map only required fields.
 6. Add deterministic join/dedupe logic.
 7. Add payload-shape tests.
-8. (Optional) Cross-check in Python SDK.
+8. (Optional) Cross-check in TypeScript SDK.
 
 ---
 
@@ -129,34 +138,40 @@ expect(call?.select?.initiatives?.sources?.[0]?.properties).toContain('title');
 
 ---
 
-## Python SDK Parity Check (Recommended)
+## TypeScript SDK Parity Check (Recommended)
 
-Use Python SDK to quickly validate query shape and semantics before/after TS implementation:
+Use the TypeScript SDK to validate query shape and traversal semantics directly in frontend/backend JavaScript tooling:
 
-```python
-from cognite.client import data_modeling as dm
+```ts
+const query = {
+  with: {
+    cycles: {
+      nodes: {
+        filter: {
+          and: [
+            { equals: { property: ["node", "space"], value: "product_portfolio" } },
+            {
+              hasData: [{ type: "view", space: "product_portfolio", externalId: "PortfolioReviewCycle", version: "v1" }]
+            }
+          ]
+        }
+      },
+      limit: 200
+    }
+  },
+  select: {
+    cycles: {
+      sources: [
+        {
+          source: { type: "view", space: "product_portfolio", externalId: "PortfolioReviewCycle", version: "v1" },
+          properties: ["key", "displayName", "periodStart", "periodEnd", "status"]
+        }
+      ]
+    }
+  }
+};
 
-q = dm.query.Query(
-    with_={
-        "cycles": dm.query.NodeResultSetExpression(
-            filter=dm.filters.And(
-                dm.filters.Equals(["node", "space"], "product_portfolio"),
-                dm.filters.HasData(views=[dm.ViewId("product_portfolio", "PortfolioReviewCycle", "v1")]),
-            ),
-            limit=200,
-        )
-    },
-    select={
-        "cycles": dm.query.Select(
-            sources=[
-                dm.query.SourceSelector(
-                    source=dm.ViewId("product_portfolio", "PortfolioReviewCycle", "v1"),
-                    properties=["key", "displayName", "periodStart", "periodEnd", "status"],
-                )
-            ]
-        )
-    },
-)
+await client.dataModeling.instances.query(query);
 ```
 
 Parity checks:
@@ -164,6 +179,12 @@ Parity checks:
 - Step names and cursor keys match TS.
 - Limit placement and `properties` shape are valid.
 - Traversal filters behave as expected.
+- Validate any project payload with:
+  - `node skills/dm-graph-traversal/code/validate-query-parity.cjs --query <path-to-query.json> --check all --expect pass`
+- Validate expected failures (negative tests) with:
+  - `node skills/dm-graph-traversal/code/validate-query-parity.cjs --query <path-to-query.json> --check all --expect fail`
+- Check modes:
+  - `sources-properties`, `limit-placement`, `start-step-hasdata`, `versioned-traversal-refs`, `cursor-shape`, `all`
 
 ---
 
@@ -173,10 +194,11 @@ Parity checks:
 - Query payload follows all guardrails.
 - Merge/dedupe semantics explicit and tested.
 - Regression tests cover known failure signatures.
-- (High-risk changes) Python parity sanity check completed.
+- (High-risk changes) TypeScript SDK parity sanity check completed.
 
 ---
 
 ## References
 
 - `references/query-vs-list.md`
+- `code/validate-query-parity.cjs`
