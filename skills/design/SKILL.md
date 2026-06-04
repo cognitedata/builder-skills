@@ -1,6 +1,6 @@
 ---
 name: design
-description: Simplified Aura guidance for selecting primitives, keeping token usage consistent, and applying reliable layout/copy/state patterns in Flows and Fusion apps.
+description: Simplified Aura guidance for selecting primitives, keeping token usage consistent, applying reliable layout/copy/state patterns, and wiring the Topbar (navigation bar, app header, breadcrumbs, theme switcher) in Flows and Fusion apps.
 allowed-tools: Read, Glob, Grep, Edit, Write
 ---
 
@@ -19,6 +19,7 @@ Use Storybook for component APIs and exact props. Use this skill for "what to ch
 Consult this skill whenever you are:
 
 - Creating or migrating interactive UI, forms, tables, navigation, or data display
+- Adding or wiring the Topbar — app header, navigation bar, breadcrumbs, or theme switcher
 - Writing or modifying styles, colors, spacing, or typography
 - Choosing components, tokens, or layout patterns
 - Creating or restructuring pages and responsive layouts
@@ -36,6 +37,7 @@ Consult this skill whenever you are:
 | Choosing primitives and deciding what to use when | `primitive-usage.md` |
 | Where to look for Storybook, docs, and Figma (router) | `picking-components.md` |
 | Structuring a page or choosing a layout pattern | `building-pages.md` |
+| Adding or wiring the Topbar (header, breadcrumbs, theme switcher) | `using-topbar.md` |
 | Writing any user-facing text | `writing-copy.md` |
 | Forms, loading, errors, confirmations, or page-level accessibility | `handling-states.md` |
 | Looking up Storybook URLs for foundations or components | `storybook-links.md` |
