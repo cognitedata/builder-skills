@@ -69,10 +69,7 @@ Why:
 
 This skill is the source of truth for graph query correctness (traversal shape, refs, relation direction, and payload guardrails).
 
-For runtime limits and throughput controls, defer to:
-
-- `dm-limits-and-best-practices` for concurrency budgets, semaphore/task-runner usage, retry policy details, and write batching limits.
-- `dm-limits-and-best-practices` should reference this skill for traversal payload correctness and graph-specific failure signatures.
+For runtime limits and throughput controls, see `dm-limits-and-best-practices` (concurrency budgets, semaphore/task-runner usage, retry policy details, and write batching limits).
 
 Practical rule:
 
