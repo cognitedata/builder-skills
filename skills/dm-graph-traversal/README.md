@@ -20,3 +20,12 @@ This folder contains the canonical `dm-graph-traversal` skill.
 - Example fixtures are in `code/examples/` (including fail/pass variants for common `properties must not be null`, missing `hasData`, non-versioned traversal refs, cursor request-shape issues, and inwards list direct relation traversal errors).
 - For latest datapoint use cases, follow the skill's two-phase rule: `instances.query` for traversal/ID collection, then batched `datapoints.retrieveLatest` for last-value reads.
 
+## Rollout mindset (recommended)
+
+Treat the validator as a normal engineering guardrail, not an optional manual check:
+
+- Add a repository test that runs `code/validate-query-parity.cjs` against generated query payloads used by app code.
+- Include that test in the standard `npm test` / Vitest suite so it runs locally and in CI by default.
+- Keep fixtures close to query-builder tests so shape regressions fail fast during development.
+- Prefer failing in tests over discovering query-shape errors at runtime.
+
