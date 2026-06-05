@@ -41,6 +41,21 @@ Heuristic:
 
 ---
 
+## Search-First Entry Pattern
+
+When user intent is discovery/ranking (for example free-text name matching), prefer:
+
+1. `instances.search` to find/rank candidate anchors.
+2. `instances.query` to hydrate graph-related details for those anchors.
+
+Why:
+
+- Search APIs are better for ranking and fuzzy discovery.
+- Query APIs are better for explicit graph traversal and constrained joins.
+- This avoids broad traversal scans when the first step is actually discovery.
+
+---
+
 ## Operating Mode (Hard Rule)
 
 - Default to Node.js/TypeScript workflows for parity checks, examples, and validator tooling.
@@ -87,6 +102,11 @@ When combining multi-step outputs:
 - dedupe by stable IDs (or business keys)
 - define tie-breaks (`explicit > fallback`, `max`, `latest`, etc.)
 
+### 7) Strict-to-broad fallback
+
+Start with strict server-side constraints (`space`, exact filters, scoped predicates).
+Only broaden filters when needed, and keep fallback stages explicit and ordered.
+
 ---
 
 ## Two-Phase Latest Datapoint Rule
@@ -128,6 +148,7 @@ const latest = await client.datapoints.retrieveLatest(nodeIds, { ignoreUnknownId
 | `Unexpected field - edges.limit` | limit nested under `edges` | move to `with.<step>.limit` |
 | `properties must not be null` | `sources` without `properties` | add explicit `properties: [...]` |
 | Unexpectedly slow latest-value endpoint | trying to read latest values via traversal-only flow | split into `instances.query` + batched `retrieveLatest` |
+| Query path intermittently fails with 429/5xx/timeout | missing transient failure handling | add bounded retries with exponential backoff + jitter |
 | Traversal step returns empty, no error | non-versioned traversal ref | use `View/version` in property refs |
 | `Cannot traverse lists of direct relations inwards.` | inwards traversal through list direct relation | traverse from owning node with `outwards`, or remodel as edge |
 | Traversal step empty despite data | missing `hasData` or wrong direction/identifier | add `hasData`; verify `direction` + `through.identifier` |
@@ -145,7 +166,8 @@ const latest = await client.datapoints.retrieveLatest(nodeIds, { ignoreUnknownId
 5. Map only required fields.
 6. Add deterministic join/dedupe logic.
 7. Add payload-shape tests.
-8. (Optional) Cross-check in TypeScript SDK.
+8. Add bounded retries for transient failures (408/425/429/5xx).
+9. (Optional) Cross-check in TypeScript SDK.
 
 ---
 
@@ -159,6 +181,7 @@ For every critical helper, tests must assert payload shape (not only mapped outp
 - traversal refs are versioned where needed
 - `hasData` present on constrained start steps
 - unintended fallback to `instances/list` is absent (if query-only design)
+- retry behavior exists for transient failures in production paths
 
 Example assertion style:
 
@@ -220,6 +243,17 @@ Parity checks:
 - Check modes:
   - `sources-properties`, `limit-placement`, `start-step-hasdata`, `versioned-traversal-refs`, `cursor-shape`, `inwards-list-direct-relations`, `all`
 - For latest-value scenarios, apply the two-phase rule (`instances.query` IDs -> batched `retrieveLatest`) instead of forcing latest reads into traversal payloads.
+- Prefer server-side filtering and explicit property lists; avoid wildcard projection (`"*"`).
+
+---
+
+## Anti-patterns To Avoid
+
+1. Broad cross-space retrieval without explicit scope when not required.
+2. Wildcard property projection (`properties: ["*"]`) in production query paths.
+3. Client-side filtering when equivalent server-side filters exist.
+4. Raw HTTP query payload posting when SDK methods provide equivalent behavior and retries.
+5. N+1 relation fetch loops when one traversal query can hydrate the same graph.
 
 ---
 

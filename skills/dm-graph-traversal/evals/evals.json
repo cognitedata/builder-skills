@@ -396,6 +396,66 @@
           "type": "content"
         }
       ]
+    },
+    {
+      "id": 22,
+      "prompt": "User search starts with fuzzy equipment name matching, then needs related work orders and latest metrics. Should we start with query traversal or search?",
+      "expected_output": "Recommend search-first then traverse: use instances.search to rank anchors, then instances.query for graph hydration, and apply retrieveLatest for last-value metrics.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response recommends instances.search first for fuzzy/discovery stage.",
+          "type": "content"
+        },
+        {
+          "text": "Response recommends instances.query second for relation traversal.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes two-phase latest-value retrieval via datapoints.retrieveLatest when needed.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "Our DMS query endpoint occasionally returns 429 and 5xx during peak usage. What production rule should be enforced?",
+      "expected_output": "Require bounded transient retry policy with exponential backoff and jitter, while keeping payload/page sizes moderate and preserving deterministic behavior.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response explicitly lists transient retry status classes (for example 408/425/429/5xx).",
+          "type": "content"
+        },
+        {
+          "text": "Response requires exponential backoff with jitter and bounded retries.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes payload/page-size moderation guidance.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Can we just use properties ['*'] and broad list/query filters first, then narrow results client-side?",
+      "expected_output": "Reject this as an anti-pattern: prefer explicit server-side filtering and explicit property lists, and only broaden constraints through staged strict-to-broad fallback.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response rejects wildcard projection in production paths.",
+          "type": "content"
+        },
+        {
+          "text": "Response recommends server-side filtering over client-side filtering.",
+          "type": "content"
+        },
+        {
+          "text": "Response describes strict-to-broad fallback instead of immediately broad retrieval.",
+          "type": "content"
+        }
+      ]
     }
   ]
 }
