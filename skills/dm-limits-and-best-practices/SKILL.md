@@ -10,6 +10,8 @@ metadata:
 
 This is a reference skill. When writing or reviewing code that calls CDF Data Modeling APIs, apply the patterns below.
 
+For traversal payload correctness and graph-specific failure signatures, see `dm-graph-traversal`.
+
 ---
 
 ## DMS Limits Reference
