@@ -456,6 +456,30 @@
           "type": "content"
         }
       ]
+    },
+    {
+      "id": 25,
+      "prompt": "We need Initiative -> Commitment edge properties (arrAtRisk, confidence) and then Customer details. How should we structure the query?",
+      "expected_output": "Recommend an edge-first traversal design: start nodes, traverse to edges as first-class records, project edge properties explicitly, then traverse/join endpoint nodes and apply deterministic dedupe/tie-break aggregation.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response treats edge rows as first-class data (not transport-only).",
+          "type": "content"
+        },
+        {
+          "text": "Response requires explicit edge property projection via select.<edgeStep>.sources.properties.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes endpoint join/hydration after edge traversal.",
+          "type": "content"
+        },
+        {
+          "text": "Response includes deterministic dedupe/tie-break guidance for multi-edge aggregation.",
+          "type": "content"
+        }
+      ]
     }
   ]
 }

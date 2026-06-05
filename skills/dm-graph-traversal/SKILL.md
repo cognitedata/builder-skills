@@ -155,6 +155,77 @@ const latest = await client.datapoints.retrieveLatest(nodeIds, { ignoreUnknownId
 
 ---
 
+## Edge-With-Properties Query Pattern
+
+Use this pattern when relationship edges carry business data (for example risk, confidence, allocation, ownership, status, weight).
+
+Mental model:
+
+1. Start from the primary node set (the page/entity context).
+2. Traverse to relationship edges as first-class records.
+3. Read edge properties explicitly from `select.<edgeStep>.sources`.
+4. Join edge rows to endpoint nodes for labels/details.
+5. Aggregate with deterministic dedupe/tie-break rules.
+
+Why this matters:
+
+- Edge properties are business facts; treating edges as transport-only loses critical data.
+- Querying nodes first and stitching ad-hoc often creates N+1 calls and double counting.
+- Explicit edge-step design keeps lineage and semantics clear.
+
+Generic example:
+
+```ts
+const result = await client.instances.query({
+  with: {
+    start: {
+      nodes: {
+        filter: {
+          and: [
+            { equals: { property: ["node", "space"], value: "my_space" } },
+            { hasData: [{ type: "view", space: "my_space", externalId: "PrimaryEntity", version: "v1" }] }
+          ]
+        }
+      },
+      limit: 1000
+    },
+    links: {
+      edges: {
+        from: "start",
+        direction: "outwards",
+        filter: {
+          equals: {
+            property: ["edge", "type"],
+            value: { space: "my_space", externalId: "PrimaryToSecondaryLink" }
+          }
+        }
+      },
+      limit: 1000
+    },
+    secondary: {
+      nodes: {
+        from: "links",
+        direction: "outwards"
+      },
+      limit: 1000
+    }
+  },
+  select: {
+    start: { sources: [{ source: { type: "view", space: "my_space", externalId: "PrimaryEntity", version: "v1" }, properties: ["name"] }] },
+    links: { sources: [{ source: { type: "view", space: "my_space", externalId: "PrimaryToSecondaryLink", version: "v1" }, properties: ["weight", "status"] }] },
+    secondary: { sources: [{ source: { type: "view", space: "my_space", externalId: "SecondaryEntity", version: "v1" }, properties: ["name"] }] }
+  }
+});
+```
+
+Edge aggregation guidance:
+
+- Dedupe by endpoint business key (or edge ID when edge uniqueness matters).
+- Define tie-break policy up front (`max(weight)`, latest timestamp, explicit-over-derived, etc.).
+- Keep aggregation deterministic and test it directly.
+
+---
+
 ## Failure Signature Playbook
 
 | Error / Symptom | Likely Cause | Fix |
@@ -164,6 +235,8 @@ const latest = await client.datapoints.retrieveLatest(nodeIds, { ignoreUnknownId
 | `properties must not be null` | `sources` without `properties` | add explicit `properties: [...]` |
 | Unexpectedly slow latest-value endpoint | trying to read latest values via traversal-only flow | split into `instances.query` + batched `retrieveLatest` |
 | Query path intermittently fails with 429/5xx/timeout | missing transient failure handling | add bounded retries with exponential backoff + jitter |
+| Edge properties missing in output | traversed edges but did not project edge properties | add explicit `select.<edgeStep>.sources[*].properties` for edge view |
+| Aggregates inflated after edge traversal | multiple edges per endpoint without dedupe policy | dedupe by stable key and apply explicit tie-break rule |
 | Traversal step returns empty, no error | non-versioned traversal ref | use `View/version` in property refs |
 | `Cannot traverse lists of direct relations inwards.` | inwards traversal through list direct relation | traverse from owning node with `outwards`, or remodel as edge |
 | Traversal step empty despite data | missing `hasData` or wrong direction/identifier | add `hasData`; verify `direction` + `through.identifier` |
