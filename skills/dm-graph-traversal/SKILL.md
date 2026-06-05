@@ -65,6 +65,21 @@ Why:
 
 ---
 
+## Related Skill Boundary
+
+This skill is the source of truth for graph query correctness (traversal shape, refs, relation direction, and payload guardrails).
+
+For runtime limits and throughput controls, defer to:
+
+- `dm-limits-and-best-practices` for concurrency budgets, semaphore/task-runner usage, retry policy details, and write batching limits.
+
+Practical rule:
+
+- Build the correct graph query with this skill first.
+- Then harden runtime behavior at scale with `dm-limits-and-best-practices`.
+
+---
+
 ## Canonical Payload Guardrails
 
 ### 1) Step-level limit placement

@@ -19,6 +19,7 @@ This folder contains the canonical `dm-graph-traversal` skill.
 - Available checks: `sources-properties`, `limit-placement`, `start-step-hasdata`, `versioned-traversal-refs`, `cursor-shape`, `inwards-list-direct-relations`, `all`.
 - Example fixtures are in `code/examples/` (including fail/pass variants for common `properties must not be null`, missing `hasData`, non-versioned traversal refs, cursor request-shape issues, and inwards list direct relation traversal errors).
 - For latest datapoint use cases, follow the skill's two-phase rule: `instances.query` for traversal/ID collection, then batched `datapoints.retrieveLatest` for last-value reads.
+- For concurrency limits, semaphore usage, and write batching policies, pair this skill with `dm-limits-and-best-practices`.
 
 ## Rollout mindset (recommended)
 
