@@ -1,6 +1,6 @@
 ---
 name: call-cognite-function
-description: Call a deployed Cognite CDF Function and retrieve its response. Use this skill whenever you need to invoke any CDF Function (by numeric function ID or external ID), pass arbitrary input data, and get the result back — regardless of what the function does or what shape its input/output takes. Triggers: call cognite function, invoke CDF function, run CDF function, poll CDF function, CDF Functions API, cognite function result, function call nonce.
+description: "Call a deployed Cognite CDF Function and retrieve its response. Use this skill whenever you need to invoke any CDF Function (by numeric function ID or external ID), pass arbitrary input data, and get the result back — regardless of what the function does or what shape its input/output takes. Triggers: call cognite function, invoke CDF function, run CDF function, poll CDF function, CDF Functions API, cognite function result, function call nonce."
 ---
 
 # Call Cognite Function
