@@ -14,6 +14,8 @@ Use Aura as the default UI system for customer-facing product work. Prefer decis
 
 Use Storybook for component APIs and exact props. Use this skill for "what to choose and when."
 
+Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
+
 <when-to-reference>
 
 Consult this skill whenever you are:
@@ -36,7 +38,7 @@ Consult this skill whenever you are:
 | Choosing primitives and deciding what to use when | `primitive-usage.md` |
 | Where to look for Storybook, docs, and Figma (router) | `picking-components.md` |
 | Structuring a page or choosing a layout pattern | `building-pages.md` |
-| Writing any user-facing text | `writing-copy.md` |
+| Writing any user-facing text | Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` |
 | Forms, loading, errors, confirmations, or page-level accessibility | `handling-states.md` |
 | Looking up Storybook URLs for foundations or components | `storybook-links.md` |
 
