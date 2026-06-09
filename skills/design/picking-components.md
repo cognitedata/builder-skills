@@ -10,7 +10,7 @@ Published Aura resources (outside this repo): [Aura design system docs](https://
 |------|------|
 | Which primitive, when to use it, dos and don'ts | `primitive-usage.md` |
 | Page layouts and approved patterns | `building-pages.md` |
-| Interface copy | `writing-copy.md` |
+| Interface copy | Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` |
 | Forms, loading, errors, confirmations, page a11y | `handling-states.md` |
 | Storybook URLs for foundations and components | `storybook-links.md` |
 | Component props, variants, and foundation token reference | Storybook and [Aura design system docs](https://cognite-dune-docs.mintlify.app/aura-design-system/index) (this file does not duplicate them) |
