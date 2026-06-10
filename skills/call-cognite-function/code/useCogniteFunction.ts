@@ -1,32 +1,46 @@
 /**
- * useCogniteFunction — React hook for calling any Cognite CDF Function.
+ * useCogniteFunction — React Query hook for calling any Cognite CDF Function.
  *
- * Wraps cogniteFunctionService with isLoading / error / result state and
- * automatic cleanup on unmount (AbortController).
+ * useMutation is the right primitive here: POST /functions/{id}/call is not
+ * idempotent (every call spins a new execution and counts against the
+ * 100-concurrent-calls limit), so we never want refetch-on-focus or
+ * remount-refetch semantics. React Query owns isPending / error / data /
+ * reset, which removes the hand-rolled state and AbortController plumbing.
  *
- * Copy into src/hooks/ and adjust the useCdfClient import to match your
- * project's SDK context provider.
+ * Requires a <QueryClientProvider> above in the tree.
+ * Adjust the useCdfClient import to your project's SDK context.
  *
  * Usage:
- *   const { call, isLoading, error, result, reset } =
- *     useCogniteFunction<MyInput, MyOutput>(12345678);
+ *   const Output = z.object({ success: z.boolean(), report: z.string() });
  *
- *   // in an event handler or useEffect:
- *   const output = await call({ foo: "bar" });
+ *   const { call, isLoading, error, result, reset } = useCogniteFunction(
+ *     12345678,
+ *     { outputSchema: Output },
+ *   );
+ *
+ *   // in an event handler:
+ *   const output = await call({ reportId: "abc" }); // typed from Output
+ *
+ * If a specific function is a pure read and you want caching, skip this hook
+ * and wrap the service in useQuery at the call site:
+ *
+ *   useQuery({
+ *     queryKey: ["cdf-fn", functionId, input],
+ *     queryFn: () => callCogniteFunction(sdk, functionId, input, { outputSchema }),
+ *   });
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 // Adjust this import to your project's SDK context:
 import { useCdfClient } from "@/contexts/CdfClientContext";
 import {
   callCogniteFunction,
-  CogniteFunctionError,
   type CallCogniteFunctionOptions,
 } from "./cogniteFunctionService";
 
 export interface UseCogniteFunctionResult<TInput, TOutput> {
-  /** Call the function with the given input. Resolves with the output or throws CogniteFunctionError. */
-  call: (data: TInput, opts?: Omit<CallCogniteFunctionOptions, "signal">) => Promise<TOutput>;
+  /** Invoke the function. Resolves with the (schema-validated) output, or throws (SDK error, ZodError, or Error). */
+  call: (data: TInput) => Promise<TOutput>;
   isLoading: boolean;
   error: string | null;
   result: TOutput | null;
@@ -35,83 +49,26 @@ export interface UseCogniteFunctionResult<TInput, TOutput> {
 
 /**
  * @param functionId Numeric CDF function ID.
- * @param defaultOpts Default poll options — can be overridden per call().
+ * @param opts       Output schema and polling config (see CallCogniteFunctionOptions).
  */
-export function useCogniteFunction<TInput, TOutput>(
+export function useCogniteFunction<TInput, TOutput = unknown>(
   functionId: string | number,
-  defaultOpts: Omit<CallCogniteFunctionOptions, "signal"> = {},
+  opts: Omit<CallCogniteFunctionOptions<TOutput>, "signal"> = {},
 ): UseCogniteFunctionResult<TInput, TOutput> {
   const { sdk } = useCdfClient();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<TOutput | null>(null);
-
-  // Abort controller lives in a ref so it survives re-renders without causing them.
-  const abortRef = useRef<AbortController | null>(null);
-
-  // Cancel any in-flight call when the component unmounts.
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, []);
-
-  const call = useCallback(
-    async (
-      data: TInput,
-      callOpts: Omit<CallCogniteFunctionOptions, "signal"> = {},
-    ): Promise<TOutput> => {
-      if (!sdk) {
-        const msg = "CDF SDK is not available";
-        setError(msg);
-        throw new Error(msg);
-      }
-
-      // Cancel any previous in-flight call before starting a new one.
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const output = await callCogniteFunction<TInput, TOutput>(
-          sdk,
-          functionId,
-          data,
-          { ...defaultOpts, ...callOpts, signal: controller.signal },
-        );
-        setResult(output);
-        return output;
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") {
-          // Unmount / deliberate cancel — don't update state.
-          throw err;
-        }
-        const msg =
-          err instanceof CogniteFunctionError || err instanceof Error
-            ? err.message
-            : "CDF function call failed";
-        setError(msg);
-        setResult(null);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
+  const mutation = useMutation({
+    mutationFn: (data: TInput) => {
+      if (!sdk) throw new Error("CDF SDK is not available");
+      return callCogniteFunction<TOutput>(sdk, functionId, data, opts);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sdk, functionId],
-  );
+  });
 
-  const reset = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setIsLoading(false);
-    setError(null);
-    setResult(null);
-  }, []);
-
-  return { call, isLoading, error, result, reset };
+  return {
+    call: mutation.mutateAsync,
+    isLoading: mutation.isPending,
+    error: mutation.error ? mutation.error.message : null,
+    result: mutation.data ?? null,
+    reset: mutation.reset,
+  };
 }

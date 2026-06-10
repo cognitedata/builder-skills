@@ -1,206 +1,98 @@
 /**
  * Generic Cognite CDF Function caller.
  *
- * Framework-agnostic — no React or app-specific dependencies.
- * Copy into src/services/ (or equivalent) of any Flows/Fusion app.
+ * Framework-agnostic, no React deps. API responses are validated with Zod;
+ * errors propagate as-is: SDK HTTP errors from the client, ZodError on shape
+ * mismatch, plain Error for Failed/Timeout status or poll exhaustion.
  *
  * Usage:
- *   import { callCogniteFunction, CogniteFunctionError } from "./cogniteFunctionService";
- *
- *   const result = await callCogniteFunction<MyInput, MyOutput>(
- *     client,
- *     12345678,      // numeric CDF function ID
- *     { foo: "bar" },
- *   );
+ *   const Output = z.object({ success: z.boolean(), report: z.string() });
+ *   const result = await callCogniteFunction(client, 12345678, { foo: "bar" }, {
+ *     outputSchema: Output, // result is typed z.infer<typeof Output>
+ *   });
  */
 
+import { z } from "zod";
 import type { CogniteClient } from "@cognite/sdk";
 
-// ============================================================
-// Error type
-// ============================================================
+// Response shapes, per CDF API docs — only the fields we use.
+const Session = z.object({ items: z.array(z.object({ nonce: z.string() })).nonempty() });
+const Call = z.object({ id: z.number() });
+const CallStatus = z.object({ status: z.string(), error: z.string().optional() });
+const Envelope = z.object({ response: z.unknown() });
 
-export class CogniteFunctionError extends Error {
-  readonly status?: number;
-  readonly callId?: number;
-
-  constructor(
-    message: string,
-    options: { cause?: unknown; status?: number; callId?: number } = {},
-  ) {
-    super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
-    this.name = "CogniteFunctionError";
-    this.status = options.status;
-    this.callId = options.callId;
-  }
-}
-
-// ============================================================
-// Options
-// ============================================================
-
-export interface CallCogniteFunctionOptions {
-  /**
-   * Maximum number of poll attempts before giving up.
-   * Default: 120 (≈ 6 minutes at 3 s intervals).
-   */
+export interface CallCogniteFunctionOptions<TOutput = unknown> {
+  /** Zod schema for the function's payload; sets the return type and validates at runtime. Omit → unknown. */
+  outputSchema?: z.ZodType<TOutput>;
+  /** Max poll attempts before giving up. Default 120 (~6 min at 3 s). */
   maxPollAttempts?: number;
-  /**
-   * Base interval between poll attempts in milliseconds.
-   * ±20 % jitter is applied automatically. Default: 3000.
-   */
+  /** Base poll interval in ms (±20 % jitter applied). Default 3000. */
   pollIntervalMs?: number;
   /** Optional AbortSignal to cancel the poll loop. */
   signal?: AbortSignal;
 }
 
-// ============================================================
-// Internal helpers
-// ============================================================
-
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException("Aborted", "AbortError"));
-      return;
-    }
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"));
     const timer = setTimeout(resolve, ms);
     signal?.addEventListener("abort", () => {
       clearTimeout(timer);
       reject(new DOMException("Aborted", "AbortError"));
     });
   });
-}
-
-/** The Cognite SDK wraps responses in `{ data: T }`. */
-function unwrap<T>(res: { data?: unknown }): T {
-  return res.data as T;
-}
-
-function getHttpStatus(error: unknown): number | undefined {
-  if (error !== null && typeof error === "object") {
-    const rec = error as Record<string, unknown>;
-    if (typeof rec.status === "number") return rec.status;
-    const response = rec.response as Record<string, unknown> | undefined;
-    if (response && typeof response.status === "number") return response.status;
-  }
-  return undefined;
-}
-
-function throwFunctionError(
-  error: unknown,
-  message: string,
-  callId?: number,
-): never {
-  throw new CogniteFunctionError(message, {
-    cause: error,
-    status: getHttpStatus(error),
-    callId,
-  });
-}
-
-// ============================================================
-// Public API
-// ============================================================
 
 /**
- * Call any deployed Cognite CDF Function.
+ * Call a deployed CDF Function: session nonce → invoke → poll → response.
  *
- * Steps:
- *  1. Obtain a session nonce (token exchange) so the function can call CDF APIs.
- *  2. Invoke the function with the provided data.
- *  3. Poll until status === "Completed" (throws on "Failed" / "Timeout" / max attempts).
- *  4. Return the function's response payload cast to TOutput.
- *
- * @param client     Authenticated CogniteClient from the Flows/Fusion SDK context.
- * @param functionId Numeric CDF function ID. If you only have an external ID, resolve
- *                   it via GET /api/v1/projects/{project}/functions first.
- * @param data       JSON-serialisable input — passed as the function's `data` argument.
- * @param opts       Optional polling configuration and abort signal.
+ * @param client     Authenticated CogniteClient.
+ * @param functionId Numeric CDF function ID (or its string form), not an external ID.
+ * @param data       JSON-serialisable input, passed as the function's `data` arg.
  */
-export async function callCogniteFunction<TInput, TOutput>(
+export async function callCogniteFunction<TOutput = unknown>(
   client: CogniteClient,
   functionId: string | number,
-  data: TInput,
-  opts: CallCogniteFunctionOptions = {},
+  data: unknown,
+  opts: CallCogniteFunctionOptions<TOutput> = {},
 ): Promise<TOutput> {
-  const {
-    maxPollAttempts = 120,
-    pollIntervalMs = 3_000,
-    signal,
-  } = opts;
+  const { outputSchema, maxPollAttempts = 120, pollIntervalMs = 3_000, signal } = opts;
+  const base = `/api/v1/projects/${client.project}/functions/${functionId}`;
 
-  const project = client.project;
-  const fnId = String(functionId);
+  // 1. Session nonce via token exchange.
+  const sessionRes = await client.post(`/api/v1/projects/${client.project}/sessions`, {
+    data: { items: [{ tokenExchange: true }] },
+  });
+  const { items } = Session.parse(sessionRes.data);
+  const nonce = items[0].nonce;
 
-  // Step 1: Obtain session nonce via token exchange.
-  let nonce: string;
-  try {
-    const sessionRes = await client.post(
-      `/api/v1/projects/${project}/sessions`,
-      { data: { items: [{ tokenExchange: true }] } },
-    );
-    nonce = unwrap<{ items: { nonce: string }[] }>(sessionRes).items[0].nonce;
-  } catch (error) {
-    throwFunctionError(error, "Failed to obtain session nonce for CDF function call");
-  }
+  // 2. Invoke.
+  const callRes = await client.post(`${base}/call`, { data: { data, nonce } });
+  const call = Call.parse(callRes.data);
 
-  // Step 2: Invoke the function.
-  let callId: number;
-  try {
-    const callRes = await client.post(
-      `/api/v1/projects/${project}/functions/${fnId}/call`,
-      { data: { data, nonce } },
-    );
-    callId = unwrap<{ id: number }>(callRes).id;
-  } catch (error) {
-    throwFunctionError(error, `Failed to invoke CDF function ${fnId}`);
-  }
-
-  // Step 3: Poll for completion.
-  const statusUrl = `/api/v1/projects/${project}/functions/${fnId}/calls/${callId}`;
-
+  // 3. Poll. Only Failed/Timeout/Completed are terminal; any other status
+  //    (Running, future values) keeps polling — forward-compatible by design.
   for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
-    // Jitter ±20 % to avoid thundering-herd when multiple tabs poll simultaneously.
-    await sleep(pollIntervalMs * (0.8 + 0.4 * Math.random()), signal);
+    await sleep(pollIntervalMs * (0.8 + 0.4 * Math.random()), signal); // ±20 % jitter
 
-    let status: string;
-    try {
-      const statusRes = await client.get(statusUrl);
-      status = unwrap<{ status: string }>(statusRes).status;
-    } catch (error) {
-      throwFunctionError(
-        error,
-        `Failed to poll CDF function call status (attempt ${attempt + 1})`,
-        callId,
-      );
-    }
+    const statusRes = await client.get(`${base}/calls/${call.id}`);
+    const { status, error } = CallStatus.parse(statusRes.data);
 
     if (status === "Failed" || status === "Timeout") {
-      throw new CogniteFunctionError(
-        `CDF function ${fnId} ended with status: ${status}`,
-        { callId },
+      throw new Error(
+        `CDF function ${functionId} (call ${call.id}) ended with status ${status}${error ? `: ${error}` : ""}`,
       );
     }
 
     if (status === "Completed") {
-      // Step 4: Fetch and return the response.
-      try {
-        const responseRes = await client.get(`${statusUrl}/response`);
-        return unwrap<{ response: TOutput }>(responseRes).response;
-      } catch (error) {
-        throwFunctionError(
-          error,
-          `Failed to fetch CDF function response for call ${callId}`,
-          callId,
-        );
-      }
+      // 4. Fetch and validate the response payload.
+      const responseRes = await client.get(`${base}/calls/${call.id}/response`);
+      const { response } = Envelope.parse(responseRes.data);
+      const schema = (outputSchema ?? z.unknown()) as z.ZodType<TOutput>;
+      return schema.parse(response);
     }
-    // status === "Running" or "Scheduled" — keep polling.
   }
 
-  throw new CogniteFunctionError(
-    `CDF function ${fnId} did not complete after ${maxPollAttempts} poll attempts`,
-    { callId },
+  throw new Error(
+    `CDF function ${functionId} (call ${call.id}) did not complete after ${maxPollAttempts} poll attempts`,
   );
 }
