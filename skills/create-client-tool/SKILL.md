@@ -12,7 +12,7 @@ Scaffold a new `AtlasTool` named **$ARGUMENTS** and wire it into the app.
 
 ## Prerequisite
 
-**`integrate-atlas-chat`** must already be complete: the app should vend the atlas-agent sources under `src/atlas-agent/` (including `react.ts`) and have `@sinclair/typebox`, `ajv`, and `ajv-formats` installed as in that skill.
+**`integrate-atlas-chat`** must already be complete: the app should vend the atlas-agent sources under `src/atlas-agent/` (including `react.ts`) and have `@sinclair/typebox` installed as in that skill.
 
 ## Background
 

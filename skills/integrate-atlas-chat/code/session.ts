@@ -2,7 +2,7 @@
  * AtlasSession — stateful conversation with validated tool execution.
  *
  * Manages the cursor, converts AtlasTool[] to API actions format,
- * validates tool arguments with ajv, and runs the tool execution loop.
+ * validates tool arguments with TypeBox Value, and runs the tool execution loop.
  */
 
 import { AtlasClient } from './client';
@@ -137,15 +137,16 @@ async function executeClientTool(
   const tool = tools.get(toolName);
   if (tool) {
     const args = parseArguments(action.clientTool.arguments);
+    let validatedArgs: unknown;
     try {
-      validateToolArguments(toolName, tool.parameters, args);
+      validatedArgs = validateToolArguments(toolName, tool.parameters, args);
     } catch (err) {
       const errorOutput = err instanceof Error ? err.message : String(err);
       const result: AtlasToolResult = { output: `ERROR: ${errorOutput}` };
       callbacks?.onToolEnd?.(toolName, result);
       return { result, followup: createActionReply(action.actionId, result.output) };
     }
-    const result = await tool.execute(args);
+    const result = await tool.execute(validatedArgs);
     callbacks?.onToolEnd?.(toolName, result);
     return { result, followup: createActionReply(action.actionId, result.output) };
   }

@@ -19,8 +19,6 @@ The atlas-agent library files (copied in Step 2) require these npm packages:
 | Package | Version |
 |---|---|
 | `@sinclair/typebox` | `^0.33.0` |
-| `ajv` | `^8.17.1` |
-| `ajv-formats` | `^2.1.1` |
 
 `@cognite/sdk` is assumed to already be present in Flows apps.
 
@@ -61,9 +59,9 @@ the following files into `src/atlas-agent/` inside the app:
 
 Install the required peer packages (see **Dependencies** above) using the app's package manager:
 
-- pnpm → `pnpm add @sinclair/typebox@^0.33.0 ajv@^8.17.1 ajv-formats@^2.1.1`
-- npm  → `npm install @sinclair/typebox@^0.33.0 ajv@^8.17.1 ajv-formats@^2.1.1`
-- yarn → `yarn add @sinclair/typebox@^0.33.0 ajv@^8.17.1 ajv-formats@^2.1.1`
+- pnpm → `pnpm add @sinclair/typebox@^0.33.0`
+- npm  → `npm install @sinclair/typebox@^0.33.0`
+- yarn → `yarn add @sinclair/typebox@^0.33.0`
 
 ---
 
