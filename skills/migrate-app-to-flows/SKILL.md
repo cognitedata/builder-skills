@@ -119,7 +119,7 @@ Replace any `dune deploy` or `npx @cognite/dune` commands in `package.json`:
 ```json
 {
   "scripts": {
-    "deploy": "npx @cognite/cli@latest apps deploy --interactive --published",
+    "deploy": "npx @cognite/cli@latest apps deploy --interactive",
     "deploy-preview": "npx @cognite/cli@latest apps deploy --interactive"
   }
 }
@@ -151,5 +151,5 @@ Then tell the user exactly what to do next:
 Next steps:
 1. Run `npm run dev` to start the dev server
 2. Open Fusion and verify the app loads and CDF data appears correctly
-3. When happy, deploy with: npx @cognite/cli@latest apps deploy --interactive --published
+3. When happy, deploy with: npx @cognite/cli@latest apps deploy --interactive
 ```
