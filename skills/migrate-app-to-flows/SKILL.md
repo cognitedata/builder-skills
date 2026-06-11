@@ -30,7 +30,23 @@ Then proceed through Steps 2–5.
 
 ## Step 2 — Update `app.json`
 
-If `infra` is already `"appsApi"`, skip this step. Otherwise, add or update the field:
+If `infra` is already `"appsApi"`, skip this step. Otherwise:
+
+**Fix legacy deployment key format first.** Many POC apps use `"deployment"` (singular, plain object). The CLI requires `"deployments"` (plural, array). If the file has the old format, rename the key and wrap the value in an array before proceeding:
+
+```json
+// Before (legacy)
+{
+  "deployment": { "org": "...", "project": "...", ... }
+}
+
+// After (correct)
+{
+  "deployments": [{ "org": "...", "project": "...", ... }]
+}
+```
+
+Then add `"infra": "appsApi"`:
 
 ```json
 {
@@ -123,8 +139,17 @@ List any remaining hits for the user to resolve. Then report:
 
 ```
 Migration complete:
-✓ app.json: infra set to "appsApi"
+✓ app.json: infra set to "appsApi", deployments key is an array
 ✓ Auth: setup-flows-auth applied
 ✓ manifest.json: network permissions set
 ✓ Deploy scripts: updated to @cognite/cli
+```
+
+Then tell the user exactly what to do next:
+
+```
+Next steps:
+1. Run `npm run dev` to start the dev server
+2. Open Fusion and verify the app loads and CDF data appears correctly
+3. When happy, deploy with: npx @cognite/cli@latest apps deploy --interactive --published
 ```
