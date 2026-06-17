@@ -14,7 +14,7 @@ Target: **$ARGUMENTS**
 
 ## Prerequisite
 
-**`integrate-atlas-chat`** must already be complete: the app should have vendored atlas-agent code under `src/atlas-agent/` (including `react.ts` for `useAtlasChat`) and the peer dependencies from that skill (`@sinclair/typebox`, `ajv`, `ajv-formats`). Copy the Python-related modules from the **`integrate-atlas-chat`** skill `code/` directory into `src/atlas-agent/` when adding Pyodide (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts` — see **`integrate-atlas-chat`** Step 5).
+**`integrate-atlas-chat`** must already be complete: the app should have vendored atlas-agent code under `src/atlas-agent/` (including `react.ts` for `useAtlasChat`) and the peer dependency from that skill (`@sinclair/typebox`). Copy the Python-related modules from the **`integrate-atlas-chat`** skill `code/` directory into `src/atlas-agent/` when adding Pyodide (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts` — see **`integrate-atlas-chat`** Step 5).
 
 ## Background
 
@@ -55,7 +55,7 @@ This version must match the CDN artifacts loaded at runtime — installing a dif
 - npm  → `npm install pyodide@0.29.3`
 - yarn → `yarn add pyodide@0.29.3`
 
-> **Note**: After **`integrate-atlas-chat`**, `@sinclair/typebox`, `ajv`, and `ajv-formats` should
+> **Note**: After **`integrate-atlas-chat`**, `@sinclair/typebox` should
 > already be installed. If anything is missing, install the versions listed in that skill's **Dependencies** table.
 
 ---

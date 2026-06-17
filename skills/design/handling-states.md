@@ -8,7 +8,7 @@ Aura components handle many accessibility concerns automatically; you are respon
 
 All UI elements use Aura components and tokens. Error states use the destructive token family, warnings use warning tokens, success uses success tokens.
 
-For message wording patterns, see `writing-copy.md`.
+For message wording patterns, see Content guidelines in `./node_modules/@cognite/aura/DESIGN.md`.
 
 For all Storybook URLs, see `./storybook-links.md`.
 
@@ -55,7 +55,7 @@ What Aura components handle automatically:
 | Number | "Value must be between 1 and 100." | "Invalid" |
 | Date | "End date must be after start date." | "Invalid date" |
 
-See `writing-copy.md` for full message patterns.
+See Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` for full message patterns.
 </message-patterns>
 
 <field-validation-states>
@@ -174,7 +174,7 @@ Any action taking more than 300ms must show a loading indicator using Aura compo
 <pattern name="error-states" priority="critical">
 <instruction>
 Every API failure must show a user-facing message using Aura Alert component. Never fail silently.
-See `writing-copy.md` for message wording.
+See Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` for message wording.
 </instruction>
 
 <full-example>
@@ -230,7 +230,7 @@ toast.success('Done!');
 
 <pattern name="confirmation-dialogs" priority="critical">
 <instruction>
-Destructive actions must show Dialog with specific action verb. See `writing-copy.md` for copy.
+Destructive actions must show Dialog with specific action verb. See Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` for copy.
 </instruction>
 
 <full-example>

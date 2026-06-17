@@ -199,7 +199,7 @@ Primary control for discrete actions.
 **Dos and don'ts**
 - One primary action per logical section when possible.
 - Match variant to risk: destructive actions use destructive variant and confirmation.
-- Label with verb + object (see `writing-copy.md`).
+- Label with verb + object (see Content guidelines in `./node_modules/@cognite/aura/DESIGN.md`).
 - Icon-only actions need an accessible name (`aria-label`).
 
 **Often used with**
