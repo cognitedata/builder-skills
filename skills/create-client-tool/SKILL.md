@@ -1,6 +1,6 @@
 ---
 name: create-client-tool
-description: "MUST be used whenever creating an AtlasTool (client-side tool) for an Atlas agent. Do NOT manually write AtlasTool definitions or wire them into useAtlasChat — this skill handles the TypeBox schema, execute function, and hook wiring. This includes tools that fetch data, render UI, call APIs, show charts, query local state, or perform any browser-side action. Triggers: AtlasTool, client tool, add tool, create tool, new tool, tool definition, agent tool."
+description: "MUST be used whenever creating an AtlasTool (client-side tool) for an Atlas agent. Do NOT manually write AtlasTool definitions or wire them into useAtlasChat — this skill handles the TypeBox schema, execute function, and hook wiring. Prerequisite: integrate-atlas-chat (vendored src/atlas-agent + TypeBox/AJV deps). This includes tools that fetch data, render UI, call APIs, show charts, query local state, or perform any browser-side action. Triggers: AtlasTool, client tool, add tool, create tool, new tool, tool definition, agent tool."
 allowed-tools: Read, Glob, Grep, Edit, Write
 metadata:
   argument-hint: "[tool-name] [brief description of what it does]"
@@ -9,6 +9,10 @@ metadata:
 # Create a Client Tool
 
 Scaffold a new `AtlasTool` named **$ARGUMENTS** and wire it into the app.
+
+## Prerequisite
+
+**`integrate-atlas-chat`** must already be complete: the app should vend the atlas-agent sources under `src/atlas-agent/` (including `react.ts`) and have `@sinclair/typebox` installed as in that skill.
 
 ## Background
 
@@ -29,19 +33,18 @@ The flow is:
 
 Before writing anything, read:
 
-- The file where `useAtlasChat` is called (likely `src/App.tsx`) to find where `tools` is passed
+- The file where `useAtlasChat` is called (often `src/App.tsx` or a chat hook) to find where `tools` is passed — imports are typically from `./atlas-agent/react` after **`integrate-atlas-chat`**
 - Any existing tool definitions to match the file/naming conventions
 
 ---
 
 ## Step 2 — Define the tool
 
-Create the tool as a typed constant. Use `Type` from `@cognite/dune-industrial-components/atlas-agent` to
-define the parameters schema — this gives both compile-time types and runtime validation.
+Create the tool as a typed constant. Use `Type` from `@sinclair/typebox` to define the parameters schema — this gives both compile-time types and runtime validation (same stack as the vendored atlas-agent from **`integrate-atlas-chat`**).
 
 ```ts
-import { Type } from "@cognite/dune-industrial-components/atlas-agent";
-import type { AtlasTool } from "@cognite/dune-industrial-components/atlas-agent";
+import { Type } from "@sinclair/typebox";
+import type { AtlasTool } from "./atlas-agent/types";
 
 export const myTool: AtlasTool = {
   name: "my_tool",            // snake_case — this is what the agent uses to invoke it
@@ -63,6 +66,8 @@ export const myTool: AtlasTool = {
   },
 };
 ```
+
+Adjust the `./atlas-agent/...` path if the tool file is not directly under `src/` next to the `atlas-agent` folder (for example `../atlas-agent/types` from `src/tools/`).
 
 ### TypeBox quick reference
 

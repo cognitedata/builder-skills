@@ -1,6 +1,6 @@
 ---
 name: setup-python-tools
-description: "MUST be used when adding Pyodide or Python tool support to a Dune app. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
+description: "MUST be used when adding Pyodide or Python tool support to a Flows app. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Prerequisite: integrate-atlas-chat (vendored src/atlas-agent + atlas chat wiring). Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[tool-names or agent-external-id]"
@@ -8,9 +8,13 @@ metadata:
 
 # Set Up Python Tool Execution
 
-Add client-side Python tool execution via Pyodide to this Dune app.
+Add client-side Python tool execution via Pyodide to this Flows app.
 
 Target: **$ARGUMENTS**
+
+## Prerequisite
+
+**`integrate-atlas-chat`** must already be complete: the app should have vendored atlas-agent code under `src/atlas-agent/` (including `react.ts` for `useAtlasChat`) and the peer dependency from that skill (`@sinclair/typebox`). Copy the Python-related modules from the **`integrate-atlas-chat`** skill `code/` directory into `src/atlas-agent/` when adding Pyodide (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts` — see **`integrate-atlas-chat`** Step 5).
 
 ## Background
 
@@ -51,8 +55,8 @@ This version must match the CDN artifacts loaded at runtime — installing a dif
 - npm  → `npm install pyodide@0.29.3`
 - yarn → `yarn add pyodide@0.29.3`
 
-> **Note**: `@cognite/dune-industrial-components`, `@sinclair/typebox`, `ajv`, `ajv-formats` should
-> already be installed. If not, install them too (see the `integrate-atlas-chat` skill).
+> **Note**: After **`integrate-atlas-chat`**, `@sinclair/typebox` should
+> already be installed. If anything is missing, install the versions listed in that skill's **Dependencies** table.
 
 ---
 
@@ -62,8 +66,8 @@ In the component that calls `useAtlasChat`, add the Pyodide runtime hook:
 
 ```tsx
 import { loadPyodide } from "pyodide";
-import { usePyodideRuntime } from "@cognite/dune-industrial-components/atlas-agent/pyodide";
-import { useAtlasChat } from "@cognite/dune-industrial-components/atlas-agent/react";
+import { usePyodideRuntime } from "./atlas-agent/pyodide-react";
+import { useAtlasChat } from "./atlas-agent/react";
 
 function MyChat() {
   const { sdk, isLoading } = useDune();

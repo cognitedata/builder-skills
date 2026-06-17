@@ -1,12 +1,25 @@
 ---
 name: integrate-file-viewer
-description: "MUST be used whenever integrating CogniteFileViewer into a Dune app to preview CDF files (PDFs, images, text). Do NOT manually wire up react-pdf or file resolution — this skill handles installation, Vite config, worker setup, and component usage. Triggers: file viewer, file preview, CogniteFileViewer, PDF viewer, view CDF files, document viewer, preview file."
+description: "MUST be used whenever integrating CogniteFileViewer into a Flows app to preview CDF files (PDFs, images, text). Do NOT manually wire up react-pdf or file resolution — this skill handles installation, Vite config, worker setup, and component usage. Triggers: file viewer, file preview, CogniteFileViewer, PDF viewer, view CDF files, document viewer, preview file."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # Integrate CogniteFileViewer
 
-Add `CogniteFileViewer` to this Dune app to preview CDF files (PDF, image, text).
+Add `CogniteFileViewer` to this Flows app to preview CDF files (PDF, image, text).
+
+## Dependencies
+
+The file-viewer library files (copied in Step 2) require this npm package:
+
+| Package | Version |
+|---|---|
+| `react-pdf` | `^9.1.1` |
+
+`pdfjs-dist` ships as a dependency of `react-pdf` at the correct version — do not install it separately.
+`react` and `@cognite/sdk` are assumed to already be present in Flows apps.
+
+---
 
 ## Your job
 
@@ -24,30 +37,32 @@ Read these files before touching anything:
 
 ---
 
-## Step 2 — Install dependencies
+## Step 2 — Copy the file-viewer source files
 
-- pnpm → `pnpm add "github:cognitedata/dune-industrial-components#semver:*" react-pdf`
-- npm  → `npm install "github:cognitedata/dune-industrial-components#semver:*" react-pdf`
-- yarn → `yarn add "github:cognitedata/dune-industrial-components#semver:*" react-pdf`
+The file-viewer library lives in the `code/` directory next to this skill file. Read and copy
+**all** files from there into `src/cognite-file-viewer/` inside the app:
 
-`pdfjs-dist` ships as a dependency of `react-pdf` at the correct version — do not install it separately.
+- `code/types.ts`
+- `code/mimeTypes.ts`
+- `code/fileResolution.ts`
+- `code/useViewport.ts`
+- `code/useFileResolver.ts`
+- `code/useDocumentAnnotations.ts`
+- `code/DocumentAnnotationOverlay.tsx`
+- `code/CogniteFileViewer.tsx`
+- `code/index.ts`
+
+> The PDF.js worker is configured inside `CogniteFileViewer.tsx` — no separate consumer setup is needed.
 
 ---
 
-## Step 3 — Configure the PDF.js worker
+## Step 3 — Install dependencies
 
-The consumer app must configure the PDF.js worker. This ensures the worker version matches the `pdfjs-dist` version shipped with your `react-pdf` install.
+Install `react-pdf` (see **Dependencies** above) using the app's package manager:
 
-Add this setup **in the same file** where `CogniteFileViewer` is used (module execution order matters):
-
-```tsx
-import { pdfjs } from 'react-pdf';
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
-```
+- pnpm → `pnpm add react-pdf@^9.1.1`
+- npm  → `npm install react-pdf@^9.1.1`
+- yarn → `yarn add react-pdf@^9.1.1`
 
 > **pnpm users:** pnpm's strict linking may prevent the browser from resolving `pdfjs-dist`. Either add `pdfjs-dist` as a direct dependency (`pnpm add pdfjs-dist`), or add `public-hoist-pattern[]=pdfjs-dist` to `.npmrc`.
 
@@ -70,13 +85,13 @@ export default defineConfig({
 
 ## Step 5 — Use the component
 
-Import and render `CogniteFileViewer` wherever a file preview is needed.
+Import and render `CogniteFileViewer` from the locally copied files:
 
 ```tsx
-import { CogniteFileViewer } from '@cognite/dune-industrial-components/file-viewer';
+import { CogniteFileViewer } from './cognite-file-viewer';
 ```
 
-Get the `sdk` from the `useDune()` hook (already available in every Dune app):
+Get the `sdk` from the `useDune()` hook (already available in every Flows app):
 
 ```tsx
 import { useDune } from '@cognite/dune';
@@ -265,7 +280,7 @@ onAnnotationClick={(annotation) => {
 
 | Problem | Cause | Fix |
 |---|---|---|
-| `Failed to resolve module specifier 'pdf.worker.mjs'` | Worker not configured | Add the worker setup from Step 3 in the same file that uses `CogniteFileViewer` |
+| `Failed to resolve module specifier 'pdf.worker.mjs'` | pdfjs-dist not hoisted (pnpm) | Add `public-hoist-pattern[]=pdfjs-dist` to `.npmrc`, or `pnpm add pdfjs-dist` directly |
 | `API version does not match Worker version` | `pdfjs-dist` version mismatch between app and `react-pdf` | Do not install `pdfjs-dist` separately — let `react-pdf` provide it. If already installed, remove it |
 | Annotations never show | `instanceId` is `undefined` — annotation overlay is disabled without it | Use `instanceId` source, or fall back and accept no annotations for classic files |
 | Annotations show but are empty | File has no `CogniteDiagramAnnotation` edges in CDF | Expected — only P&ID/diagram files synced to the data model have annotations |

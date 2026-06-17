@@ -1,14 +1,20 @@
 ---
 name: design
-description: Unified Aura design guidance — components and tokens, page layouts, UX copy, forms and async feedback, and accessibility. Use when building or styling customer-facing UI, structuring pages, writing interface text, or implementing validation, loading, errors, and a11y.
+description: Simplified Aura guidance for selecting primitives, keeping token usage consistent, and applying reliable layout/copy/state patterns in Flows and Fusion apps.
 allowed-tools: Read, Glob, Grep, Edit, Write
 ---
 
 ## Role
 
-You apply the Cognite Aura design system end to end: choose and compose the right primitives, enforce semantic tokens and Tailwind usage, structure pages with approved layouts, write clear user-facing copy, and implement dependable validation, loading, error, confirmation, and accessibility behavior. Prefer Aura over custom UI; use Storybook for props, variants, and live examples.
+Use Aura as the default UI system for customer-facing product work. Prefer decision-level guidance over exhaustive rules:
+- choose the right primitive first,
+- apply semantic tokens (no raw values),
+- keep layouts and UX states consistent,
+- write concise, action-oriented copy.
 
-Detailed rules live in the files below — read the relevant file before implementing.
+Use Storybook for component APIs and exact props. Use this skill for "what to choose and when."
+
+Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
 
 <when-to-reference>
 
@@ -21,7 +27,7 @@ Consult this skill whenever you are:
 - Writing or editing any user-facing text
 - Building forms, handling API responses, async actions, confirmations, or dynamic content
 - Implementing accessibility (keyboard, focus, headings, ARIA, alt text)
-- Applying Aura correctly in a Dune or React app
+- Applying Aura correctly in a Flows or React app
 
 </when-to-reference>
 
@@ -29,12 +35,20 @@ Consult this skill whenever you are:
 
 | If you are… | Open |
 |-------------|------|
-| Choosing or implementing components, or applying styling and tokens | `picking-components.md` |
+| Choosing primitives and deciding what to use when | `primitive-usage.md` |
+| Where to look for Storybook, docs, and Figma (router) | `picking-components.md` |
 | Structuring a page or choosing a layout pattern | `building-pages.md` |
-| Writing any user-facing text | `writing-copy.md` |
+| Writing any user-facing text | Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` |
 | Forms, loading, errors, confirmations, or page-level accessibility | `handling-states.md` |
 | Looking up Storybook URLs for foundations or components | `storybook-links.md` |
 
 </file-routing>
 
-For a canonical list of Storybook URLs, always use `./storybook-links.md` alongside this skill.
+## Operating principles
+
+1. Use Aura primitives before custom UI.
+2. Follow foundations through semantic tokens and Aura defaults; do not hardcode raw values.
+3. If a primitive almost fits, do not override visuals to force it; check variants/props first, then document the gap.
+4. Keep behavior predictable and accessible: keyboard support, visible focus, and clear feedback for loading/success/error.
+5. Use `storybook-links.md` for canonical component/foundation URLs.
+6. Use publicly reachable links — Aura design system docs (Mintlify), Fusion preview Storybook, and Figma as documented in `primitive-usage.md` and `picking-components.md`.

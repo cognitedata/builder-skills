@@ -1,17 +1,16 @@
 ---
 name: integrate-todo-list
-description: "MUST be used whenever adding a task/todo list feature to a Dune app with Atlas chat. Do NOT manually create todo state management or tool definitions — this skill handles the full module (context, provider, tool, hooks, UI components) and all integration wiring. Prerequisite: integrate-atlas-chat must already be set up. Triggers: todo list, task list, task tracking, TodoWrite, todo panel, task panel, progress tracking, add todos, add tasks."
+description: "MUST be used whenever adding a task/todo list feature to a Flows app with Atlas chat. Do NOT manually create todo state management or tool definitions — this skill handles the full module (context, provider, tool, hooks, UI components) and all integration wiring. Prerequisite: integrate-atlas-chat must already be set up. Triggers: todo list, task list, task tracking, TodoWrite, todo panel, task panel, progress tracking, add todos, add tasks."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # Integrate Todo List
 
-Add a structured task-tracking feature to this Dune app. The agent will use a `TodoWrite` tool
+Add a structured task-tracking feature to this Flows app. The agent will use a `TodoWrite` tool
 to create and update a task list as it works through multi-step queries, giving the user real-time
 visibility into what the agent is doing and why.
 
-**Prerequisite:** `integrate-atlas-chat` must already be set up — `useAtlasChat` must be wired and
-`@cognite/dune-industrial-components`, `@sinclair/typebox`, `ajv`, `ajv-formats` must be installed.
+**Prerequisite:** **`integrate-atlas-chat`** must already be complete — `useAtlasChat` must be wired (typically from `./atlas-agent/react`), `src/atlas-agent/` must contain the vendored atlas-agent sources, and `@sinclair/typebox` must be installed per that skill.
 
 ---
 

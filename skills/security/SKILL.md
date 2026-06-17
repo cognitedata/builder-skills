@@ -1,6 +1,6 @@
 ---
 name: security
-description: "MUST be used whenever fixing security issues in a Dune app, or before shipping any feature that handles credentials, user input, or external data. This skill finds AND fixes security problems — it does not just report them. Do NOT skip this when the user asks for a security fix, security hardening, or vulnerability remediation — run every step in order. Triggers: security, security fix, security hardening, vulnerability, XSS, injection, credentials, secrets, auth, authentication, authorization, token, sensitive data, input validation, CORS, CSP, dependency audit."
+description: "MUST be used whenever fixing security issues in a Flows app, or before shipping any feature that handles credentials, user input, or external data. This skill finds AND fixes security problems — it does not just report them. Do NOT skip this when the user asks for a security fix, security hardening, or vulnerability remediation — run every step in order. Triggers: security, security fix, security hardening, vulnerability, XSS, injection, credentials, secrets, auth, authentication, authorization, token, sensitive data, input validation, CORS, CSP, dependency audit."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[file or directory to audit, or leave blank to audit the whole app]"
@@ -134,9 +134,9 @@ For each dangerous DOM pattern, apply the fix directly. Install DOMPurify with `
 
 ## Step 5 — Find and fix authentication & authorization gaps
 
-Read the auth setup (likely `src/contexts/`, `src/hooks/`, or `setup-dune-auth` output):
+Read the auth setup (likely `src/contexts/`, `src/hooks/`, or `setup-flows-auth` output):
 
-- Every route that shows CDF data must be behind the Dune auth guard (`useCogniteClient` returns a non-null `sdk` before rendering).
+- Every route that shows CDF data must be behind the Flows auth guard (`useCogniteClient` returns a non-null `sdk` before rendering).
 - The CDF client must be initialized with short-lived OIDC tokens, not a static API key.
 - User role/capability checks must happen server-side (CDF ACLs) — do not rely solely on hiding UI elements.
 

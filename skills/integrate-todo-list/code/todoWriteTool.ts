@@ -1,5 +1,5 @@
-import type { AtlasTool } from '@cognite/dune-industrial-components/atlas-agent';
 import { Type } from '@sinclair/typebox';
+import type { AtlasTool } from '../atlas-agent/types';
 
 import type { TodoList } from './types';
 

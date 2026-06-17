@@ -10,6 +10,9 @@ metadata:
 
 This is a reference skill. When writing or reviewing code that calls CDF Data Modeling APIs, apply the patterns below.
 
+This skill owns runtime reliability concerns: limits, concurrency, retries, throughput, and batching behavior.
+For traversal payload correctness and graph-specific failure signatures, see `dm-graph-traversal`.
+
 ---
 
 ## DMS Limits Reference
@@ -24,6 +27,7 @@ Key things to be aware of:
 - `instances.list` has a max page size (use pagination for complete results)
 - `instances.query` table expressions each have their own item limit
 - `instances.upsert` accepts up to 1000 items per call
+- `in` filters accept at most 1000 values per expression; larger sets must be split into batches
 
 ---
 
@@ -101,6 +105,41 @@ const completedBatches = await client.instances.list({
 | Find a specific item by name        | `instances.search` with `AND` |
 | Filter by status, date range, enums | `filter` on list/query        |
 | Text search + exact constraints     | `instances.search` + `filter` |
+
+### `in` filter value limit (1000) and batching
+
+CDF `in` filters support a maximum of 1000 values in a single filter expression. If you need to filter against more than 1000 IDs, split values into chunks and issue multiple requests, then merge results.
+
+```typescript
+const IN_FILTER_BATCH_SIZE = 1000;
+// Reuse the Chunking Utility defined in the Batching Write Operations section.
+
+async function listByExternalIds(
+  client: CogniteClient,
+  externalIds: string[],
+): Promise<NodeOrEdge[]> {
+  const idBatches = chunk(externalIds, IN_FILTER_BATCH_SIZE);
+  const responses = await Promise.all(
+    idBatches.map((batch) =>
+      cdfTaskRunner.schedule(() =>
+        client.instances.list({
+          instanceType: 'node',
+          sources: [{ source: { type: 'view', ...MY_VIEW } }],
+          filter: {
+            in: {
+              property: ['node', 'externalId'],
+              values: batch,
+            },
+          },
+          limit: 1000,
+        })
+      )
+    )
+  );
+
+  return responses.flatMap((r) => r.items);
+}
+```
 
 ---
 
@@ -557,6 +596,10 @@ await Promise.all(
 
 Each table expression in `instances.query` has its own `limit`. If your traversal might return more items than the limit in a single expression, you must paginate using the `cursors` parameter.
 
+### 5. Oversized `in` Filters
+
+`in` filters are capped at 1000 values per expression. Passing more than 1000 values in a single `in` filter can fail or produce incomplete behavior depending on endpoint/version. Always chunk the values and run batched requests.
+
 ---
 
 ## Summary Checklist
@@ -569,4 +612,5 @@ Each table expression in `instances.query` has its own `limit`. If your traversa
 - [ ] Avoid nesting `cdfTaskRunner.schedule()` calls to prevent deadlocks
 - [ ] Use `Promise.all` with semaphore-wrapped functions, never with raw API calls
 - [ ] Use `instances.search` for text matching, `filter` for exact-match queries
+- [ ] Split `in` filter values into batches of at most 1000 and merge responses
 - [ ] Refer to https://docs.cognite.com/cdf/dm/dm_reference/dm_limits_and_restrictions for current limits

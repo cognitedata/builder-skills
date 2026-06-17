@@ -1,14 +1,14 @@
 ---
-name: setup-dune-auth
-description: "MUST be used when migrating an existing React app to Dune, or when no Dune auth is wired up. Detects classic vs Apps API flow from `app.json` `infra` field, installs the right packages, and wires up the entry file. No-op when a valid auth setup is already in place. Triggers: migrate to Dune, add Dune auth, DuneAuthProvider, AppSdkAuthProvider, connectToHostApp, useDune, Dune setup, setup auth, missing auth provider, CDF authentication, Fusion iframe auth."
+name: setup-flows-auth
+description: "MUST be used when migrating an existing React app to Flows, or when no Flows auth is wired up. Detects classic vs Apps API flow from `app.json` `infra` field, installs the right packages, and wires up the entry file. No-op when a valid auth setup is already in place. Triggers: migrate to Flows, add Flows auth, DuneAuthProvider, AppSdkAuthProvider, connectToHostApp, useDune, Flows setup, setup auth, missing auth provider, CDF authentication, Fusion iframe auth."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: ""
 ---
 
-# Set Up Dune Authentication
+# Set Up Flows Authentication
 
-Wire a React app for Dune auth so it can talk to CDF inside Fusion. Two flows exist; pick one based on `app.json`.
+Wire a React app for Flows auth so it can talk to CDF inside Fusion. Two flows exist; pick one based on `app.json`.
 
 ## Pick the flow
 
@@ -19,7 +19,7 @@ Read `app.json` if present:
 | `"appsApi"` | **Apps API** (new Fusion app host) | `connectToHostApp` from `@cognite/app-sdk` | `@cognite/app-sdk` |
 | missing / other | **Classic** (legacy Files API) | `DuneAuthProvider` + `useDune()` from `@cognite/dune` | — |
 
-No `app.json`? Ask the user. Default to **Apps API** — it's the default for `npx @cognite/dune create`.
+No `app.json`? Ask the user. Default to **Apps API** — it's the default for `npx @cognite/cli@latest apps create`.
 
 ## Step 1 — Read state, decide whether to act
 
@@ -28,33 +28,37 @@ Read `package.json`, `src/main.tsx` (or `src/index.tsx`), `vite.config.ts`, `app
 **A valid setup already exists if any of these is true — in which case do nothing and report no-op:**
 
 - **Classic**: `<DuneAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file.
-- **Apps API, generator pattern**: `connectToHostApp` from `@cognite/app-sdk` is called inside `App.tsx` (or any component) and feeds the auth state into the rest of the app.
-- **Apps API, wrapper pattern**: `<AppSdkAuthProvider>` from `@cognite/dune` wraps `<App />` in the entry file. (This is a valid alternative — same `useDune()` API as classic, less boilerplate. Don't try to "fix" it back to the generator default.)
+- **Apps API, provider pattern**: `<CogniteSdkProvider>` from `@cognite/app-sdk/react` wraps the app (in `App.tsx` or `main.tsx`), and nested components consume the client via `useCogniteSdk()`. Requires `@cognite/app-sdk >= 0.5.1`.
 
 Detect the package manager from the lock file (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, otherwise npm).
 
 ## Step 2 — Install missing deps
 
-Required for **both** flows:
+**Classic flow:**
 
 | Package | Type |
 |---|---|
-| `@cognite/dune` | runtime (provides Vite plugin even in Apps API mode) |
+| `@cognite/dune` | runtime |
 | `@cognite/sdk` | runtime |
 | `@tanstack/react-query` | runtime |
 | `vite-plugin-mkcert` | dev |
 
-**Apps API only**, also install:
+**Apps API flow:**
 
 | Package | Type |
 |---|---|
 | `@cognite/app-sdk` | runtime |
+| `@cognite/sdk` | runtime |
+| `@tanstack/react-query` | runtime |
+| `vite-plugin-mkcert` | dev |
 
 Skip anything already in `package.json`. Use the detected package manager (`pnpm add`, `npm install`, `yarn add`; `-D` / `--save-dev` for dev deps).
 
 ## Step 3 — Vite config
 
-`vite.config.ts` must contain:
+Add only what's missing. Don't remove existing plugins.
+
+### Classic flow
 
 ```ts
 import { fusionOpenPlugin } from "@cognite/dune/vite";
@@ -68,12 +72,27 @@ export default defineConfig({
 });
 ```
 
+### Apps API flow
+
+```ts
+// or see @cognite/cli/_templates/app/new/config/vite.config.ts.ejs.t source file for newest config
+import { fusionOpenPlugin, manifestCspPlugin } from "@cognite/app-sdk/vite";
+import mkcert from "vite-plugin-mkcert";
+
+export default defineConfig({
+  base: "./",
+  // manifestCspPlugin() must be first — its middleware sets the CSP header before any HTML response
+  plugins: [manifestCspPlugin(), react(), mkcert(), fusionOpenPlugin(), /* ... */],
+  server: { port: 3001 },
+  worker: { format: "es" },
+});
+```
+
 - `base: "./"` — required for Fusion iframe deployment.
 - `mkcert()` — provides HTTPS for the dev server (the Fusion parent is HTTPS).
 - `fusionOpenPlugin()` — opens the dev URL inside Fusion automatically.
+- `manifestCspPlugin()` (Apps API only) — enforces the CSP declared in `manifest.json`; must be first.
 - `server.port: 3001` — convention; the plugin falls back to 3001 if no port is set.
-
-Add only what's missing. Don't remove existing plugins.
 
 ## Step 4 — Wire up the entry file and component
 
@@ -112,7 +131,7 @@ const { sdk, isLoading, error } = useDune();
 // sdk is an authenticated CogniteClient
 ```
 
-### Apps API flow (generator default)
+### Apps API flow (generator default, `@cognite/app-sdk >= 0.5.1`)
 
 `src/main.tsx` does **not** wrap in any auth provider — auth is handled inside `App.tsx`:
 
@@ -135,43 +154,30 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`src/App.tsx` calls `connectToHostApp` from `@cognite/app-sdk`. The handshake is async, so render a loader until it resolves:
+`src/App.tsx` uses `CogniteSdkProvider` from `@cognite/app-sdk/react`. The provider handles the Comlink handshake, loading, and error states internally. Nested components read the client via `useCogniteSdk()`:
 
 ```tsx
-import { connectToHostApp } from "@cognite/app-sdk";
-import { useEffect, useState } from "react";
+import { CogniteSdkProvider, useCogniteSdk } from "@cognite/app-sdk/react";
+
+function AppContent() {
+  const client = useCogniteSdk();
+  // client is an authenticated CogniteClient
+  return <div>{client.project}</div>;
+}
 
 function App() {
-  const [project, setProject] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
-
-  useEffect(() => {
-    let cancelled = false;
-    connectToHostApp({ applicationName: "<your-app-name>" })
-      .then(async ({ api }) => {
-        if (cancelled) return;
-        setProject(await api.getProject());
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  // render isLoading / error / authenticated UI
+  return (
+    <CogniteSdkProvider
+      loadingFallback={<div>Loading...</div>}
+      errorFallback={<div>Failed to connect to Fusion</div>}
+    >
+      <AppContent />
+    </CogniteSdkProvider>
+  );
 }
 ```
 
-Use `applicationName: appConfig.externalId` (from `app.json`) so the host can identify the app.
-
-### Apps API flow — wrapper alternative
-
-If the project already uses `<AppSdkAuthProvider>` from `@cognite/dune`, leave it. It wraps the same `connectToHostApp` handshake and gives a `useDune()` API identical to the classic flow. Both patterns are valid for Apps API mode.
+`useCogniteSdk()` throws if called outside `CogniteSdkProvider` — always nest it inside.
 
 ## Step 5 — Clean up superseded code
 
@@ -180,6 +186,6 @@ Remove only what's now redundant:
 - Custom CDF auth providers/hooks
 - Manual `CogniteClient` instantiation
 - OIDC/token-management code
-- CDF env vars (`VITE_CDF_PROJECT`, `VITE_CDF_CLUSTER`, etc.) — Dune/the host provide these
+- CDF env vars (`VITE_CDF_PROJECT`, `VITE_CDF_CLUSTER`, etc.) — Flows/the host provide these
 
 If unsure, leave it and flag to the user.
