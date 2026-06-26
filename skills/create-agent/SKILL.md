@@ -8,7 +8,7 @@ metadata:
 
 # Create Agent
 
-Scaffold a new Atlas agent project named **$ARGUMENTS**.
+Scaffold a new Atlas agent project named **$ARGUMENTS** using `cognite agents create`.
 
 ## What gets created
 
@@ -20,17 +20,17 @@ Scaffold a new Atlas agent project named **$ARGUMENTS**.
 
 ---
 
-## Step 1 — Gather requirements
+## Step 1 — Gather optional fields
 
-The agent name is **$ARGUMENTS** (taken from the argument). Ask the user for the following optional fields (skip any they already provided):
+The agent name is **$ARGUMENTS**. Ask the user for the following (skip any they already provided):
 
-| Field | Default |
-|-------|---------|
-| **Display name** | same as agent name |
-| **Description** | no | — |
-| **Model** | no | `azure/gpt-4.1-mini` |
-| **Instructions** (system prompt) | no | see default below |
-| **Tools** | no | none |
+| Field | CLI flag | Default |
+|-------|----------|---------|
+| **Display name** | `--display-name` | same as agent name |
+| **Description** | `--description` | — |
+| **Model** | `--model` | `azure/gpt-4.1-mini` |
+| **Instructions** (system prompt) | `--instructions` | see default below |
+| **Tools** | (edit after creation) | none |
 
 Default instructions when the user doesn't specify:
 
@@ -42,23 +42,30 @@ When the data is insufficient, say so rather than guessing.
 
 ---
 
-## Step 2 — Write `agent.yaml`
+## Step 2 — Run `cognite agents create`
 
-Create `<agent-name>/agent.yaml`:
+Run the command, including only flags where the user provided a value or a non-empty default applies:
 
-```yaml
-externalId: <agent-name>
-name: <display-name>
-description: <description>           # omit key if empty
-model: <model>
-instructions: |-
-  <instructions>
-tools:                                # omit if no tools selected
-  - name: <tool_name>
-    type: <tool-type>
-    description: <what-the-tool-does>
-    configuration:                    # tool-specific, see examples below
+```bash
+cognite agents create <agent-name> \
+  --display-name "<display-name>" \
+  --description "<description>" \
+  --model <model> \
+  --instructions "<instructions>" \
+  --no-prompt
 ```
+
+- Omit `--display-name` if the user wants the default (same as agent name).
+- Omit `--description` if none was given.
+- Always pass `--instructions` (use the default if the user didn't specify).
+- Always pass `--no-prompt` to skip the CLI's interactive prompts.
+- For multi-line instructions, pass them as-is in quotes; if the shell quoting is awkward, skip `--instructions` and edit `agent.yaml` manually after creation.
+
+---
+
+## Step 3 — Add tools (if any)
+
+If the user wants tools, edit `<agent-name>/agent.yaml` to add a `tools` array. Do **NOT** add `tools: []` — omit the key entirely when there are no tools.
 
 ### Available tool types
 
@@ -100,49 +107,6 @@ tools:
 
 ---
 
-## Step 3 — Write `README.md`
-
-Create `<agent-name>/README.md` with:
-
-```markdown
-# <Display Name>
-
-> Edit `agent.yaml` to configure your agent — tools, model, instructions.
-
-## Quick start
-
-\```bash
-# Push agent config to CDF (draft)
-cognite agents push <externalId>
-
-# Open agent in Fusion for testing
-cognite agents open
-
-# Publish agent (makes it visible to users)
-cognite agents publish
-\```
-
-## Project layout
-
-| Path | Purpose |
-|------|---------|
-| `agent.yaml` | Agent definition (externalId, tools, model, instructions) |
-| `README.md` | This file |
-
-## Adding tools
-
-Edit the `tools` array in `agent.yaml`. See the full list of tool types
-in the [CLI docs](https://cognitedata.github.io/dune/).
-
-## Deployment with Toolkit
-
-The generated `agent.yaml` is compatible with
-[Cognite Toolkit](https://docs.cognite.com/cdf/deploy/toolkit/).
-Place it in your Toolkit module under `agents/` and deploy with `cdf deploy`.
-```
-
----
-
 ## Step 4 — Verify and summarize
 
 1. Confirm both files were created
@@ -155,7 +119,6 @@ Place it in your Toolkit module under `agents/` and deploy with `cdf deploy`.
 
 ## Guard rails
 
-- **Do NOT** create files outside the `<agent-name>/` directory
 - **Do NOT** add `tools: []` — omit the key entirely when there are no tools
 - **Do NOT** invent tool types not listed above
 - Agent name must be kebab-case: lowercase letters, digits, and hyphens only
