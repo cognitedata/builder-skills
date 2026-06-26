@@ -22,12 +22,11 @@ Scaffold a new Atlas agent project named **$ARGUMENTS**.
 
 ## Step 1 — Gather requirements
 
-Ask the user for the following (skip any they already provided):
+The agent name is **$ARGUMENTS** (taken from the argument). Ask the user for the following optional fields (skip any they already provided):
 
-| Field | Required | Default |
-|-------|----------|---------|
-| **Agent name** (kebab-case, used as directory and `externalId`) | yes | — |
-| **Display name** | no | same as agent name |
+| Field | Default |
+|-------|---------|
+| **Display name** | same as agent name |
 | **Description** | no | — |
 | **Model** | no | `azure/gpt-4.1-mini` |
 | **Instructions** (system prompt) | no | see default below |
@@ -114,7 +113,7 @@ Create `<agent-name>/README.md` with:
 
 \```bash
 # Push agent config to CDF (draft)
-cognite agents push
+cognite agents push <externalId>
 
 # Open agent in Fusion for testing
 cognite agents open
@@ -149,7 +148,7 @@ Place it in your Toolkit module under `agents/` and deploy with `cdf deploy`.
 1. Confirm both files were created
 2. Tell the user the next steps:
    - Edit `<agent-name>/agent.yaml` — add tools and refine instructions
-   - `cognite agents push <agent-name>` — push to CDF for testing
+   - `cognite agents push <externalId>` — push to CDF for testing
    - `cognite agents open` — open in Fusion
 
 ---
