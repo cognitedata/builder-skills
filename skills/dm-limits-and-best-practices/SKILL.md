@@ -12,6 +12,9 @@ This is a reference skill for **write operations** (upsert, delete) and concurre
 
 > **Reading data?** If a generated SDK exists under `src/generated_sdks/`, use it — call `sdk.queryViewName()`, `sdk.getByIdViewName()`, etc. Do not call `client.instances.list`, `client.instances.query`, or `client.instances.search` directly. See the **`query-with-sdk`** skill.
 
+This skill owns runtime reliability concerns: limits, concurrency, retries, throughput, and batching behavior.
+For traversal payload correctness and graph-specific failure signatures, see `dm-graph-traversal`.
+
 ---
 
 ## DMS Limits Reference

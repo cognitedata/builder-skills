@@ -49,7 +49,7 @@ export interface AtlasToolResult<TDetails = unknown> {
 
 /**
  * A client-side tool the Atlas agent can invoke.
- * TypeBox schema for type-safe params + runtime validation via ajv.
+ * TypeBox schema for type-safe params + runtime validation via TypeBox Value.
  */
 export interface AtlasTool<
   TParameters extends TSchema = TSchema,

@@ -38,11 +38,13 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **setup-python-tools** | Adds Pyodide-based Python tool execution |
 | **code-quality** | Reviews Flows apps for code quality, maintainability, and clean code issues |
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
+| **dm-graph-traversal** | CDF Data Modeling graph traversal patterns — query-vs-list decisions, traversal payload guardrails, failure debugging, and payload-shape test requirements |
 | **dm-limits-and-best-practices** | CDF Data Modeling API best practices — concurrency, pagination, batching |
 | **integrate-file-viewer** | Integrates CogniteFileViewer to preview CDF files (PDFs, images, text) |
 | **performance** | Optimizes Flows apps for speed, render counts, and bundle size |
 | **pull-changes-resolve-conflicts** | Merge or rebase workflow — list conflicts, analyze ours/theirs, get user approval before resolving |
 | **security** | Reviews for security issues — credentials, user input, external data |
+| **migrate-app-to-flows** | Migrates a legacy Dune POC app to Flows Custom App infrastructure — fixes `app.json`, auth, `manifest.json`, and deploy scripts |
 | **setup-flows-auth** | Migrates React apps to Flows auth or adds DuneAuthProvider |
 | **design** | Aura UI — components and tokens, layouts, UX copy, forms/async feedback, accessibility (`skills/design/`) |
 
