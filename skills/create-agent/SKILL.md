@@ -8,7 +8,7 @@ metadata:
 
 # Create Agent
 
-Scaffold a new Atlas agent project named **$ARGUMENTS** using `cognite agents create`.
+Scaffold a new Atlas agent project named **$ARGUMENTS** using `npx @cognite/cli@latest agents create`.
 
 ## What gets created
 
@@ -28,7 +28,7 @@ The agent name is **$ARGUMENTS**. Ask the user for the following (skip any they 
 |-------|----------|---------|
 | **Display name** | `--display-name` | same as agent name |
 | **Description** | `--description` | — |
-| **Model** | `--model` | `azure/gpt-4.1-mini` |
+| **Model** | `--model` | `azure/gpt-5.4-mini` |
 | **Instructions** (system prompt) | `--instructions` | see default below |
 | **Tools** | (edit after creation) | none |
 
@@ -42,12 +42,12 @@ When the data is insufficient, say so rather than guessing.
 
 ---
 
-## Step 2 — Run `cognite agents create`
+## Step 2 — Run `npx @cognite/cli@latest agents create`
 
 Run the command, including only flags where the user provided a value or a non-empty default applies:
 
 ```bash
-cognite agents create <agent-name> \
+npx @cognite/cli@latest agents create <agent-name> \
   --display-name "<display-name>" \
   --description "<description>" \
   --model <model> \
@@ -112,8 +112,8 @@ tools:
 1. Confirm both files were created
 2. Tell the user the next steps:
    - Edit `<agent-name>/agent.yaml` — add tools and refine instructions
-   - `cognite agents push <externalId>` — push to CDF for testing
-   - `cognite agents open` — open in Fusion
+   - `npx @cognite/cli@latest agents push <externalId>` — push to CDF for testing
+   - `npx @cognite/cli@latest agents open` — open in Fusion
 
 ---
 
