@@ -44,6 +44,7 @@ Sections are in alphabetical order. For each component, the Storybook link is th
 ### Accordion
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-accordion--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/accordion
 
 **Definition**
 Accordion reveals and hides grouped content sections to reduce cognitive load and page density.
@@ -76,6 +77,7 @@ Accordion reveals and hides grouped content sections to reduce cognitive load an
 ### Action Toolbar
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-actiontoolbar--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/action-toolbar
 
 **Definition**
 Action toolbar is a transient bottom-aligned action row that appears when users select items (for example in data-heavy views).
@@ -105,6 +107,7 @@ Action toolbar is a transient bottom-aligned action row that appears when users 
 ### Alert
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-alert--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/alert
 
 **Definition**
 Alert communicates contextual, medium-emphasis information inside page/task flow. It is not a blocking modal.
@@ -134,7 +137,8 @@ Alert communicates contextual, medium-emphasis information inside page/task flow
 
 ### Alert Dialog
 
-**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-alert-dialog--docs
+**Storybook:** Coming soon
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/alert-dialog
 
 **Definition**
 Short, focused confirmation or acknowledgment that interrupts the user for a clear binary or limited choice.
@@ -154,6 +158,7 @@ Short, focused confirmation or acknowledgment that interrupts the user for a cle
 ### Avatar
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-avatar--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/avatar
 
 **Definition**
 Avatar visually represents a user, team, or concept and helps recognition in collaborative UI.
@@ -175,6 +180,7 @@ Avatar visually represents a user, team, or concept and helps recognition in col
 ### Badge
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-badge--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/badge
 
 **Definition**
 Compact label for status, category, or metadata.
@@ -193,6 +199,7 @@ Compact label for status, category, or metadata.
 ### Banner
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-banner--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/banner-alert
 
 **Definition**
 Persistent or dismissible message scoped at page or section level — stronger than inline helper text, broader than a single-field `Alert` in some layouts.
@@ -208,6 +215,7 @@ Persistent or dismissible message scoped at page or section level — stronger t
 ### Breadcrumb
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-breadcrumb--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/breadcrumbs
 
 **Definition**
 Hierarchical navigation aid that shows users their current location within the product's structure. Location-based, not path-based.
@@ -238,6 +246,7 @@ Hierarchical navigation aid that shows users their current location within the p
 ### Button
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-button--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/button
 
 **Definition**
 Primary control for discrete actions.
@@ -257,6 +266,7 @@ Primary control for discrete actions.
 ### Button Group
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-button-group--docs
+**Docs:** Coming soon
 
 **Definition**
 Visually joins related buttons into a connected row, clarifying that the actions belong to the same context.
@@ -275,6 +285,7 @@ Visually joins related buttons into a connected row, clarifying that the actions
 ### Card
 
 **Storybook:** [Card](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-card--docs) · [Card with Count](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-card-with-count--docs)
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/card
 
 **Definition**
 A structural container with optional header, body, and footer slots for displaying data artifacts, widgets, or media. The Card with Count variant adds a numeric indicator to the header.
@@ -298,6 +309,7 @@ A structural container with optional header, body, and footer slots for displayi
 ### Checkbox
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-checkbox--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/checkbox
 
 **Definition**
 Enables users to independently select one or multiple options. Can appear standalone or within menus, tree views, tables, or cards.
@@ -330,6 +342,7 @@ Enables users to independently select one or multiple options. Can appear standa
 ### Collapsible
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-collapsible--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/collapsible
 
 **Definition**
 A single inline expandable block that toggles content visibility. Designed for one independent optional section, not multiple stacked areas.
@@ -359,6 +372,7 @@ A single inline expandable block that toggles content visibility. Designed for o
 ### Combobox
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-combobox--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/combobox
 
 **Definition**
 A searchable select input that filters options as users type. Supports single and multi-select modes with optional ability to add new items.
@@ -390,6 +404,7 @@ A searchable select input that filters options as users type. Supports single an
 ### Command
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-command--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/command
 
 **Definition**
 A keyboard-first search interface for discovering and executing actions, navigating pages, or looking up content application-wide. Typically activated via ⌘K / Ctrl+K and displayed inside a `Dialog` or `Popover`.
@@ -422,6 +437,7 @@ A keyboard-first search interface for discovering and executing actions, navigat
 ### Count
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-count--docs
+**Docs:** Coming soon
 
 **Definition**
 A compact numeric indicator used to surface quantities inline — for example, unread messages, selected items, or totals attached to labels or tabs.
@@ -439,6 +455,7 @@ A compact numeric indicator used to surface quantities inline — for example, u
 ### Date Picker
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-datepicker--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/date-and-time-picker
 
 **Definition**
 Allows users to select a single date through a calendar interface, ensuring proper formatting and avoiding input errors.
@@ -463,6 +480,7 @@ Allows users to select a single date through a calendar interface, ensuring prop
 ### Date Range Picker
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-daterangepicker--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/date-and-time-picker
 
 **Definition**
 Allows users to select a start and end date from a calendar interface. Used for filtering by date ranges, comparing periods, or scheduling.
@@ -485,6 +503,7 @@ Allows users to select a start and end date from a calendar interface. Used for 
 ### Date Time Range Picker
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-datetimerangepicker--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/date-and-time-picker
 
 **Definition**
 Allows users to select start and end date and time values. Used when precise time boundaries matter, for example scheduling or time-series filtering.
@@ -506,6 +525,7 @@ Allows users to select start and end date and time values. Used when precise tim
 ### Dialog
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-dialog--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/dialog
 
 **Definition**
 Richer content surface: forms, multi-field flows, or explanations that do not fit a strip or inline pattern.
@@ -524,6 +544,7 @@ Richer content surface: forms, multi-field flows, or explanations that do not fi
 ### Drawer
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-drawer--docs
+**Docs:** Coming soon
 
 **Definition**
 Secondary surface that slides in for filters, detail, or medium-length tasks without a full page change.
@@ -538,6 +559,7 @@ Secondary surface that slides in for filters, detail, or medium-length tasks wit
 ### Dropdown Menu
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-dropdown-menu--docs
+**Docs:** Coming soon
 
 **Definition**
 A button-triggered overlay listing a set of related actions or options. One of the two menu variants (the other being a context menu, which is right-click triggered). See also: `Menu`.
@@ -562,6 +584,7 @@ A button-triggered overlay listing a set of related actions or options. One of t
 ### Empty State
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-empty--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/empty-state
 
 **Definition**
 Placeholder when there is no data yet or results are empty.
@@ -576,6 +599,7 @@ Placeholder when there is no data yet or results are empty.
 ### Form
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-form--docs
+**Docs:** Coming soon
 
 **Definition**
 A structural wrapper for form fields that manages layout, spacing, validation state propagation, and submission handling.
@@ -595,6 +619,7 @@ A structural wrapper for form fields that manages layout, spacing, validation st
 ### Input
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-input--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/input
 
 **Definition**
 Single-line text field for capturing short text-based information in forms and toolbars.
@@ -625,6 +650,7 @@ Single-line text field for capturing short text-based information in forms and t
 ### Label
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-label--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/label
 
 **Definition**
 A form label that identifies and is programmatically associated with an input field. Not intended as general-purpose text.
@@ -649,6 +675,7 @@ A form label that identifies and is programmatically associated with an input fi
 ### Menu
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-menu--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/menu
 
 **Definition**
 Presents a list of actions, options, or states for the current selection or context. Two variants: context menu (right-click/long-press trigger) and dropdown menu (button trigger). See also: `Dropdown Menu`.
@@ -677,6 +704,7 @@ Presents a list of actions, options, or states for the current selection or cont
 ### Pagination
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-pagination--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/pagination
 
 **Definition**
 Divides large datasets into pages, giving users control over navigation and improving load performance.
@@ -706,9 +734,28 @@ Divides large datasets into pages, giving users control over navigation and impr
 **Often used with**
 - `Table`, data grids, `Search`, `Skeleton`.
 
+### Popover
+
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-popover--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/popover
+
+**Definition**
+A click-triggered panel for interactive or structured supplemental content. Stays open until dismissed.
+
+**Use when**
+- User needs to pick options, fill short fields, or read formatted content on demand without leaving the page.
+
+**Use something else when**
+- Content is essential to the task — surface it inline or in `Dialog` / `Drawer`.
+- A brief, non-interactive hint is needed (use `Tooltip`).
+
+**Often used with**
+- `Button` or icon as trigger, `Command`, form controls inside the panel.
+
 ### Radio
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-radio--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/radio
 
 **Definition**
 Allows users to select exactly one option from a small set of mutually exclusive choices.
@@ -736,6 +783,7 @@ Allows users to select exactly one option from a small set of mutually exclusive
 ### Search
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-search--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/search
 
 **Definition**
 A specialized input for locating and filtering content, with built-in search and clear affordances.
@@ -763,6 +811,7 @@ A specialized input for locating and filtering content, with built-in search and
 ### Segmented Control
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-segmented--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/segmented-control
 
 **Definition**
 Switches between a small number of peer views or modes on the same page.
@@ -780,6 +829,7 @@ Switches between a small number of peer views or modes on the same page.
 ### Select
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-select--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/select
 
 **Definition**
 Enables users to choose one or more predefined options from a dropdown list. Used in forms and filtering when space is constrained.
@@ -811,6 +861,7 @@ Enables users to choose one or more predefined options from a dropdown list. Use
 ### Separator
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-separator--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/separator
 
 **Definition**
 A 1px visual divider between distinct content sections. Improves readability while remaining visually subtle.
@@ -835,6 +886,7 @@ A 1px visual divider between distinct content sections. Improves readability whi
 ### Skeleton
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-skeleton--docs
+**Docs:** Coming soon
 
 **Definition**
 A loading placeholder that mimics the shape of incoming content, reducing perceived wait time and preventing layout shift.
@@ -857,6 +909,7 @@ A loading placeholder that mimics the shape of incoming content, reducing percei
 ### Slider
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-slider--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/slider
 
 **Definition**
 An interactive control for selecting a single value or a range from a continuous scale. Provides visual feedback and quick approximate value selection.
@@ -880,6 +933,7 @@ An interactive control for selecting a single value or a range from a continuous
 ### Sonner Toast
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-sonner--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/sonner
 
 **Definition**
 Lightweight, auto-dismiss feedback for outcomes that do not need a blocking surface.
@@ -894,6 +948,7 @@ Lightweight, auto-dismiss feedback for outcomes that do not need a blocking surf
 ### Switch
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-switch--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/switch
 
 **Definition**
 A binary toggle control that turns a setting on or off, with changes taking effect immediately.
@@ -920,6 +975,7 @@ A binary toggle control that turns a setting on or off, with changes taking effe
 ### Table
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-table--docs
+**Docs:** Coming soon
 
 **Definition**
 Dense, scannable display of rows and columns with optional selection and actions.
@@ -937,6 +993,7 @@ Dense, scannable display of rows and columns with optional selection and actions
 ### Tabs
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-tabs--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/tabs
 
 **Definition**
 Organizes related content into switchable sections, allowing users to navigate between different views without leaving the page.
@@ -969,6 +1026,7 @@ Organizes related content into switchable sections, allowing users to navigate b
 ### Textarea
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-textarea--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/textarea
 
 **Definition**
 A multi-line text field for extended free-form input such as comments, feedback, messages, descriptions, or notes.
@@ -998,6 +1056,7 @@ A multi-line text field for extended free-form input such as comments, feedback,
 ### Time Picker
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-timepicker--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/date-and-time-picker
 
 **Definition**
 Allows users to select a time value through a clock interface.
@@ -1020,6 +1079,7 @@ Allows users to select a time value through a clock interface.
 ### Toggle
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-toggle--docs
+**Docs:** Coming soon
 
 **Definition**
 A single pressable button with active/inactive state, used to toggle one option or formatting command on or off.
@@ -1037,6 +1097,7 @@ A single pressable button with active/inactive state, used to toggle one option 
 
 ### Toggle Group
 
+**Storybook:** Coming soon
 **Docs:** https://docs.cognite.com/aura-design-system/primitives/toggle-group
 
 **Definition**
@@ -1066,6 +1127,7 @@ A set of 2–4 related toggle options for mutually exclusive or multi-select set
 
 ### Toolbar
 
+**Storybook:** Coming soon
 **Docs:** https://docs.cognite.com/aura-design-system/primitives/toolbar
 
 **Definition**
@@ -1080,6 +1142,7 @@ Persistent strip of primary tools or filters for a page or region — available 
 
 ### Topbar
 
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-topbar--docs
 **Docs:** https://docs.cognite.com/aura-design-system/primitives/topbar
 
 **Definition**
@@ -1109,26 +1172,29 @@ The single, persistent navigation bar at the top of every authenticated CDF and 
 **Often used with**
 - `Breadcrumb`, `Tabs`, `Segmented Control`, `Avatar`.
 
-### Tooltip and Popover
+### Tooltip
 
-**Storybook:** [Tooltip](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-tooltip--docs) · [Popover](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-popover--docs)
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-tooltip--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/tooltip
 
 **Definition**
-- **Tooltip** — short hint on hover/focus; no heavy interaction inside.
-- **Popover** — click-triggered panel for interactive or structured supplemental content.
+A short hint that appears on hover or focus. No heavy interaction inside.
 
-**Use Tooltip when**
+**Use when**
 - Clarifying a control or icon in one line or sentence.
-
-**Use Popover when**
-- User picks options, fills short fields, or reads formatted content on demand.
+- Providing the full text of a truncated label (for example in `Breadcrumb`).
 
 **Use something else when**
 - Content is essential to the task — surface it inline or in `Dialog` / `Drawer`.
+- Users need to interact with the content (use `Popover`).
+
+**Often used with**
+- Icon-only `Button`, `Toggle`, `Breadcrumb`, `Label`.
 
 ### Tree
 
 **Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-tree--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/tree-view
 
 **Definition**
 Displays hierarchical data in a nested structure with expandable/collapsible rows. Supports optional selection and drag-and-drop.
