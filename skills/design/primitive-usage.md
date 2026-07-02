@@ -12,7 +12,6 @@ Links below must stay usable without Cognite VPN or internal auth. Do not use Co
 - Figma library: https://www.figma.com/design/pMnMQvfErZDJzWgrcWCIwZ/WIP---Aura-library
 - Aura design system docs: https://docs.cognite.com/aura-design-system
 - Aura Storybook: https://master--695bb4b1b8041ae09768950a.chromatic.com/
-- Storybook path index in this repo (same `/docs/...` paths; hosts may differ): `./storybook-links.md`
 
 ## What Aura is
 
