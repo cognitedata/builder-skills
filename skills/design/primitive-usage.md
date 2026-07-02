@@ -10,8 +10,8 @@ It captures usage guidance that is typically missing from component specs and pr
 Links below must stay usable without Cognite VPN or internal auth. Do not use Cognite-internal short URL domains in this skill.
 
 - Figma library: https://www.figma.com/design/pMnMQvfErZDJzWgrcWCIwZ/WIP---Aura-library
-- Aura design system docs: https://cognite-dune-docs.mintlify.app/aura-design-system/index
-- Aura Storybook (Fusion preview): https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/
+- Aura design system docs: https://docs.cognite.com/aura-design-system
+- Aura Storybook: https://master--695bb4b1b8041ae09768950a.chromatic.com/
 - Storybook path index in this repo (same `/docs/...` paths; hosts may differ): `./storybook-links.md`
 
 ## What Aura is
@@ -43,7 +43,7 @@ Storybook links below use the Fusion preview host; paths match `./storybook-link
 
 ### Accordion
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-accordion--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-accordion--docs
 
 **Definition**
 Accordion reveals and hides grouped content sections to reduce cognitive load and page density.
@@ -75,7 +75,7 @@ Accordion reveals and hides grouped content sections to reduce cognitive load an
 
 ### Action toolbar
 
-**Storybook:** coming soon
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-actiontoolbar--docs
 
 **Definition**
 Action toolbar is a transient bottom-aligned action row that appears when users select items (for example in data-heavy views).
@@ -104,7 +104,7 @@ Action toolbar is a transient bottom-aligned action row that appears when users 
 
 ### Avatar
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-avatar--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-avatar--docs
 
 **Definition**
 Avatar visually represents a user, team, or concept and helps recognition in collaborative UI.
@@ -125,7 +125,7 @@ Avatar visually represents a user, team, or concept and helps recognition in col
 
 ### Alert
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-alert--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-alert--docs
 
 **Definition**
 Alert communicates contextual, medium-emphasis information inside page/task flow. It is not a blocking modal.
@@ -155,7 +155,7 @@ Alert communicates contextual, medium-emphasis information inside page/task flow
 
 ### Badge
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-badge--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-badge--docs
 
 **Definition**
 Compact label for status, category, or metadata.
@@ -173,7 +173,7 @@ Compact label for status, category, or metadata.
 
 ### Banner
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-banner--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-banner--docs
 
 **Definition**
 Persistent or dismissible message scoped at page or section level — stronger than inline helper text, broader than a single-field `Alert` in some layouts.
@@ -188,7 +188,7 @@ Persistent or dismissible message scoped at page or section level — stronger t
 
 ### Button
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-button--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-button--docs
 
 **Definition**
 Primary control for discrete actions.
@@ -207,7 +207,7 @@ Primary control for discrete actions.
 
 ### Dialog and Alert Dialog
 
-**Storybook:** [Dialog](https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-dialog--docs) · [Alert Dialog](https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-alert-dialog--docs)
+**Storybook:** [Dialog](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-dialog--docs) · [Alert Dialog](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-alert-dialog--docs)
 
 **Definition**
 - **Alert Dialog** — short, focused confirmation or acknowledgment; interrupts for a clear binary or limited choice.
@@ -226,7 +226,7 @@ Primary control for discrete actions.
 
 ### Drawer
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-drawer--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-drawer--docs
 
 **Definition**
 Secondary surface that slides in for filters, detail, or medium-length tasks without a full page change.
@@ -240,7 +240,7 @@ Secondary surface that slides in for filters, detail, or medium-length tasks wit
 
 ### Empty State
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-empty-state--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-empty--docs
 
 **Definition**
 Placeholder when there is no data yet or results are empty.
@@ -254,7 +254,7 @@ Placeholder when there is no data yet or results are empty.
 
 ### Segmented Control
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-segmented-control--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-segmented--docs
 
 **Definition**
 Switches between a small number of peer views or modes on the same page.
@@ -271,7 +271,7 @@ Switches between a small number of peer views or modes on the same page.
 
 ### Sonner Toast
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-sonner-toast--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-sonner--docs
 
 **Definition**
 Lightweight, auto-dismiss feedback for outcomes that do not need a blocking surface.
@@ -285,7 +285,7 @@ Lightweight, auto-dismiss feedback for outcomes that do not need a blocking surf
 
 ### Table
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-table--docs
+**Storybook:** https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-table--docs
 
 **Definition**
 Dense, scannable display of rows and columns with optional selection and actions.
@@ -302,7 +302,7 @@ Dense, scannable display of rows and columns with optional selection and actions
 
 ### Toolbar
 
-**Storybook:** https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-toolbar--docs
+**Docs:** https://docs.cognite.com/aura-design-system/primitives/toolbar
 
 **Definition**
 Persistent strip of primary tools or filters for a page or region — available without selecting rows first.
@@ -314,23 +314,19 @@ Persistent strip of primary tools or filters for a page or region — available 
 **Use something else when**
 - Actions apply only after row/item selection (use **Action toolbar** pattern).
 
-### Tooltip, Popover, and Hover Card
+### Tooltip and Popover
 
-**Storybook:** [Tooltip](https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-tooltip--docs) · [Popover](https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-popover--docs) · [Hover Card](https://storybook-aura-22829.fusion-preview.preview.cogniteapp.com/?path=/docs/primitives-hover-card--docs)
+**Storybook:** [Tooltip](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-tooltip--docs) · [Popover](https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives-popover--docs)
 
 **Definition**
 - **Tooltip** — short hint on hover/focus; no heavy interaction inside.
 - **Popover** — click-triggered panel for interactive or structured supplemental content.
-- **Hover Card** — richer preview on hover for entities (profiles, references).
 
 **Use Tooltip when**
 - Clarifying a control or icon in one line or sentence.
 
 **Use Popover when**
 - User picks options, fills short fields, or reads formatted content on demand.
-
-**Use Hover Card when**
-- Previewing related metadata without leaving context.
 
 **Use something else when**
 - Content is essential to the task — surface it inline or in `Dialog` / `Drawer`.
