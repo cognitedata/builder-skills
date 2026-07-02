@@ -36,11 +36,7 @@ Consult this skill whenever you are:
 | If you are… | Open |
 |-------------|------|
 | Choosing primitives and deciding what to use when | `primitive-usage.md` |
-| Where to look for Storybook, docs, and Figma (router) | `picking-components.md` |
-| Structuring a page or choosing a layout pattern | `building-pages.md` |
-| Writing any user-facing text | Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` |
-| Forms, loading, errors, confirmations, or page-level accessibility | `handling-states.md` |
-| Looking up Storybook URLs for foundations or components | `storybook-links.md` |
+| Everything else (layout, copy, states, tokens, accessibility) | `./node_modules/@cognite/aura/DESIGN.md` |
 
 </file-routing>
 
@@ -50,5 +46,4 @@ Consult this skill whenever you are:
 2. Follow foundations through semantic tokens and Aura defaults; do not hardcode raw values.
 3. If a primitive almost fits, do not override visuals to force it; check variants/props first, then document the gap.
 4. Keep behavior predictable and accessible: keyboard support, visible focus, and clear feedback for loading/success/error.
-5. Use `storybook-links.md` for canonical component/foundation URLs.
-6. Use publicly reachable links — Aura design system docs (Mintlify), Fusion preview Storybook, and Figma as documented in `primitive-usage.md` and `picking-components.md`.
+5. Use publicly reachable links — Aura design system docs, Storybook, and Figma as documented in `primitive-usage.md`.
