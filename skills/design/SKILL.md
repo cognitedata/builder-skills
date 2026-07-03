@@ -12,9 +12,12 @@ Use Aura as the default UI system for customer-facing product work. Prefer decis
 - keep layouts and UX states consistent,
 - write concise, action-oriented copy.
 
-Use Storybook for component APIs and exact props. Use this skill for "what to choose and when."
+Everything you need to know is:
+- In the node_modeules/@cognite/aura folder
+- Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
+- At the storybook https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives
+- On the docs site https://docs.cognite.com/aura-design-system/primitives
 
-Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
 
 <when-to-reference>
 
