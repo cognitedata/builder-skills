@@ -12,6 +12,8 @@ Use Aura as the default UI system for customer-facing product work. Prefer decis
 - keep layouts and UX states consistent,
 - write concise, action-oriented copy.
 
+> **Note:** Make sure the project is using the latest version of Aura (`@cognite/aura`) to access the most up-to-date guidance and components.
+
 Everything you need to know is:
 - In the node_modeules/@cognite/aura folder
 - Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
