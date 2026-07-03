@@ -31,19 +31,10 @@ Consult this skill whenever you are:
 
 </when-to-reference>
 
-<file-routing>
-
-| If you are… | Open |
-|-------------|------|
-| Choosing primitives and deciding what to use when | `primitive-usage.md` |
-| Everything else (layout, copy, states, tokens, accessibility) | `./node_modules/@cognite/aura/DESIGN.md` |
-
-</file-routing>
-
 ## Operating principles
 
 1. Use Aura primitives before custom UI.
 2. Follow foundations through semantic tokens and Aura defaults; do not hardcode raw values.
 3. If a primitive almost fits, do not override visuals to force it; check variants/props first, then document the gap.
 4. Keep behavior predictable and accessible: keyboard support, visible focus, and clear feedback for loading/success/error.
-5. Use publicly reachable links — Aura design system docs, Storybook, and Figma as documented in `primitive-usage.md`.
+5. Use publicly reachable links — Aura design system docs, Storybook, and Figma.
