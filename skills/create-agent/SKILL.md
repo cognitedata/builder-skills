@@ -1,6 +1,6 @@
 ---
 name: create-agent
-description: "MUST be used whenever scaffolding a new Atlas agent project. Creates agent.yaml and README.md with the correct structure, tool definitions, and instructions. Do NOT manually write agent.yaml from scratch — this skill handles the full scaffold. Triggers: create agent, new agent, scaffold agent, agent project, agent template, cognite agents create."
+description: "MUST be used whenever scaffolding a new Atlas agent project. Creates agent.yaml, README.md, and a starter eval/cases.yaml with the correct structure, tool definitions, and instructions. Do NOT manually write agent.yaml from scratch — this skill handles the full scaffold. Triggers: create agent, new agent, scaffold agent, agent project, agent template, cognite agents create."
 allowed-tools: Read, Write, Bash, Glob, Grep
 metadata:
   argument-hint: "[agent-name — kebab-case, e.g. my-maintenance-agent]"
@@ -14,8 +14,10 @@ Scaffold a new Atlas agent project named **$ARGUMENTS** using `npx @cognite/cli@
 
 ```
 <agent-name>/
-  agent.yaml    # Agent definition — externalId, model, instructions, tools
-  README.md     # Quick-start docs and tool reference
+  agent.yaml         # Agent definition — externalId, model, instructions, tools
+  README.md          # Quick-start docs and tool reference
+  eval/
+    cases.yaml       # Starter eval cases (single-turn, multi-turn, correctness + faithfulness scorers)
 ```
 
 ---
@@ -109,11 +111,12 @@ tools:
 
 ## Step 4 — Verify and summarize
 
-1. Confirm both files were created
+1. Confirm `agent.yaml`, `README.md`, and `eval/cases.yaml` were all created
 2. Tell the user the next steps:
    - Edit `<agent-name>/agent.yaml` — add tools and refine instructions
    - `npx @cognite/cli@latest agents push <externalId>` — push to CDF for testing
    - `npx @cognite/cli@latest agents open` — open in Fusion
+   - Edit `<agent-name>/eval/cases.yaml` and run `npx @cognite/cli@latest agents eval <externalId>` — the scaffolded cases are placeholders (a `correctness` case, a `faithfulness` case, and a multi-turn case); update the inputs, references, and context to match what the agent actually does
 
 ---
 
