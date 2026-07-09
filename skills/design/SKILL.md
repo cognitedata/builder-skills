@@ -12,9 +12,14 @@ Use Aura as the default UI system for customer-facing product work. Prefer decis
 - keep layouts and UX states consistent,
 - write concise, action-oriented copy.
 
-Use Storybook for component APIs and exact props. Use this skill for "what to choose and when."
+> **Note:** Make sure the project is using the latest version of Aura (`@cognite/aura`) to access the most up-to-date guidance and components.
 
-Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
+Everything you need to know is:
+- In the node_modeules/@cognite/aura folder
+- Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
+- At the storybook https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives
+- On the docs site https://docs.cognite.com/aura-design-system/primitives
+
 
 <when-to-reference>
 
@@ -31,24 +36,10 @@ Consult this skill whenever you are:
 
 </when-to-reference>
 
-<file-routing>
-
-| If you are… | Open |
-|-------------|------|
-| Choosing primitives and deciding what to use when | `primitive-usage.md` |
-| Where to look for Storybook, docs, and Figma (router) | `picking-components.md` |
-| Structuring a page or choosing a layout pattern | `building-pages.md` |
-| Writing any user-facing text | Content guidelines in `./node_modules/@cognite/aura/DESIGN.md` |
-| Forms, loading, errors, confirmations, or page-level accessibility | `handling-states.md` |
-| Looking up Storybook URLs for foundations or components | `storybook-links.md` |
-
-</file-routing>
-
 ## Operating principles
 
 1. Use Aura primitives before custom UI.
 2. Follow foundations through semantic tokens and Aura defaults; do not hardcode raw values.
 3. If a primitive almost fits, do not override visuals to force it; check variants/props first, then document the gap.
 4. Keep behavior predictable and accessible: keyboard support, visible focus, and clear feedback for loading/success/error.
-5. Use `storybook-links.md` for canonical component/foundation URLs.
-6. Use publicly reachable links — Aura design system docs (Mintlify), Fusion preview Storybook, and Figma as documented in `primitive-usage.md` and `picking-components.md`.
+5. Use publicly reachable links — Aura design system docs, Storybook, and Figma.
