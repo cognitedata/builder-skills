@@ -47,6 +47,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **migrate-app-to-flows** | Migrates a legacy Dune POC app to Flows Custom App infrastructure — fixes `app.json`, auth, `manifest.json`, and deploy scripts |
 | **setup-flows-auth** | Migrates React apps to Flows auth or adds DuneAuthProvider |
 | **design** | Aura UI — components and tokens, layouts, UX copy, forms/async feedback, accessibility (`skills/design/`) |
+| **flows-troubleshooting** | Diagnose and fix common Flows app issues: certificate errors, app not loading in CDF, Node.js version problems, port conflicts, deployment failures, and code-signing errors |
 
 ## Contributing
 
