@@ -14,7 +14,7 @@ A Flows custom app stays legible as it grows when four areas stay consistent:
 | Shared client state | Zustand (frequently changing) or React Context (stable globals) |
 | Component shape | Business logic in hooks; components only render UI |
 
-Read `reference.md` (in this skill directory) for the complete pattern catalog with side-by-side Do/Don't code examples. The sections below give you the quick rules; check the reference whenever you need the full example.
+Read https://docs.cognite.com/cdf/flows/concepts/architecture-best-practices for the complete pattern catalog with side-by-side Do/Don't code examples. The sections below give you the quick rules; check that page whenever you need the full example.
 
 ## Non-negotiable rules (apply to every task)
 
@@ -110,4 +110,4 @@ src/
 
 ## Reference
 
-For full Do/Don't examples for every pattern above, read `reference.md` in this skill directory.
+For full Do/Don't examples for every pattern above, see https://docs.cognite.com/cdf/flows/concepts/architecture-best-practices.
