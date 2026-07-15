@@ -21,9 +21,10 @@ Read https://docs.cognite.com/cdf/flows/concepts/architecture-best-practices for
 These override everything else — never skip them:
 
 - **All CDF calls via `useCogniteSdk()`** — no raw `fetch` or `axios` to CDF URLs. The SDK handles auth, token refresh, rate-limit retries, and tracing.
+- **Unique, specific query keys** — e.g. `["wells", startDate, endDate]`, not `["wells"]`. A too-broad key causes silent cache collisions between differently-filtered queries.
 - **Validate at trust boundaries** — parse SDK responses and form submissions with Zod. TypeScript types are erased at runtime.
 - **Mutations need `onError` rollbacks** — a silent partial write to CDF is worse than a visible error. Always include `onError` in `useMutation`.
-- **Centralize all CDF identifiers in `config/model.ts`** — never scatter view IDs, space names, or property keys as string literals. A rename touches one line, not fifty.
+- **Centralize all CDF identifiers in `config/model.ts`** — never scatter view IDs, space names, or property keys as string literals. A rename touches one line, not fifty. For batching/concurrency limits when querying data models, see the `dm-limits-and-best-practices` skill.
 - **No secrets in client code**, no `dangerouslySetInnerHTML` with unescaped user input.
 - **Accessible markup** — meaningful `aria` labels, keyboard navigability, no `onClick` on `<div>`.
 
@@ -40,54 +41,30 @@ Anything fetched from CDF           → React Query — never copy into useState
 
 Concrete: a multi-step wizard's draft state (selected items, config, assignee) **must use Zustand**. Using Context there re-renders all 4 steps on every field change.
 
+Start with `useState`. Lift to Context when a stable value is needed tree-wide. Move to Zustand once re-renders become noticeable or prop drilling would exceed 3 levels.
+
+## Component-level hygiene
+
+- **Size targets** — components under ~150 lines (ideal <100), hooks under ~50, handlers under ~20. Past that, split by responsibility.
+- **Early returns** — guard loading, error, and empty states before the main JSX, rather than nesting the happy path in conditionals.
+- **Colocate state** — keep state as close as possible to where it's used; don't lift until something else actually needs it.
+- **DRY** — extract repeated JSX and shared stateful logic into hooks or components rather than copy-pasting.
+- **Reset state with `key`, not `useEffect`** — when a component's identity changes (e.g. editing a different record), pass the entity id as `key` so React remounts it, instead of manually resetting state in a `useEffect`: `<EditForm key={selectedContact.id} contact={selectedContact} />`.
+- **`useEffect` deps** — include every dependency the effect reads; destructure objects/arrays before using them in the deps array to avoid infinite loops; always return a cleanup function for subscriptions.
+
+### Anti-patterns to fix on sight
+
+| Anti-pattern | Fix |
+|---|---|
+| Array index as `key` | Use a stable unique id |
+| Inline `object`/`array` prop literals (`<Foo config={{...}} />`) | Define outside the component or memoize |
+| State update during render | Move to an event handler or `useEffect` |
+| Direct DOM manipulation | Use `useRef` |
+| `useState` + `useEffect` to sync a derived value | Compute inline with `const` or `useMemo` |
+
 ## Key patterns (quick rules)
 
-### React Query for all server state
-Use `useQuery`/`useMutation` inside dedicated hooks. Never use `useState` + `useEffect` to fetch data — you lose caching, deduplication, background refresh, and retries. Never call `useQuery` or `useMutation` directly inside `.tsx` component files.
-
-### Zod at the SDK boundary
-One schema per view in `schema.ts`. Call `Schema.parse(raw)` at the point data enters the app (SDK response → app, form → SDK). Downstream code receives a typed value, not `unknown`.
-
-### Keep data access thin
-A typed `use*` query hook is sufficient for most CDF reads. A service class with an interface, implementation, and two context layers earns its place only when there is real pagination, joining, or write-shaping logic.
-
-### Separate data from display
-Extract data + commands into a view-model hook (e.g. `useTriageVM.ts`). The component calls the hook and renders — it has no direct `useQuery`/`useMutation` calls, no inline `async` handlers, and no business logic.
-
-### Single-purpose hooks
-One hook per concern. A component that only uses `userStats` should not re-render when `chartData` changes. Split `useDashboardLogic` → `useUserStats` + `useChartData`.
-
-### Narrow hook interface
-Return `{ data, isLoading, commandFn }` — not the raw `query` or `mutation` object. This decouples callers from React Query internals.
-
-This applies to mutations too. Never do `return useMutation(...)` — always wrap:
-```ts
-// Wrong
-export function useResolveAlert() {
-  return useMutation({ mutationFn: resolve });
-}
-
-// Right
-export function useResolveAlert() {
-  const mutation = useMutation({ mutationFn: resolve, onError: ... });
-  return { resolveAlert: mutation.mutate, isResolving: mutation.isPending, error: mutation.error };
-}
-```
-
-### Compute derived values inline
-Derive values during render with an inline `const` or `useMemo`. Never store a derived value in `useState` + `useEffect` — this causes an extra render with a stale value.
-
-### Injectable dependencies for testability
-For shallow components, use a typed `deps` prop with real defaults. For trees, use `.context.tsx` with real defaults so production code needs no Provider. Avoid `vi.mock` on first-party modules — it is path-coupled and not type-checked.
-
-### Aura, not inline styles
-Use Aura component props/variants first, then Tailwind utility classes. Never use `style={{}}` objects — they bypass the `aura/no-overriding-styles` ESLint rule and drift from the design system.
-
-### Centralize data model config
-Keep all CDF view IDs, space names, and property keys in `config/model.ts`. Scattered string literals break silently when a space or view is renamed.
-
-### Two-layer error handling
-One `<ErrorBoundary>` at the app shell catches render crashes. Per-view: use the query's `error`/`isError` state and render a shared `<ErrorState onRetry={refetch} />` component.
+See the Quick reference section of https://docs.cognite.com/cdf/flows/concepts/architecture-best-practices#quick-reference for the condensed rule for each pattern (React Query for server state, Zod at the SDK boundary, thin data access, view-model separation, single-purpose hooks, narrow hook interfaces, inline derived values, injectable dependencies, Aura styling, centralized data model config, two-layer error handling). Follow the linked page whenever you need the full Do/Don't example for one of these.
 
 ## Recommended folder shape
 
