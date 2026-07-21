@@ -133,6 +133,15 @@ function isPyProxy(value: unknown): value is { destroy(): void } {
   );
 }
 
+function isMicropip(value: unknown): value is Micropip {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'install' in value &&
+    typeof (value as Record<string, unknown>).install === 'function'
+  );
+}
+
 function destroyIfPyProxy(value: unknown): void {
   if (isPyProxy(value)) {
     value.destroy();
@@ -201,7 +210,12 @@ try:
 except Exception:
     pass
 `);
-    const micropip = pyodide.pyimport('micropip') as Micropip;
+    const micropip = pyodide.pyimport('micropip');
+    if (!isMicropip(micropip)) {
+      throw new Error(
+        'micropip did not load correctly — pyimport returned an unexpected shape',
+      );
+    }
 
     // 3. Cognite SDK
     const verb = isCacheValid() ? 'Loading' : 'Downloading';
