@@ -146,7 +146,13 @@ async function executeClientTool(
       callbacks?.onToolEnd?.(toolName, result);
       return { result, followup: createActionReply(action.actionId, result.output) };
     }
-    const result = await tool.execute(validatedArgs);
+    let result: AtlasToolResult;
+    try {
+      result = await tool.execute(validatedArgs);
+    } catch (err) {
+      const errorOutput = err instanceof Error ? err.message : String(err);
+      result = { output: `ERROR: ${errorOutput}` };
+    }
     callbacks?.onToolEnd?.(toolName, result);
     return { result, followup: createActionReply(action.actionId, result.output) };
   }

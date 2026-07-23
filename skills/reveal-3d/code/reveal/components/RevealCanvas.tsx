@@ -11,9 +11,15 @@ export function RevealCanvas({
   const parentElement = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (parentElement.current !== null) {
-      parentElement.current.appendChild(viewer.domElement);
+    const parent = parentElement.current;
+    if (parent !== null) {
+      parent.appendChild(viewer.domElement);
     }
+    return () => {
+      if (parent !== null && parent.contains(viewer.domElement)) {
+        parent.removeChild(viewer.domElement);
+      }
+    };
   }, [viewer]);
 
   return (

@@ -28,17 +28,18 @@ function evictIfNeeded(state: BufferState, maxSize: number): BufferState {
     };
   }
 
-  const entries = Array.from(state.nodes.entries());
+  const nextNodes = new Map(state.nodes);
+  const entries = Array.from(nextNodes.entries());
   entries.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
 
   const toRemove = entries.length - maxSize;
   for (let i = 0; i < toRemove; i++) {
-    state.nodes.delete(entries[i][0]);
+    nextNodes.delete(entries[i][0]);
   }
 
   return {
-    nodes: state.nodes,
-    connections: pruneConnections(state.connections, state.nodes),
+    nodes: nextNodes,
+    connections: pruneConnections(state.connections, nextNodes),
   };
 }
 

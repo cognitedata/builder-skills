@@ -154,10 +154,7 @@ async function fetchAllAnnotations(
     );
     allEdges.push(...edges);
 
-    cursor =
-      edges.length < QUERY_LIMIT
-        ? undefined
-        : response.nextCursor?.annotations;
+    cursor = response.nextCursor?.annotations;
   } while (cursor);
 
   return allEdges.flatMap((edge) => {

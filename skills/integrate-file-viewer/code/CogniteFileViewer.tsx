@@ -185,20 +185,21 @@ function TextRenderer({ url }: { url: string }) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(url)
+    const controller = new AbortController();
+    fetch(url, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.text();
       })
       .then((text) => {
-        if (!cancelled) setContent(text);
+        setContent(text);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setError(err instanceof Error ? err : new Error(String(err)));
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [url]);
 
