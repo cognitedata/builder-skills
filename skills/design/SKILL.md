@@ -1,45 +1,56 @@
 ---
 name: design
-description: Simplified Aura guidance for selecting primitives, keeping token usage consistent, and applying reliable layout/copy/state patterns in Flows and Fusion apps.
+description: >
+  Use for any customer-facing UI work in Flows, Fusion or React involving Aura,
+  layouts, components, styling, UX, accessibility or user-facing copy.
 allowed-tools: Read, Glob, Grep, Edit, Write
 ---
 
-## Role
+# Aura workflow
 
-Use Aura as the default UI system for customer-facing product work. Prefer decision-level guidance over exhaustive rules:
-- choose the right primitive first,
-- apply semantic tokens (no raw values),
-- keep layouts and UX states consistent,
-- write concise, action-oriented copy.
+Always complete these steps in order. Use WebFetch rather than cURL.
 
-> **Note:** Make sure the project is using the latest version of Aura (`@cognite/aura`) to access the most up-to-date guidance and components.
+1. Upgrade `@cognite/aura` to the latest version: `npm view @cognite/aura version`
 
-Everything you need to know is:
-- In the node_modeules/@cognite/aura folder
-- Aura Design Guidlines can be found at: `./node_modules/@cognite/aura/DESIGN.md`
-- At the storybook https://master--695bb4b1b8041ae09768950a.chromatic.com/?path=/docs/primitives
-- On the docs site https://docs.cognite.com/aura-design-system/primitives
+2. Treat the installed package as the source of truth.
+   - Verify every Aura API against `node_modules/@cognite/aura`.
+   - Never assume examples or docs match the installed version.
+   - Do not stop at a single barrel-file grep. If a prop/type isn't found, search the actual declaration files, e.g.:
+     `grep -rn "SearchProps\|CardProps" node_modules/@cognite/aura/dist/**/*.d.ts`
+   - A prose diagram in `DESIGN.md` is context, not a verified API — it never substitutes for checking the installed types.
 
+3. Read the Aura examples index:
 
-<when-to-reference>
+   https://escargot-feminist-ninth.ngrok-free.dev/examples/index.json
 
-Consult this skill whenever you are:
+   Resolve each item's `file` field relative to the server root.
 
-- Creating or migrating interactive UI, forms, tables, navigation, or data display
-- Writing or modifying styles, colors, spacing, or typography
-- Choosing components, tokens, or layout patterns
-- Creating or restructuring pages and responsive layouts
-- Writing or editing any user-facing text
-- Building forms, handling API responses, async actions, confirmations, or dynamic content
-- Implementing accessibility (keyboard, focus, headings, ARIA, alt text)
-- Applying Aura correctly in a Flows or React app
+4. Reuse existing patterns.
+   - Choose the closest layout example.
+   - **If the task involves a page shell/dashboard/list layout, this is mandatory, not optional:** fetch and open the matching `examples/layout/*` file before writing any JSX. An ASCII diagram or pattern description from `DESIGN.md` does NOT satisfy this — it is prose intent, not a verified pattern. Using an example layout is mandatory.
+   - Look up examples for every Aura component you use.
+   - **Reusing a layout example means adopting its structural pattern** (e.g. sidebar + main split, topbar + tabs) — not just cherry-picking a component out of it. Do not open a layout example, note it doesn't quite fit, and then quietly build your own shell instead. That is a violation of this step, not an acceptable judgment call.
+   - **If no `examples/layout/*` file matches the requested page type, stop and ask the user** whether to adapt the closest layout example anyway or proceed without one. Do not decide unilaterally to discard it and compose a custom shell.
+   - If no suitable *component* example exists (this does not apply to layouts — see above), compose from verified Aura primitives.
+   - **Gate before writing code:** list every example file opened, mapped to what it was used for (layout, each component). If a layout/page-shell is involved and no `layout/*` example is in that list, go fetch one now before proceeding. For any layout example opened, explicitly state whether its structural pattern was reused or discarded — if discarded, that must be because the user was asked and agreed, not a solo decision.
 
-</when-to-reference>
+5. Prefer Aura over custom UI.
+   - Use primitives before custom components.
+   - Use semantic tokens only.
+   - Never hardcode visual values.
+   - Check variants before overriding styling.
 
-## Operating principles
+6. Before adding wrappers inside compound Aura components, verify whether an existing slot/subcomponent already exists.
 
-1. Use Aura primitives before custom UI.
-2. Follow foundations through semantic tokens and Aura defaults; do not hardcode raw values.
-3. If a primitive almost fits, do not override visuals to force it; check variants/props first, then document the gap.
-4. Keep behavior predictable and accessible: keyboard support, visible focus, and clear feedback for loading/success/error.
-5. Use publicly reachable links — Aura design system docs, Storybook, and Figma.
+7. Every UI change should preserve:
+   - loading, empty, success and error states
+   - keyboard accessibility
+   - visible focus
+   - concise action-oriented copy
+
+## References
+
+- Installed package: `node_modules/@cognite/aura`
+- Design guide: `node_modules/@cognite/aura/DESIGN.md`
+- Examples: https://escargot-feminist-ninth.ngrok-free.dev/examples/index.json
+- Docs: https://docs.cognite.com/aura-design-system/primitives
