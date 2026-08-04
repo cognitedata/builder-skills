@@ -20,7 +20,15 @@ stranded.
 up, and `@cognite/app-sdk >= 0.9.0`** (verify with `npm ls @cognite/app-sdk`
 or check `package.json` — earlier versions don't expose `setHideShell` on
 `HostAppAPI` at all). If auth isn't wired up yet, run the
-[setup-flows-auth](../setup-flows-auth/SKILL.md) skill first.
+[setup-flows-auth](../setup-flows-auth/SKILL.md) skill first — but make sure
+it lands on the **Apps API** flow (`app.json` has `"infra": "appsApi"`,
+deployed with `npx @cognite/cli@latest apps deploy`), not the **Classic**
+flow (`DuneAuthProvider`/`useDune()` from `@cognite/dune`). `setHideShell`
+only exists on the Apps API's `HostAppAPI`; Classic apps have no equivalent
+and are deployed to infrastructure `@cognite/cli` itself refuses to touch
+("Legacy infrastructure is no longer supported"). If `app.json` is missing
+`infra: "appsApi"` or `@cognite/dune` shows up in `package.json`, stop and
+migrate to Apps API first — don't attempt this skill on a Classic app.
 
 ## What it does
 
