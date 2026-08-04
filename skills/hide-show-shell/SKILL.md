@@ -7,7 +7,7 @@ description: >-
   full screen app, fullscreen mode, hide sidebar, hide topbar, hide shell,
   hide menu, setHideShell, app-only mode, kiosk mode, custom side nav, full
   viewport.
-allowed-tools: Read, Glob, Grep, Edit, Write
+allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # Hide & Show the Fusion Shell
@@ -17,7 +17,9 @@ full browser viewport, and reveal it again — without leaving the user
 stranded.
 
 **Requires `@cognite/app-sdk`'s `connectToHostApp()` handshake already wired
-up, and `@cognite/app-sdk >= 0.9.0`.** If auth isn't wired up yet, run the
+up, and `@cognite/app-sdk >= 0.9.0`** (verify with `npm ls @cognite/app-sdk`
+or check `package.json` — earlier versions don't expose `setHideShell` on
+`HostAppAPI` at all). If auth isn't wired up yet, run the
 [setup-flows-auth](../setup-flows-auth/SKILL.md) skill first.
 
 ## What it does
@@ -33,6 +35,13 @@ Under the hood this toggles a bookmarkable `?hideShell=true` URL parameter —
 no server round-trip, and a shared link already opens in full-screen mode.
 The shell also **auto-reveals** if the user navigates away from your app, as
 a safety net — but don't rely on that as your only way back.
+
+**There is no other safety net.** While the shell is hidden, Fusion does not
+render any floating "reveal" button of its own — the navrail (and any toggle
+button inside it) is unmounted along with the rest of the shell. The only
+ways back are: your app's own reveal control, manually editing the URL, or
+navigating away entirely. Treat the guidance below as non-negotiable, not a
+nice-to-have.
 
 ## When to use it
 
@@ -67,25 +76,63 @@ call must ship with an equally discoverable reveal control:
   interpret. A button with visible label text already has an accessible name
   and doesn't need one.
 
-## Step 1 — Add the toggle
+## Step 1 — Add the `useHideShell` hook
 
-```tsx
-import { useState } from 'react';
+Create (or add to an existing hooks file) `src/hooks/use-hide-shell.ts`. This
+centralizes the toggle logic and — critically — restores the shell on
+unmount, so navigating within your own app (or an error boundary tearing
+down the tree) can never leave the shell permanently hidden:
+
+```typescript
+import { useCallback, useEffect, useState } from 'react';
 import type { HostAppAPI } from '@cognite/app-sdk';
-import { Button } from '@cognite/aura/components/button';
-import { IconArrowsMaximize, IconArrowsMinimize } from '@tabler/icons-react';
 
-function FullScreenToggle({ api }: { api: HostAppAPI | null }) {
+/**
+ * Manages Fusion shell visibility for full-screen "app-only" mode.
+ *
+ * Restores the shell automatically on unmount so it's never left hidden
+ * if the user navigates away or the component tears down unexpectedly.
+ */
+export function useHideShell(api: HostAppAPI | null) {
   const [isHidden, setIsHidden] = useState(false);
 
-  async function toggle() {
-    const next = !isHidden;
-    setIsHidden(next);
-    await api?.setHideShell(next);
-  }
+  const setHidden = useCallback(
+    async (next: boolean) => {
+      if (!api) return;
+      await api.setHideShell(next);
+      setIsHidden(next);
+    },
+    [api],
+  );
+
+  const toggle = useCallback(() => setHidden(!isHidden), [setHidden, isHidden]);
+  const hide = useCallback(() => setHidden(true), [setHidden]);
+  const reveal = useCallback(() => setHidden(false), [setHidden]);
+
+  useEffect(() => {
+    return () => {
+      if (isHidden && api) void api.setHideShell(false);
+    };
+  }, [api, isHidden]);
+
+  return { isHidden, toggle, hide, reveal };
+}
+```
+
+## Step 2 — Add the toggle control
+
+```tsx
+import type { HostAppAPI } from '@cognite/app-sdk';
+import { Button } from '@cognite/aura/components';
+import { IconArrowsMaximize, IconArrowsMinimize } from '@tabler/icons-react';
+
+import { useHideShell } from '../hooks/use-hide-shell';
+
+function FullScreenToggle({ api }: { api: HostAppAPI | null }) {
+  const { isHidden, toggle } = useHideShell(api);
 
   return (
-    <Button variant="secondary" size="sm" onClick={toggle}>
+    <Button variant="secondary" size="sm" onClick={toggle} disabled={!api}>
       {isHidden ? <IconArrowsMinimize aria-hidden /> : <IconArrowsMaximize aria-hidden />}
       {isHidden ? 'Show Cognite menu' : 'Hide Cognite menu'}
     </Button>
@@ -96,13 +143,83 @@ function FullScreenToggle({ api }: { api: HostAppAPI | null }) {
 Place `<FullScreenToggle api={api} />` wherever your best-practice placement
 (above) calls for it — bottom of your custom nav, or a fixed corner control.
 
-## Step 2 — Handle the case where the shell doesn't hide
+> `Button` comes from the `@cognite/aura/components` subpath — the package
+> only exports that path (plus `./utils`, `./eslint`, `./styles.css`), not a
+> per-component `@cognite/aura/components/button` path. Importing the latter
+> throws `ERR_PACKAGE_PATH_NOT_EXPORTED` at build time.
+
+## Step 3 — Add tests
+
+Add tests alongside the hook at `src/hooks/use-hide-shell.test.ts`:
+
+```typescript
+import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { HostAppAPI } from '@cognite/app-sdk';
+
+import { useHideShell } from './use-hide-shell';
+
+function makeApi(): Pick<HostAppAPI, 'setHideShell'> {
+  return { setHideShell: vi.fn(() => Promise.resolve()) };
+}
+
+describe('useHideShell', () => {
+  let api: ReturnType<typeof makeApi>;
+
+  beforeEach(() => {
+    api = makeApi();
+    vi.clearAllMocks();
+  });
+
+  it('starts with the shell visible', () => {
+    const { result } = renderHook(() => useHideShell(api as HostAppAPI));
+    expect(result.current.isHidden).toBe(false);
+  });
+
+  it('hides the shell on toggle', async () => {
+    const { result } = renderHook(() => useHideShell(api as HostAppAPI));
+    await act(() => result.current.toggle());
+    expect(api.setHideShell).toHaveBeenCalledWith(true);
+    expect(result.current.isHidden).toBe(true);
+  });
+
+  it('reveals the shell on the second toggle', async () => {
+    const { result } = renderHook(() => useHideShell(api as HostAppAPI));
+    await act(() => result.current.toggle());
+    await act(() => result.current.toggle());
+    expect(api.setHideShell).toHaveBeenLastCalledWith(false);
+    expect(result.current.isHidden).toBe(false);
+  });
+
+  it('restores the shell on unmount when hidden', async () => {
+    const { result, unmount } = renderHook(() => useHideShell(api as HostAppAPI));
+    await act(() => result.current.hide());
+    unmount();
+    expect(api.setHideShell).toHaveBeenLastCalledWith(false);
+  });
+
+  it('does not call setHideShell on unmount when already visible', () => {
+    const { unmount } = renderHook(() => useHideShell(api as HostAppAPI));
+    unmount();
+    expect(api.setHideShell).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when api is null (running outside Fusion)', async () => {
+    const { result } = renderHook(() => useHideShell(null));
+    await act(() => result.current.toggle());
+    expect(result.current.isHidden).toBe(false);
+  });
+});
+```
+
+## Step 4 — Handle the case where the shell doesn't hide
 
 Three conditions must **all** be true for `setHideShell(true)` to actually
 hide anything:
 
 1. The `NAVIGATION_HIDE_SHELL` Unleash flag is enabled for the environment.
-2. Your app is the active route the shell recognizes as a managed Flows app.
+2. Your app is the active route the shell recognizes as a managed Flows app
+   (the Custom Apps subapp, with `?hideShell` present in the URL).
 3. Nothing else on the page has already re-shown the shell (e.g. the user
    navigated to a different Fusion area, which auto-reveals it).
 
@@ -110,7 +227,7 @@ Don't build extra fallback UI for the "flag off" case — the call is a no-op
 and the shell simply stays visible. Just don't assume the toggle always
 visibly does something in every environment while testing.
 
-## Step 3 — Test both directions
+## Step 5 — Test both directions
 
 - Click "Hide Cognite menu" → shell disappears, app fills the viewport, the
   URL now has `?hideShell=true`.
@@ -119,6 +236,21 @@ visibly does something in every environment while testing.
 - Reload the page with `?hideShell=true` in the URL → shell starts hidden
   (bookmarkable).
 - Navigate to an unrelated Fusion route while hidden → shell auto-reveals.
+
+## Matching the Fusion sidebar's width
+
+If your own side nav needs to visually line up with (or replace) the CDF
+sidebar, match these widths from `apps/navigation`'s navrail
+(`apps/navigation/src/utils/constants.ts` in `cognitedata/fusion`):
+
+| State                 | Width                                    |
+|------------------------|-------------------------------------------|
+| Expanded               | `min-width: 240px`, `max-width: 280px` (actual width is content-driven, capped to that range) |
+| Collapsed              | `56px`                                    |
+
+These are internal implementation details of the Fusion shell, not a public
+design-system token — re-check them if the sidebar's look changes
+noticeably, since there's no guarantee they stay in sync with this skill.
 
 ## Related
 
