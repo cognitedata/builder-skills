@@ -124,7 +124,7 @@ export function useHideShell(api: HostAppAPI | null) {
 ```tsx
 import type { HostAppAPI } from '@cognite/app-sdk';
 import { Button } from '@cognite/aura/components';
-import { IconArrowsMaximize, IconArrowsMinimize } from '@tabler/icons-react';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 
 import { useHideShell } from '../hooks/use-hide-shell';
 
@@ -133,7 +133,7 @@ function FullScreenToggle({ api }: { api: HostAppAPI | null }) {
 
   return (
     <Button variant="secondary" size="sm" onClick={toggle} disabled={!api}>
-      {isHidden ? <IconArrowsMinimize aria-hidden /> : <IconArrowsMaximize aria-hidden />}
+      {isHidden ? <IconEye aria-hidden /> : <IconEyeOff aria-hidden />}
       {isHidden ? 'Show Cognite menu' : 'Hide Cognite menu'}
     </Button>
   );
@@ -142,6 +142,11 @@ function FullScreenToggle({ api }: { api: HostAppAPI | null }) {
 
 Place `<FullScreenToggle api={api} />` wherever your best-practice placement
 (above) calls for it — bottom of your custom nav, or a fixed corner control.
+
+`IconEye`/`IconEyeOff` read more clearly as a *visibility* toggle than
+arrows-style icons, which are easily confused with the separate native
+Fullscreen API. This matches the icon choice used in a working, deployed
+reference app for this skill (`IconEyeOff` to hide, `IconEye` to reveal).
 
 > `Button` comes from the `@cognite/aura/components` subpath — the package
 > only exports that path (plus `./utils`, `./eslint`, `./styles.css`), not a
