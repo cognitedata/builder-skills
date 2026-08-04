@@ -47,6 +47,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **security** | Reviews for security issues — credentials, user input, external data |
 | **migrate-app-to-flows** | Migrates a legacy Dune POC app to Flows Custom App infrastructure — fixes `app.json`, auth, `manifest.json`, and deploy scripts |
 | **setup-flows-auth** | Migrates React apps to Flows auth or adds DuneAuthProvider |
+| **hide-show-shell** | Hides/reveals the Fusion sidebar + topbar for full-screen app-only mode via `api.setHideShell()`, with best practices for always giving users a way back |
 | **design** | Aura UI — components and tokens, layouts, UX copy, forms/async feedback, accessibility (`skills/design/`) |
 
 ## Contributing
