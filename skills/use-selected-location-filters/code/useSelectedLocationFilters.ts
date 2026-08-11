@@ -7,8 +7,8 @@ export type UseSelectedLocationFiltersResult = {
   locationFilters: LocationFilter[];
   /** True until the first fetch settles (success or failure). */
   isLoading: boolean;
-  /** Set when the host call fails (e.g. running outside Fusion with no HostAppAPI). */
-  error: Error | null;
+  /** Set when the host call fails. */
+  error: Error | undefined;
   /** Re-fetch the current selection from the host. */
   refetch: () => Promise<void>;
 };
@@ -22,22 +22,22 @@ export type UseSelectedLocationFiltersResult = {
  * window focus, route enter, or an explicit refresh control).
  */
 export function useSelectedLocationFilters(
-  api: HostAppAPI | null,
+  api: HostAppAPI | null | undefined,
 ): UseSelectedLocationFiltersResult {
   const [locationFilters, setLocationFilters] = useState<LocationFilter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<Error | undefined>(undefined);
 
   const refetch = useCallback(async () => {
     if (!api) {
       setLocationFilters([]);
-      setError(null);
+      setError(undefined);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    setError(null);
+    setError(undefined);
 
     try {
       const next = await api.getSelectedLocationFilters();

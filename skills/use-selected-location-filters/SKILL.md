@@ -59,7 +59,8 @@ filter:
 | `name` | `'System default'` |
 
 Treat `externalId === 'preset-location'` (or `id === -1`) as "no real location
-selected" when you need to distinguish it from configured locations.
+selected" when you need to distinguish it from configured locations. Always
+filter it out before using fields to scope queries.
 
 ## Files
 
@@ -92,6 +93,10 @@ setApi(() => resolvedApi); // correct
 // setApi(resolvedApi);    // WRONG — React treats the callable proxy as a setter
 ```
 
+`useHostApp` returns `{ api, error }`. Treat `!api` as "host unavailable"
+(standalone vite/dev). Use `error` only when you need to diagnose a failed
+handshake — do not show it as a blocking error UI for expected standalone use.
+
 ## Step 2 — Fetch selected location filters
 
 Copy `code/useSelectedLocationFilters.ts` and wire it:
@@ -101,20 +106,26 @@ import { useHostApp } from './hooks/useHostApp';
 import { useSelectedLocationFilters } from './hooks/useSelectedLocationFilters';
 
 function LocationScopedView() {
-  const api = useHostApp('my-app');
+  const { api } = useHostApp('my-app');
   const { locationFilters, isLoading, error, refetch } =
     useSelectedLocationFilters(api);
 
-  if (!api) return null; // outside Fusion
+  if (!api) return null; // outside Fusion / host unavailable
   if (isLoading) return <div>Loading locations…</div>;
   if (error) return <div>Could not load locations: {error.message}</div>;
 
-  const primary = locationFilters[0];
+  const primary = locationFilters.find(
+    (f) => f.externalId !== 'preset-location',
+  );
 
   return (
     <div>
       <p>Location: {primary?.name ?? '—'}</p>
-      <button type="button" onClick={() => void refetch()}>
+      <button
+        type="button"
+        disabled={isLoading}
+        onClick={() => void refetch()}
+      >
         Refresh location
       </button>
     </div>
@@ -147,19 +158,22 @@ consume:
 | `views` | View configs (`externalId`, `space`, `version`, `representsEntity`) |
 | `scene` | Linked 3D scene `{ externalId, space }` |
 
-Example: scope a DM query to the selected location's spaces:
+Example: scope a DM query to the selected location's spaces (skip the synthetic
+system-default filter):
 
 ```ts
-const spaces = locationFilters.flatMap((f) => f.instanceSpaces ?? []);
+const spaces = locationFilters
+  .filter((f) => f.externalId !== 'preset-location')
+  .flatMap((f) => f.instanceSpaces ?? []);
 // pass `spaces` into your CogniteClient data-modeling filter / query
 ```
 
 Example: apply asset-centric dataset scoping:
 
 ```ts
-const dataSetIds = locationFilters.flatMap(
-  (f) => f.assetCentric?.dataSetIds ?? [],
-);
+const dataSetIds = locationFilters
+  .filter((f) => f.externalId !== 'preset-location')
+  .flatMap((f) => f.assetCentric?.dataSetIds ?? []);
 ```
 
 Do **not** invent a parallel location type — import `LocationFilter` from
@@ -185,13 +199,17 @@ useEffect(() => {
 
 ## Step 5 — Tests
 
-Smoke-test the hook with a stub `HostAppAPI`:
+Smoke-test both hooks. Mock the entire `@cognite/app-sdk` module and build a
+full `HostAppAPI` stub (every method as `vi.fn`) — do not cast partial objects
+to `HostAppAPI`. If your installed SDK version adds methods, extend
+`createHostAppApi` to match.
 
 ```ts
-import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HostAppAPI, LocationFilter } from '@cognite/app-sdk';
 
+import { useHostApp } from './useHostApp';
 import { useSelectedLocationFilters } from './useSelectedLocationFilters';
 
 const FILTER: LocationFilter = {
@@ -203,20 +221,73 @@ const FILTER: LocationFilter = {
   dataModelingType: 'HYBRID',
 };
 
-function makeApi(
-  filters: LocationFilter[] = [FILTER],
-): Pick<HostAppAPI, 'getSelectedLocationFilters'> {
+const { connectToHostApp, createHostAppApi } = vi.hoisted(() => {
+  function createHostAppApi(
+    getSelectedLocationFilters: HostAppAPI['getSelectedLocationFilters'] = vi.fn(
+      async () => [],
+    ),
+  ): HostAppAPI {
+    return {
+      getProject: vi.fn(async () => 'test-project'),
+      getBaseUrl: vi.fn(async () => 'https://api.cognitedata.com'),
+      getAccessToken: vi.fn(async () => 'token'),
+      navigateInternal: vi.fn(async () => undefined),
+      navigateExternal: vi.fn(async () => undefined),
+      syncInternalState: vi.fn(async () => true),
+      setHideShell: vi.fn(async () => undefined),
+      sendAgentLayoutMode: vi.fn(async () => undefined),
+      sendAgentMessage: vi.fn(async () => undefined),
+      unregisterAgentServer: vi.fn(async () => undefined),
+      getSelectedLocationFilters,
+    };
+  }
+
   return {
-    getSelectedLocationFilters: vi.fn(() => Promise.resolve(filters)),
+    createHostAppApi,
+    connectToHostApp: vi.fn(async () => ({
+      api: createHostAppApi(),
+    })),
   };
-}
+});
+
+vi.mock('@cognite/app-sdk', () => ({
+  connectToHostApp,
+}));
+
+describe('useHostApp', () => {
+  beforeEach(() => {
+    vi.mocked(connectToHostApp).mockReset();
+  });
+
+  it('stores the host api on success', async () => {
+    const hostApi = createHostAppApi();
+    vi.mocked(connectToHostApp).mockResolvedValue({ api: hostApi });
+
+    const { result } = renderHook(() => useHostApp('my-app'));
+    await waitFor(() => {
+      expect(result.current.api).toBe(hostApi);
+    });
+    expect(result.current.error).toBeUndefined();
+  });
+
+  it('exposes error when connectToHostApp rejects', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    vi.mocked(connectToHostApp).mockRejectedValue(new Error('not in Fusion'));
+
+    const { result } = renderHook(() => useHostApp());
+    await waitFor(() => {
+      expect(result.current.error).toMatchObject({ message: 'not in Fusion' });
+    });
+    expect(result.current.api).toBeUndefined();
+    expect(debug).toHaveBeenCalled();
+    debug.mockRestore();
+  });
+});
 
 describe('useSelectedLocationFilters', () => {
   it('loads filters from the host', async () => {
-    const api = makeApi();
-    const { result } = renderHook(() =>
-      useSelectedLocationFilters(api as HostAppAPI),
-    );
+    const api = createHostAppApi(vi.fn(async () => [FILTER]));
+    const { result } = renderHook(() => useSelectedLocationFilters(api));
     await act(async () => {
       await Promise.resolve();
     });
@@ -225,10 +296,24 @@ describe('useSelectedLocationFilters', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('is a no-op when api is null', async () => {
-    const { result } = renderHook(() => useSelectedLocationFilters(null));
+  it('is a no-op when api is undefined', async () => {
+    const { result } = renderHook(() => useSelectedLocationFilters(undefined));
     await act(async () => {
       await Promise.resolve();
+    });
+    expect(result.current.locationFilters).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('sets error when the host call rejects', async () => {
+    const api = createHostAppApi(
+      vi.fn(async () => {
+        throw new Error('comlink failed');
+      }),
+    );
+    const { result } = renderHook(() => useSelectedLocationFilters(api));
+    await waitFor(() => {
+      expect(result.current.error).toMatchObject({ message: 'comlink failed' });
     });
     expect(result.current.locationFilters).toEqual([]);
     expect(result.current.isLoading).toBe(false);
