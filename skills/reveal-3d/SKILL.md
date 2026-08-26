@@ -131,18 +131,6 @@ Do **not** copy any source bundle into the app and do **not** install `process`,
 - `RevealWidget`'s container must have an explicit height — it fills its parent.
 - Lazy-load canvas-heavy viewer content with `React.lazy` + `Suspense` when adding a route/page.
 
-## Known Limitations vs. the Old Copied-Bundle Approach
-
-`@cognite/reveal-widget` is an early, intentionally narrow slice of the broader Reveal React Components toolkit — its own README says more capabilities will be exposed "incrementally over time." Several things the old app-local bundle could do have no equivalent yet. Set expectations with the user up front if the task needs one of these:
-
-- **No FDM-instance-to-model discovery.** The old bundle's `useModelsForInstanceQuery`/`use3dModels`/`useFdmAssetMappings`/`useFindRelated3dInstances`/`use3dRelatedEdgeConnections`/`use3dRelatedDirectConnections`/`useInstancesWithBoundingBoxes` hooks answered "what 3D model(s) is this FDM instance linked to?". There's no equivalent — you must resolve the model identifier yourself (e.g. via the app's own FDM query against `CogniteVisualizable.object3D`) before calling `addResource`. See [implementation.md](references/implementation.md).
-- **No viewer/cache lifecycle persistence.** `RevealKeepAlive`/`useRevealKeepAlive` and `CacheProvider`/`useCacheContext` don't exist in this package. The old bundle let the WebGL viewer and asset-mapping cache survive component remounts/route changes to avoid expensive re-creation; `RevealWidget` has no exposed equivalent, so expect a full viewer re-init on remount.
-- **No render-quality/appearance options.** The old `ViewerOptions` exposed `antiAliasingHint`, `ssaoQualityHint`, `loadingIndicatorStyle`, background color, etc. `RevealWidgetProps.viewerOptions` currently only accepts `sdk`, `onLoading`, and `useCoreDm` — no rendering-quality or styling knobs.
-- **No reactive styling/camera hooks.** `InstanceStylingProvider`/`useInstanceStyling` (styling driven by React state/re-renders) and `useFocusCamera` (auto-focus-on-selection) are gone, replaced by the imperative `styleByInstance` and `cameraController.focusModel`/`focusInstances` methods. This is not a drop-in API match — code built around the old hooks needs to be rewritten around explicit controller calls, not just re-imported.
-- **No automatic stale-model cleanup.** `useRemoveNonReferencedModels` had no manual equivalent before; now you must track every `Reveal3DResourceHandle` yourself and call `.remove()` when it's no longer needed.
-
-If a task genuinely needs one of these (e.g. "auto-load the model linked to this asset" or "keep the viewer alive across page navigation"), say so explicitly rather than quietly approximating it — either build the missing piece in the app layer, or flag to the user that it may require a newer version of `@cognite/reveal-widget`.
-
 ## Advanced Reference
 
 For the full resource-identifier catalog (CAD, point cloud, 360 images, scenes), instance highlighting, and camera control, read [implementation.md](references/implementation.md).
