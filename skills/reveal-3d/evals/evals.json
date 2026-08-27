@@ -4,19 +4,23 @@
     {
       "id": 1,
       "prompt": "I have a Dune app at apps/my-app. Add a 3D viewer page where I can browse and load CAD models from my CDF project. Add a button on the main page to reach it.",
-      "expected_output": "A working 3D viewer page with the local Reveal feature bundle copied into the app, model browsing (sdk.models3D.list), Vite configured correctly for Reveal with manual util/assert/process package aliases (NOT vite-plugin-node-polyfills), process polyfill in main.tsx, DuneAuthProvider from @cognite/dune as auth provider, and all provider nesting correct.",
+      "expected_output": "A working 3D viewer page using the @cognite/reveal-widget npm package (no copied source bundle), model browsing via sdk.models3D.list(), a controller class wrapping RevealWidgetController driven imperatively via setControllerRef, Vite configured with resolve.dedupe including three and @cognite/reveal, and no leftover process/util/assert polyfill setup.",
       "files": [],
       "assertions": [
         {
-          "text": "@cognite/reveal, @cognite/sdk, @tanstack/react-query, three, process, util, assert, and ajv are in package.json dependencies",
+          "text": "@cognite/reveal-widget, @cognite/reveal, @cognite/sdk, react, and react-dom are in package.json dependencies",
           "type": "content"
         },
         {
-          "text": "All files from skills/reveal-3d/code/reveal are copied into an app-local feature folder such as src/features/reveal-3d",
+          "text": "No app-local copied Reveal source bundle (e.g. src/features/reveal-3d/*.ts provider/hook files) was created",
           "type": "content"
         },
         {
-          "text": "Reveal components and hooks are imported from the app-local feature folder, e.g. @/features/reveal-3d",
+          "text": "RevealWidget, RevealWidgetController, and Reveal3DResourceHandle types are imported from @cognite/reveal-widget",
+          "type": "content"
+        },
+        {
+          "text": "process, util, assert, and ajv are NOT added to package.json dependencies for this integration",
           "type": "content"
         },
         {
@@ -24,131 +28,83 @@
           "type": "content"
         },
         {
-          "text": "vite.config.ts has manual resolve.alias entries for util ('util/'), assert ('assert/'), and process ('process/browser')",
+          "text": "main.tsx does NOT contain a process polyfill (import process from 'process'; window.process = process)",
           "type": "content"
         },
         {
-          "text": "src/dune-fe-auth-shim.ts does NOT exist (no longer needed — the copied Reveal bundle reads sdk from RevealContext directly)",
+          "text": "vite.config.ts resolve.dedupe includes 'three' and '@cognite/reveal'",
           "type": "content"
         },
         {
-          "text": "vite.config.ts resolve.alias does NOT contain a 'dune-fe-auth' entry",
+          "text": "vite.config.ts does NOT contain a resolve.alias entry for util, assert, or process",
           "type": "content"
         },
         {
-          "text": "vite.config.ts has resolve.alias.three pointing to node_modules/three/build/three.module.js",
+          "text": "A controller class wraps RevealWidgetController and is constructed inside the setControllerRef callback passed to RevealWidget",
           "type": "content"
         },
         {
-          "text": "vite.config.ts has worker: { format: 'es' }",
+          "text": "The previous controller instance is disposed (calling .remove() on tracked Reveal3DResourceHandle objects) before a new one is constructed, and when the controller becomes undefined",
           "type": "content"
         },
         {
-          "text": "vite.config.ts has resolve.dedupe including react, react-dom, and @tanstack/react-query",
+          "text": "RevealWidget is not nested inside another provider component from @cognite/reveal-widget",
           "type": "content"
         },
         {
-          "text": "vite.config.ts has optimizeDeps.include with process, util, assert, three, @cognite/reveal, react, react-dom, and @tanstack/react-query",
+          "text": "widgetController.addResource is called with a CadAddOptions object using sourceType: 'classic' and modelId/revisionId fields for the selected model",
           "type": "content"
         },
         {
-          "text": "vite.config.ts does NOT exclude the copied src/features/reveal-3d bundle from optimizeDeps",
+          "text": "The onSelect callback passed to the model browser is wrapped in useCallback (not an inline arrow function)",
           "type": "content"
         },
         {
-          "text": "main.tsx starts with import process from 'process'; window.process = process; before any other imports",
+          "text": "The RevealWidget container div has an explicit height (e.g. height: '70vh' or h-[65vh])",
           "type": "content"
         },
         {
-          "text": "main.tsx uses DuneAuthProvider from @cognite/dune as the auth provider (NOT CDFAuthenticationProvider)",
-          "type": "content"
-        },
-        {
-          "text": "CacheProvider and RevealKeepAlive are rendered at the page/app level, NOT inside a conditionally-rendered component",
-          "type": "content"
-        },
-        {
-          "text": "RevealProvider is rendered conditionally (only when a model is selected), inside the stable RevealKeepAlive tree",
-          "type": "content"
-        },
-        {
-          "text": "The canvas content component (RevealCanvas + Reveal3DResources) contains NO provider components",
-          "type": "content"
-        },
-        {
-          "text": "SDK passed to RevealProvider is memoized with useMemo keyed on sdk.project",
-          "type": "content"
-        },
-        {
-          "text": "resources prop for Reveal3DResources is memoized with useMemo",
-          "type": "content"
-        },
-        {
-          "text": "onModelsLoaded callback is memoized with useCallback",
-          "type": "content"
-        },
-        {
-          "text": "The onLoad prop passed to ModelBrowser is wrapped in useCallback (not an inline arrow function)",
-          "type": "content"
-        },
-        {
-          "text": "The viewer container div has an explicit height (e.g. height: '70vh' or h-[65vh])",
-          "type": "content"
-        },
-        {
-          "text": "The canvas content component is lazy-loaded with React.lazy and wrapped in Suspense",
+          "text": "sdk passed to viewerOptions is memoized with useMemo keyed on sdk.project",
           "type": "content"
         }
       ]
     },
     {
       "id": 2,
-      "prompt": "I have an FDM asset with space cdf_idm and externalId pump_001. Add a 3D viewer to my asset detail page that shows the CAD model linked to this asset. The detail page is at src/AssetDetail.tsx.",
-      "expected_output": "A viewer component using the app-local Reveal feature bundle and useModelsForInstanceQuery to discover linked 3D models, integrated into AssetDetail.tsx with CacheProvider+RevealKeepAlive at the page level and RevealProvider conditionally rendered.",
+      "prompt": "I have an DM asset with space cdf_idm and externalId pump_001. Add a 3D viewer to my asset detail page that highlights this asset once its CAD model is loaded. The detail page is at src/AssetDetail.tsx.",
+      "expected_output": "A viewer using @cognite/reveal-widget's RevealWidget and RevealWidgetController integrated into AssetDetail.tsx, loading the relevant CAD model then calling styleByInstance/focusInstances with a DmsUniqueIdentifier ({ externalId: 'pump_001', space: 'cdf_idm' }) to highlight and focus the asset.",
       "files": [],
       "assertions": [
         {
-          "text": "useModelsForInstanceQuery is imported from the app-local Reveal feature folder, e.g. @/features/reveal-3d",
+          "text": "RevealWidget, RevealWidgetController, and Default3DStyles are imported from @cognite/reveal-widget",
           "type": "content"
         },
         {
-          "text": "A DMInstanceRef with space 'cdf_idm' and externalId 'pump_001' is passed to useModelsForInstanceQuery",
+          "text": "A DmsUniqueIdentifier-shaped object with space 'cdf_idm' and externalId 'pump_001' is passed to styleByInstance and/or focusInstances",
           "type": "content"
         },
         {
-          "text": "CacheProvider and RevealKeepAlive are at the AssetDetail page level (not inside the conditional viewer area)",
+          "text": "styleByInstance is called with Default3DStyles.Highlighted (or an equivalent explicit style) after the relevant model has been loaded via addResource",
           "type": "content"
         },
         {
-          "text": "RevealProvider is conditionally rendered (only when models data exists)",
+          "text": "focusInstances is called to move the camera to the highlighted instance",
           "type": "content"
         },
         {
-          "text": "resources is derived from useModelsForInstanceQuery result and memoized with useMemo",
+          "text": "No app-local copied Reveal source bundle was created; no CacheProvider/RevealProvider/RevealCanvas/Reveal3DResources components from an old bundle are referenced",
           "type": "content"
         },
         {
-          "text": "onModelsLoaded is wrapped in useCallback",
+          "text": "The controller class disposes tracked Reveal3DResourceHandle objects (.remove()) on unmount or when setControllerRef receives undefined",
           "type": "content"
         },
         {
-          "text": "SDK is memoized with useMemo keyed on sdk.project",
+          "text": "The RevealWidget container has an explicit height",
           "type": "content"
         },
         {
-          "text": "The viewer container has an explicit height",
-          "type": "content"
-        },
-        {
-          "text": "main.tsx uses DuneAuthProvider from @cognite/dune as the auth provider (NOT CDFAuthenticationProvider)",
-          "type": "content"
-        },
-        {
-          "text": "vite.config.ts uses manual util/assert/process aliases and does NOT use vite-plugin-node-polyfills",
-          "type": "content"
-        },
-        {
-          "text": "src/dune-fe-auth-shim.ts does NOT exist and vite.config.ts resolve.alias has no 'dune-fe-auth' entry",
+          "text": "vite.config.ts resolve.dedupe includes 'three' and '@cognite/reveal', and no process/util/assert polyfill setup was added",
           "type": "content"
         }
       ]
@@ -156,27 +112,23 @@
     {
       "id": 3,
       "prompt": "Add a full-screen 3D viewer that loads model ID 206509079235820 revision 576781257263693. Put it at a /viewer route.",
-      "expected_output": "A full-screen viewer component using the app-local Reveal feature bundle with direct modelId/revisionId (Pattern B), accessible at /viewer, with correct provider nesting and Vite config.",
+      "expected_output": "A full-screen viewer component using RevealWidget + RevealWidgetController from @cognite/reveal-widget, loading a CadAddOptions resource with sourceType 'classic', modelId 206509079235820, and revisionId 576781257263693, accessible at /viewer.",
       "files": [],
       "assertions": [
         {
-          "text": "Reveal3DResources receives a resources array containing modelId 206509079235820 and revisionId 576781257263693",
+          "text": "widgetController.addResource is called with an object containing type: 'cad', sourceType: 'classic', modelId 206509079235820, and revisionId 576781257263693",
           "type": "content"
         },
         {
-          "text": "The resources array is memoized with useMemo",
+          "text": "The resource is loaded from inside the setControllerRef callback or a controller class method, not recomputed inline on every render",
           "type": "content"
         },
         {
-          "text": "onModelsLoaded is wrapped in useCallback",
+          "text": "cameraController.focusModel is called after the resource is added",
           "type": "content"
         },
         {
-          "text": "CacheProvider and RevealKeepAlive are at the viewer page level, not co-located with RevealProvider in the same conditional block",
-          "type": "content"
-        },
-        {
-          "text": "The viewer container is full-screen (height: 100vh or h-screen or equivalent)",
+          "text": "The RevealWidget container is full-screen (height: 100vh or h-screen or equivalent)",
           "type": "content"
         },
         {
@@ -184,15 +136,11 @@
           "type": "content"
         },
         {
-          "text": "vite.config.ts has worker: { format: 'es' } and uses manual util/assert/process aliases (NOT vite-plugin-node-polyfills)",
+          "text": "No process/util/assert polyfills, vite-plugin-node-polyfills, or copied Reveal source bundle were added",
           "type": "content"
         },
         {
-          "text": "main.tsx uses DuneAuthProvider from @cognite/dune as the auth provider (NOT CDFAuthenticationProvider)",
-          "type": "content"
-        },
-        {
-          "text": "The canvas content is lazy-loaded with React.lazy and Suspense",
+          "text": "vite.config.ts resolve.dedupe includes 'three' and '@cognite/reveal'",
           "type": "content"
         }
       ]
