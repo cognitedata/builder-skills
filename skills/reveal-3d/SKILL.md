@@ -1,19 +1,19 @@
 ---
 name: reveal-3d
-description: "Integrates the @cognite/reveal-widget npm package into Flows apps for an interactive Cognite Reveal 3D CAD/point cloud/360-image viewer. Use when adding 3D viewer, 3D visualization, Reveal, CAD model, RevealWidget, RevealWidgetController, FDM 3D mapping, asset 3D model, model browser, or Cognite 3D content to a Flows application."
+description: "Integrates the @cognite/reveal-widget npm package into Flows apps for an interactive Cognite Reveal 3D Scene/CAD/point cloud/360-image viewer. Use when adding 3D viewer, 3D visualization, Reveal, CAD model, Point cloud model, 360 image collection, Scenes, RevealWidget, RevealWidgetController, DM 3D mapping, asset 3D model, model browser, or Cognite 3D content to a Flows application."
 metadata:
-  argument-hint: "[FDM instance variable name or description, e.g. 'asset' or 'selectedEquipment']"
+  argument-hint: "[DM instance variable name or description, e.g. 'asset' or 'selectedEquipment']"
 ---
 
 # Reveal 3D Viewer
 
 Add a Cognite Reveal 3D viewer to a Flows app using the published `@cognite/reveal-widget` npm package. Renders CAD models, point clouds, 360° image collections, and CDF scenes from CDF, with model browsing or direct model/revision IDs.
 
-FDM instance to visualize: **$ARGUMENTS**
+DM instance to visualize: **$ARGUMENTS**
 
 ## Use This When
 
-The user wants to embed an interactive Cognite Reveal viewer for CDF 3D/CAD content in a Flows app.
+The user wants to embed an interactive Cognite Reveal viewer for CDF 3D content in a Flows app.
 
 Do **not** use this skill for static diagrams, graph visualizations, or unrelated custom Three.js scenes.
 
@@ -23,7 +23,7 @@ Do **not** use the deprecated app-local "copy the bundle" approach — that patt
 
 - The app uses React + TypeScript and is wrapped in `@cognite/dune` auth (Flows auth), which supplies the `CogniteClient` (`sdk`).
 - The CDF project has 3D models, or the user has supplied direct model/revision IDs or a CDM (`externalId`/`space`) model reference.
-- For FDM-linked 3D, the instance/model must be identifiable via a CDM `externalId`/`space` pair or a classic `modelId`/`revisionId`; instance highlighting works once a model is loaded and the instance is contextualized (mapped) to it.
+- For DM-linked 3D, the instance/model must be identifiable via a CDM `externalId`/`space` pair or a classic `modelId`/`revisionId`; instance highlighting works once a model is loaded and the instance is contextualized (mapped) to it.
 
 ## Integration Workflow
 

@@ -71,7 +71,7 @@
     },
     {
       "id": 2,
-      "prompt": "I have an FDM asset with space cdf_idm and externalId pump_001. Add a 3D viewer to my asset detail page that highlights this asset once its CAD model is loaded. The detail page is at src/AssetDetail.tsx.",
+      "prompt": "I have an DM asset with space cdf_idm and externalId pump_001. Add a 3D viewer to my asset detail page that highlights this asset once its CAD model is loaded. The detail page is at src/AssetDetail.tsx.",
       "expected_output": "A viewer using @cognite/reveal-widget's RevealWidget and RevealWidgetController integrated into AssetDetail.tsx, loading the relevant CAD model then calling styleByInstance/focusInstances with a DmsUniqueIdentifier ({ externalId: 'pump_001', space: 'cdf_idm' }) to highlight and focus the asset.",
       "files": [],
       "assertions": [

@@ -293,7 +293,7 @@ async function highlightAsset(
 // highlightAsset(controller, model, { externalId: 'CogniteAsset-1022', space: 'my-space' })
 ```
 
-There is no built-in hook in `@cognite/reveal-widget` (yet) that discovers "the CAD model linked to this FDM instance" — that's a broader Reveal React Components capability not exposed here. If the app needs that discovery step, resolve the model identifier first (e.g. via the app's own FDM query against `CogniteVisualizable.object3D`), then load it with `addResource` and highlight the instance as shown above.
+There is no built-in hook in `@cognite/reveal-widget` (yet) that discovers "the CAD model linked to this DM instance" — that's a broader Reveal React Components capability not exposed here. If the app needs that discovery step, resolve the model identifier first (e.g. via the app's own DM query against `CogniteVisualizable.object3D`), then load it with `addResource` and highlight the instance as shown above.
 
 ---
 
