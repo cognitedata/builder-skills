@@ -48,7 +48,7 @@ export function ViewerHost({ sdk }: { sdk: CogniteClient }) {
   return (
     <div style={{ width: '100%', height: '70vh', position: 'relative' }}>
       <RevealWidget
-        viewerOptions={{ sdk, useCoreDm: true }}
+        viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
         setControllerRef={handleControllerRef}
       />
     </div>
@@ -64,11 +64,18 @@ Reuse this shape across all patterns below — only the resource identifiers and
 
 Discover models via `sdk.models3D.list()`, let the user pick one, then load it with a classic CAD identifier.
 
+This pattern uses `@tanstack/react-query`'s `useInfiniteQuery`/`useQuery`. If the app doesn't
+already have a `QueryClientProvider` mounted somewhere above where these hooks are used, add one —
+these hooks throw without it. Since the app's own code imports directly from
+`@tanstack/react-query` here (not just `@cognite/reveal-widget` re-exporting it internally), add
+it as a direct dependency too, the same as `react`/`react-dom` — despite the general dependency
+guidance above that most of `@cognite/reveal-widget`'s dependencies only need to be transitive.
+
 ```tsx
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { useDune } from '@cognite/dune';
+import { useCogniteSdk } from '@cognite/app-sdk/react';
+import { useCallback, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import type { CogniteClient, Model3D, Revision3D } from '@cognite/sdk';
+import type { Model3D, Revision3D } from '@cognite/sdk';
 import {
   RevealWidget,
   type CadAddOptions,
@@ -104,7 +111,7 @@ class ThreeDViewerController {
 // --- Model discovery hooks ---
 
 function useModels(query?: string) {
-  const { sdk } = useDune();
+  const sdk = useCogniteSdk();
   return useInfiniteQuery({
     queryKey: ['3d-models', query],
     queryFn: ({ pageParam }: { pageParam?: string }) =>
@@ -114,7 +121,6 @@ function useModels(query?: string) {
       }>,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor,
-    enabled: !!sdk,
     select: useCallback(
       (data: any) => ({
         ...data,
@@ -133,7 +139,7 @@ function useModels(query?: string) {
 }
 
 function useBestRevision(modelId?: number) {
-  const { sdk } = useDune();
+  const sdk = useCogniteSdk();
   return useQuery({
     queryKey: ['3d-revisions', modelId],
     queryFn: async () => {
@@ -143,11 +149,14 @@ function useBestRevision(modelId?: number) {
         .autoPagingToArray({ limit: -1 });
       const published = all.filter((r) => r.published);
       const candidates = published.length ? published : all;
+      // reduce() with no initial value throws on an empty array rather than returning
+      // undefined, so a model with zero revisions needs its own explicit check first.
+      if (candidates.length === 0) return null;
       return candidates.reduce((best, cur) =>
         best.createdTime > cur.createdTime ? best : cur
-      ) ?? null;
+      );
     },
-    enabled: !!sdk && !!modelId,
+    enabled: !!modelId,
   });
 }
 
@@ -192,9 +201,11 @@ function ModelRow({
 
 // --- App ---
 
+// Render this inside your app's CogniteSdkProvider tree (see @cognite/app-sdk's own setup docs
+// for connecting to the Fusion host) — that provider already shows its own loadingFallback while
+// connecting, so useCogniteSdk() below always returns a ready client, no isLoading check needed.
 export function ViewerPage() {
-  const { sdk: client, isLoading } = useDune();
-  const sdk = useMemo(() => client, [client.project]);
+  const sdk = useCogniteSdk();
   const viewerRef = useRef<ThreeDViewerController>();
 
   const handleControllerRef = useCallback(
@@ -211,8 +222,6 @@ export function ViewerPage() {
     void viewerRef.current?.loadModel(m.modelId, m.revisionId);
   }, []);
 
-  if (isLoading) return <div>Connecting to CDF…</div>;
-
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <aside style={{ width: 280, overflowY: 'auto' }}>
@@ -220,7 +229,7 @@ export function ViewerPage() {
       </aside>
       <div style={{ flex: 1, position: 'relative' }}>
         <RevealWidget
-          viewerOptions={{ sdk, useCoreDm: true }}
+          viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
           setControllerRef={handleControllerRef}
         />
       </div>
