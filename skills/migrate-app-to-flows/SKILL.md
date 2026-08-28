@@ -119,11 +119,21 @@ Replace any `dune deploy` or `npx @cognite/dune` commands in `package.json`:
 ```json
 {
   "scripts": {
-    "deploy": "npx @cognite/cli@latest apps deploy --interactive",
-    "deploy-preview": "npx @cognite/cli@latest apps deploy --interactive"
+    "deploy": "npx @cognite/cli@latest apps deploy",
+    "deploy-preview": "npx @cognite/cli@latest apps deploy"
   }
 }
 ```
+
+**CLI deploy auth** (pick one):
+
+| Flow | How |
+|------|-----|
+| Local dev (recommended) | `npx @cognite/cli auth login` once, then `npm run deploy` |
+| CI / automation | Set `deployClientId` and `deploySecretName` in `app.json`; export the secret env var |
+| One-off browser (no saved session) | `npx @cognite/cli@latest apps deploy --auth-method browser` |
+
+`--interactive` on apps commands is for **prompts only** (e.g. picking a deployment target when several exist) — not browser login.
 
 Keep all other scripts (`start`, `build`, `test`, etc.) unchanged.
 
@@ -149,7 +159,8 @@ Then tell the user exactly what to do next:
 
 ```
 Next steps:
-1. Run `npm run dev` to start the dev server
-2. Open Fusion and verify the app loads and CDF data appears correctly
-3. When happy, deploy with: npx @cognite/cli@latest apps deploy --interactive
+1. Run `npx @cognite/cli auth login` to persist a session (recommended for local deploy)
+2. Run `npm run dev` to start the dev server
+3. Open Fusion and verify the app loads and CDF data appears correctly
+4. When happy, deploy with: npm run deploy
 ```
