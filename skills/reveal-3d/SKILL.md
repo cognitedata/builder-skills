@@ -24,6 +24,7 @@ Do **not** use the deprecated app-local "copy the bundle" approach — that patt
 - The app uses React + TypeScript and is wrapped in `@cognite/dune` auth (Flows auth), which supplies the `CogniteClient` (`sdk`).
 - The CDF project has 3D models, or the user has supplied direct model/revision IDs or a CDM (`externalId`/`space`) model reference.
 - For DM-linked 3D, the instance/model must be identifiable via a CDM `externalId`/`space` pair or a classic `modelId`/`revisionId`; instance highlighting works once a model is loaded and the instance is contextualized (mapped) to it.
+- Know whether the target project actually uses the **Core Data Model** — `viewerOptions.useCoreDm` must match reality, not default to `true`. Getting this wrong causes confusing 401s and silent 360-collection failures rather than a clear error. See [csp-and-fixes.md](references/csp-and-fixes.md).
 
 ## Integration Workflow
 
@@ -32,11 +33,12 @@ Follow these steps in order. Adapt paths to the target app's conventions instead
 1. **Inspect the target app.** Read `package.json`, `vite.config.ts`, `src/main.tsx`, and the app's folder/alias conventions.
 2. **Install the package and peers** with the app's package manager. See [Dependencies](#dependencies). Reuse existing pinned React and SDK versions where they satisfy the peer ranges.
 3. **Configure Vite.** Read [vite-config.md](references/vite-config.md) and add the `three`/`@cognite/reveal` dedupe entry. No process/util/assert polyfills are needed — the package ships browser-ready.
-4. **Add a controller class** that wraps `RevealWidgetController` and drives it imperatively (load resources, style/highlight instances, control the camera) from your own event handlers — not from `useEffect` reacting to prop changes. See [implementation.md](references/implementation.md).
-5. **Mount `RevealWidget`** with `viewerOptions={{ sdk, useCoreDm: true }}` and `setControllerRef` inside a container with an explicit height. `RevealWidget` manages its own internal Reveal context — do not wrap it in another provider from this package.
-6. **Choose the resource pattern.** Use the model-browser pattern (`sdk.models3D.list()` + classic `modelId`/`revisionId`) as the default unless the user has already supplied a CDM `externalId`/`space` model reference. Full examples in [implementation.md](references/implementation.md).
-7. **Clean up.** Call `.remove()` on any `Reveal3DResourceHandle` returned by `addResource` when it's no longer needed (selection change, unmount).
-8. **Run typecheck and build** (`tsc --noEmit`, `pnpm build`, etc.) and fix any dependency/peer-version issues.
+4. **Configure `manifest.json`'s CSP allowances** for whatever the scene/model actually contains (scene ground-plane/skybox textures, 360° image collections). Read [csp-and-fixes.md](references/csp-and-fixes.md) — it also covers the app-side fix point clouds need (`manifest.json` can't grant it directly) and a StrictMode gotcha, so read it even if the app has no scenes/360 content yet.
+5. **Add a controller class** that wraps `RevealWidgetController` and drives it imperatively (load resources, style/highlight instances, control the camera) from your own event handlers — not from `useEffect` reacting to prop changes. See [implementation.md](references/implementation.md).
+6. **Mount `RevealWidget`** with `viewerOptions={{ sdk, useCoreDm }}` (set `useCoreDm` per the project, not hardcoded — see [csp-and-fixes.md](references/csp-and-fixes.md)) and `setControllerRef` inside a container with an explicit height. `RevealWidget` manages its own internal Reveal context — do not wrap it in another provider from this package.
+7. **Choose the resource pattern.** Use the model-browser pattern (`sdk.models3D.list()` + classic `modelId`/`revisionId`) as the default unless the user has already supplied a CDM `externalId`/`space` model reference. Full examples in [implementation.md](references/implementation.md).
+8. **Clean up.** Call `.remove()` on any `Reveal3DResourceHandle` returned by `addResource` when it's no longer needed (selection change, unmount).
+9. **Run typecheck and build** (`tsc --noEmit`, `pnpm build`, etc.) and fix any dependency/peer-version issues.
 
 ## Minimal Example
 
@@ -90,7 +92,7 @@ export function ViewerPage({
   return (
     <div style={{ width: '100%', height: '70vh', position: 'relative' }}>
       <RevealWidget
-        viewerOptions={{ sdk, useCoreDm: true }}
+        viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
         setControllerRef={handleWidgetController}
       />
     </div>
@@ -130,12 +132,17 @@ Do **not** copy any source bundle into the app and do **not** install `process`,
 - Instance highlighting only affects instances that are already contextualized (mapped) to a loaded model; load the model first, then call `styleByInstance`/`focusInstances`.
 - `RevealWidget`'s container must have an explicit height — it fills its parent.
 - Lazy-load canvas-heavy viewer content with `React.lazy` + `Suspense` when adding a route/page.
+- `useCoreDm` must reflect the actual project, not default to `true` — see [csp-and-fixes.md](references/csp-and-fixes.md).
+- Do not wrap the app in `React.StrictMode` — its dev-only double-mount tears down and recreates `RevealWidget`'s internal viewer while async loads are in flight, producing errors (e.g. `Invalid buffer: pointSize=17, byteLength=0`) for content that loads fine in production. See [csp-and-fixes.md](references/csp-and-fixes.md).
+- `manifest.json` can't grant `data:` under any CSP directive, so point cloud content (which Reveal loads via an inline `data:` WASM URI in a Worker — a normal pattern outside Flows' locked-down CSP) needs an app-side fix instead: redirect that URI to a same-origin static asset before the worker compiles. This is the recommended, expected way to enable point cloud support in a Flows app, not a fallback — see [csp-and-fixes.md](references/csp-and-fixes.md) for the full implementation.
 
 ## Advanced Reference
 
 For the full resource-identifier catalog (CAD, point cloud, 360 images, scenes), instance highlighting, and camera control, read [implementation.md](references/implementation.md).
 
 For Vite/dedupe configuration, read [vite-config.md](references/vite-config.md).
+
+For CSP/`manifest.json` allowances, the `useCoreDm`/StrictMode gotchas, the point-cloud app-side fix, and 360-collection troubleshooting, read [csp-and-fixes.md](references/csp-and-fixes.md).
 
 ## Verification Checklist
 
@@ -144,6 +151,9 @@ For Vite/dedupe configuration, read [vite-config.md](references/vite-config.md).
 - [ ] `vite.config.ts` includes `resolve.dedupe: ['three', '@cognite/reveal']` (plus the app's existing dedupe entries).
 - [ ] No `process`/`util`/`assert` polyfills or `vite-plugin-node-polyfills` were added for this package.
 - [ ] `RevealWidget` is mounted once, is not nested in another Reveal provider, and its container has an explicit height.
+- [ ] `viewerOptions.useCoreDm` matches whether the target project is actually Core-Data-Model-based.
+- [ ] The app does not wrap itself in `React.StrictMode`.
+- [ ] `manifest.json` grants `img-src` for `https://*.cognitedata.com` and `connect-src` for the project's blob-storage host if the app loads scenes with ground planes/skybox or 360° image collections. If the app needs point cloud support, the same-origin `Blob`-patch fix has been applied and verified.
 - [ ] A controller class wraps `RevealWidgetController`, obtained via `setControllerRef`, and drives `addResource`/`styleByInstance`/`focusInstances`/`cameraController` imperatively.
 - [ ] The controller class is disposed (and tracked resource handles `.remove()`d) both when a new controller is set and on unmount (`widgetController === undefined`).
 - [ ] Resource identifiers use the correct `type`/`sourceType` shape for the model being loaded.

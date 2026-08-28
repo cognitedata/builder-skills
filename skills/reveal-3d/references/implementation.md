@@ -48,7 +48,7 @@ export function ViewerHost({ sdk }: { sdk: CogniteClient }) {
   return (
     <div style={{ width: '100%', height: '70vh', position: 'relative' }}>
       <RevealWidget
-        viewerOptions={{ sdk, useCoreDm: true }}
+        viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
         setControllerRef={handleControllerRef}
       />
     </div>
@@ -220,7 +220,7 @@ export function ViewerPage() {
       </aside>
       <div style={{ flex: 1, position: 'relative' }}>
         <RevealWidget
-          viewerOptions={{ sdk, useCoreDm: true }}
+          viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
           setControllerRef={handleControllerRef}
         />
       </div>
