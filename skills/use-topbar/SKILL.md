@@ -1,13 +1,11 @@
 ---
 name: use-topbar
 description: >-
-  Wires the Aura Topbar (@aura/topbar) into Flows/Fusion apps as the single top
-  navigation bar — breadcrumbs, optional center Tabs or Segmented control, right
-  utility strip (Share, notifications, theme menu, Atlas, user Avatar), and
-  light/dark theme switching. Atlas opens the EOS / Fusion sidebar — do not
-  embed a custom chat; wire context with integrate-fusion-agent. Use when adding
-  a topbar, app header, navigation bar, breadcrumbs, theme switcher, or Atlas
-  launcher to a Flows or Fusion app.
+  Wires the Aura Topbar (@aura/topbar) into Flows/Fusion apps: breadcrumbs,
+  optional Tabs/Segmented, right strip (Share, notifications, theme, Atlas,
+  user Avatar), light/dark. Atlas opens the EOS sidebar — wire context with
+  integrate-fusion-agent; do not embed a chat UI. Use when adding a topbar,
+  header, breadcrumbs, theme switcher, or Atlas launcher.
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash
 ---
 
@@ -87,6 +85,6 @@ Verify before finishing (see [RULES.md §12](RULES.md) for the full enforcement 
 - [ ] Inline metadata (if present) is a plain string, left-aligned after the breadcrumb — not centered
 - [ ] Middle: **Tabs** or **Segmented control** at **small** if present; no sidebar; no primary CTA in the Topbar
 - [ ] **Primary / app-specific actions** live in the content area **below** the Topbar
-- [ ] Right strip order when used: **Share → Notifications → Theme → Atlas → user Avatar**; Share/Notifications/Theme as **ghost small**, Atlas as **secondary small** with leading icon + "Atlas". Atlas opens the **EOS / Fusion sidebar** — do not build a custom chat UI; wire context/actions with **`integrate-fusion-agent`**. Default Atlas **on** when the app has any AI/agent intent.
+- [ ] Right strip order when used: **Share → Notifications → Theme → Atlas → user Avatar**; Share/Notifications/Theme **ghost small**; Atlas **secondary small** with leading icon + "Atlas" (opens EOS sidebar; default on if the app has AI — `integrate-fusion-agent`)
 - [ ] Theme: **sun** in light mode, **moon** in dark mode; Menu with Light/Dark rows + checkmark on active; wired to `document.documentElement`
 - [ ] `tailwind.config` has `darkMode: 'class'`

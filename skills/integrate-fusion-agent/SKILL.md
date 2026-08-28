@@ -1,63 +1,49 @@
 ---
 name: integrate-fusion-agent
 description: >-
-  MUST be used whenever adding AI, an agent, a chat UI, Atlas, an assistant,
-  or any LLM-backed feature to a Flows/Fusion app. Default to the Atlas / EOS
-  sidebar (Fusion PAIA panel) via @cognite/app-sdk. Do NOT embed a custom chat
-  UI, vendor atlas-agent, wire useAtlasChat, or loop chat completions over
-  query results. Triggers: atlas, atlas chat, EOS sidebar, EOS, agent chat,
-  chat UI, chat interface, chat component, assistant, PAIA, fusion agent,
-  sendAgentMessage, sendAgentLayoutMode, registerAgentServer, connectToHostApp,
-  agent panel, agent sidebar, useAtlasChat, chat completions, LLM. Use
-  integrate-atlas-chat only when the user explicitly requires an in-app chat
-  after confirming the platform sidebar cannot work.
+  MUST be used when adding AI, Atlas, an agent, a chat UI, or LLM features to a
+  Flows/Fusion app. Use the Atlas/EOS sidebar via @cognite/app-sdk — not
+  useAtlasChat, vendored atlas-agent, or per-row chat completions. Triggers:
+  atlas, EOS, PAIA, agent chat, chat UI, sendAgentMessage, sendAgentLayoutMode,
+  registerAgentServer, connectToHostApp, useAtlasChat, LLM. In-app chat:
+  integrate-atlas-chat only if the host sidebar cannot work.
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # Integrate Atlas / EOS Sidebar
 
-The default — and almost always the only — way to add AI to a Flows/Fusion app is the **platform Atlas sidebar** (EOS / Fusion PAIA panel) via `@cognite/app-sdk`.
+Default AI path: the platform Atlas sidebar (EOS / Fusion PAIA) via `@cognite/app-sdk`. Do not embed `useAtlasChat`, vendor `atlas-agent`, or call third-party LLM APIs.
 
-Do **not** embed a custom chat UI (`useAtlasChat`, vendored `atlas-agent`, a third-party chat widget, or OpenAI/Anthropic completions in the app). Those duplicate the shell, split conversation history from Atlas, and make it easy to fan out unbounded LLM calls against CDF data.
+`integrate-atlas-chat` only if the user explicitly requires in-app chat **and** the app is not hosted in Fusion/EOS.
 
-`integrate-atlas-chat` is an exception path only: the user must explicitly require an in-app chat **and** confirm the EOS sidebar cannot work (typically: the app is not hosted in Fusion/EOS). If that is not both true, implement this skill instead.
+Implement only what is needed:
 
-There are three independent capabilities — implement only the ones needed:
-
-1. **Open the Atlas sidebar** — Topbar Atlas button (preferred) plus `sendAgentLayoutMode` for in-app triggers
-2. **Send the agent a message** — inject context into the platform chat (e.g. on item click)
-3. **Register an agent server** — expose app state (resources) and actions the agent can call
+1. **Open** — Topbar Atlas button; `sendAgentLayoutMode` for in-app triggers
+2. **Message** — `sendAgentMessage` to inject context
+3. **Server** — resources (app state) and actions (tools)
 
 ---
 
-## Step 0 — Understand the app
+## Step 0 — Read the app
 
-Before writing any code, read:
+- `package.json` — package manager, `@cognite/app-sdk`
+- `src/App.tsx` — structure, existing SDK usage
 
-- `package.json` — detect package manager and whether `@cognite/app-sdk` is already installed
-- `src/App.tsx` (or main entry) — understand current structure, existing SDK usage
-
-Ask the user which of the three capabilities they need if it's not clear from context. Do not offer an in-app chat UI as an option unless they already insisted on the exception path.
+Ask which of the three capabilities are needed. Do not offer an in-app chat unless they already insisted.
 
 ---
 
-## Step 1 — Install the SDK
+## Step 1 — Install
 
-If `@cognite/app-sdk` is not already in `package.json`, install it:
-
-```shell
-pnpm add @cognite/app-sdk     # or npm/yarn depending on the app
-```
-
-Minimum required version: `0.3.1`
+`pnpm add @cognite/app-sdk` (or npm/yarn). Minimum `0.3.1`.
 
 ---
 
-## Step 2 — Connect to the host app
+## Step 2 — Connect to the host
 
-All capabilities require a `HostAppAPI` instance. Obtain it once on mount and store it in React state or context. Always catch the rejection — the SDK throws when running outside Fusion (e.g. standalone `vite dev`).
+`connectToHostApp` rejects outside Fusion (standalone `vite dev`). Catch that; hide agent triggers when `api` is null.
 
-**Pattern for React apps:**
+Comlink proxies are callable — `setApi(proxy)` makes React treat the proxy as an updater and stores a Promise. Always `setApi(() => resolvedApi)`.
 
 ```typescript
 // src/hooks/useHostApp.ts
@@ -69,89 +55,60 @@ export function useHostApp(): HostAppAPI | null {
 
   useEffect(() => {
     connectToHostApp({ applicationName: 'my-app' })
-      .then(({ api: resolvedApi }) => {
-        // IMPORTANT: use the updater form here. Comlink proxies are callable
-        // objects, so setApi(proxy) causes React to invoke the proxy as a
-        // state-updater function — storing a Promise instead of the proxy.
-        // setApi(() => proxy) returns the proxy as the new state value.
-        setApi(() => resolvedApi);
-      })
-      .catch(() => {
-        // Running outside Fusion — agent features disabled, no-op
-      });
+      .then(({ api: resolvedApi }) => setApi(() => resolvedApi))
+      .catch(() => { /* outside Fusion — no-op */ });
   }, []);
 
   return api;
 }
 ```
 
-Call `useHostApp()` at the root of your app and pass `api` down (or put it in context). When `api` is `null`, all agent UI triggers should be hidden or disabled — not shown as broken.
+Call at the root; pass `api` down or via context. `typeof proxy.method === 'function'` is always true — do not feature-detect with `typeof`; use try/catch.
 
 ---
 
-## Step 3 — Opening the Atlas sidebar
+## Step 3 — Open the sidebar
 
-The **primary** open affordance is the Aura Topbar **Atlas** button (`systemActions.atlas.visible: true`). Follow `use-topbar` — do not add a second "Open Assistant" / "Chat" control in the app chrome.
+Primary launcher: Aura Topbar Atlas (`systemActions.atlas.visible: true`, see `use-topbar`). No second "Open Assistant" control.
 
-Use `api.sendAgentLayoutMode` for **in-app contextual triggers** (e.g. "Analyse this item"), not as a duplicate launcher.
+`sendAgentLayoutMode` is for contextual triggers only (`sidebar` | `fullscreen` | `closed`):
 
 ```typescript
-import { type AgentLayoutPayload } from '@cognite/app-sdk';
-
-// Open as sidebar (most common)
 await api.sendAgentLayoutMode({ mode: 'sidebar' });
-
-// Other modes
-await api.sendAgentLayoutMode({ mode: 'fullscreen' });
-await api.sendAgentLayoutMode({ mode: 'closed' });
 ```
 
-Hide or disable in-app triggers when `api` is null — agent features are unavailable outside Fusion. The Topbar Atlas button is also a no-op outside the host.
-
 ---
 
-## Step 4 — Sending the agent a message
+## Step 4 — Send a message
 
-Use `sendAgentMessage` on contextual triggers (e.g. "Analyse this item" button). Always pair it with `sendAgentLayoutMode` so the panel is visible.
+Pair with `sendAgentLayoutMode`. `newSession: true` for a new task from an item; omit to continue the thread. Put names/IDs/state in the message — one sidebar turn, not N completions over query rows.
 
 ```typescript
-// Open sidebar then inject context
 await api.sendAgentLayoutMode({ mode: 'sidebar' });
 await api.sendAgentMessage({
   message: `Analyse the schedule for "${itemName}" and suggest how to reduce total duration.`,
-  newSession: true,   // clears previous conversation — appropriate for contextual entry points
+  newSession: true,
 });
 ```
 
-Use `newSession: true` when the user is starting a new task from a specific item. Omit it when you want to continue an existing conversation.
-
-The message text should include relevant context the agent can act on immediately — item names, IDs, current state summary. This is the alternative to looping chat completions over query rows: **one** sidebar message (or a resource the agent can read), not N LLM calls.
-
 ---
 
-## Step 5 — Registering an agent server
+## Step 5 — Agent server
 
-An agent server exposes **resources** (read-only app state the agent can read) and **actions** (tools the agent can invoke). Register once on mount, unregister on unmount.
-
-### Recommended file structure
-
-Separate concerns so each piece is independently testable:
+Register on mount, unregister on unmount. Factories take services as args so they can be unit-tested without React:
 
 ```
 src/features/agent/
-  agentActions.ts     — pure factory: (deps) => Action[]
-  agentResources.ts   — pure factory: (deps) => Resource[]
-  useAgentServer.ts   — useEffect lifecycle hook; calls the factories and registers
+  agentActions.ts     — (deps) => Action[]
+  agentResources.ts   — (deps) => Resource[]
+  useAgentServer.ts   — register / unregister
 ```
 
-### Resources
-
-Resources are the agent's window into app state. Write `description` as you would a function docstring — the agent reads it to decide when to fetch the resource.
+Resource `read()` returns `{ type: 'json', data }` (preferred) or `{ type: 'text', text }`. Write `description` like a docstring.
 
 ```typescript
 // src/features/agent/agentResources.ts
 import { createAgentResource } from '@cognite/app-sdk';
-import type { StorageService } from '../storage/StorageService';
 
 export function buildAgentResources(storage: StorageService) {
   return [
@@ -159,35 +116,27 @@ export function buildAgentResources(storage: StorageService) {
       uri: 'my-app://current-state',
       name: 'Current application state',
       description:
-        'The current list of items visible in the app, their statuses, and any active filters. Read this before answering questions about what the user is looking at.',
+        'Items currently visible, their statuses, and active filters. Read before answering questions about what the user is looking at.',
       async read() {
-        const data = storage.getAll();
-        return [{ type: 'json', data }];
+        return [{ type: 'json', data: storage.getAll() }];
       },
     }),
   ];
 }
 ```
 
-Each resource's `read()` returns an array of content parts:
-- `{ type: 'json', data: unknown }` — structured data (preferred; agent reasons over it directly)
-- `{ type: 'text', text: string }` — free-form text
-
-### Actions
-
-Actions are tools the agent can invoke. Use `snake_case` names and Zod for parameter schemas. The `.describe()` on each field is the agent's documentation.
+Actions: `snake_case` names, Zod params, `.describe()` on every field. The agent does **not** confirm before calling — mutating actions must say so in `description` and require prior user approval.
 
 ```typescript
 // src/features/agent/agentActions.ts
 import { createAgentAction } from '@cognite/app-sdk';
 import { z } from 'zod';
-import type { DataService } from '../data/DataService';
 
 export function buildAgentActions(dataService: DataService) {
   return [
     createAgentAction({
       name: 'get_item_details',
-      description: 'Retrieve full details for a specific item by ID. Returns all fields including history.',
+      description: 'Full details for an item by ID, including history.',
       parameters: z.object({
         item_id: z.string().describe('The ID of the item to retrieve'),
       }),
@@ -200,13 +149,11 @@ export function buildAgentActions(dataService: DataService) {
 }
 ```
 
-**Mutating actions:** The agent does NOT ask the user for confirmation before calling actions — so use caution with actions that write data. Be explicit in the `description` that the action is destructive, and require the user to have approved before the agent calls it.
-
 ```typescript
 createAgentAction({
   name: 'update_item_status',
   description:
-    'Update the status of an item. Call this ONLY when the user has explicitly approved the change. The UI updates immediately.',
+    'Update item status. Call ONLY when the user has explicitly approved the change.',
   parameters: z.object({
     item_id: z.string().describe('The item to update'),
     status: z.enum(['active', 'closed', 'pending']).describe('The new status'),
@@ -217,8 +164,6 @@ createAgentAction({
   },
 })
 ```
-
-### Lifecycle hook
 
 ```typescript
 // src/features/agent/useAgentServer.ts
@@ -235,17 +180,14 @@ export function useAgentServer(api: HostAppAPI | null): void {
 
   useEffect(() => {
     if (!api) return;
-
     const server = createAgentServer({
-      uri: 'my-app',   // namespaced by Fusion with instance ID — no need to be globally unique
+      uri: 'my-app', // Fusion namespaces with instance ID
       actions: buildAgentActions(dataService),
       resources: buildAgentResources(storage),
     });
-
     void registerAgentServer(api, server).catch((err: unknown) => {
       console.warn('[agent] registerAgentServer failed:', err);
     });
-
     return () => {
       void api.unregisterAgentServer('my-app').catch((err: unknown) => {
         console.warn('[agent] unregisterAgentServer failed:', err);
@@ -255,23 +197,17 @@ export function useAgentServer(api: HostAppAPI | null): void {
 }
 ```
 
-Call `useAgentServer(api)` near the root of your component tree, after `api` is available.
-
 ---
 
-## Step 6 — Wire it all together
-
-Call `useHostApp()` at the root, pass `api` to `useAgentServer`, and thread it down to any UI triggers:
+## Step 6 — Wire together
 
 ```tsx
-// src/App.tsx
 function App() {
   const api = useHostApp();
-  useAgentServer(api);   // registers resources + actions when api is ready
+  useAgentServer(api);
 
   return (
     <AppLayout>
-      {/* Topbar Atlas button is the launcher — see use-topbar */}
       <MainContent onAnalyseItem={async (item) => {
         if (!api) return;
         await api.sendAgentLayoutMode({ mode: 'sidebar' });
@@ -285,28 +221,12 @@ function App() {
 }
 ```
 
----
-
-## Dev vs. production
-
-| Environment | `connectToHostApp` | Effect |
-|---|---|---|
-| Inside Fusion | Resolves with `{ api }` | All features work |
-| Standalone `vite dev` | Rejects | Agent features silently disabled |
-
-This is handled by the `useHostApp` hook above — no extra conditionals needed elsewhere.
-
----
-
-## Testing
-
-Because `buildAgentActions` and `buildAgentResources` are pure factories that accept services as arguments, test them directly without mounting React:
+Test factories directly:
 
 ```typescript
-// agentActions.test.ts
-const mockDataService = { getItem: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }) };
-const [getItemAction] = buildAgentActions(mockDataService);
-
+const [getItemAction] = buildAgentActions({
+  getItem: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }),
+});
 const result = await getItemAction.handler({ item_id: '1' });
 expect(result.content[0].data).toEqual({ id: '1', name: 'Test' });
 ```
@@ -315,86 +235,27 @@ expect(result.content[0].data).toEqual({ id: '1', name: 'Test' });
 
 ## Hard gate — LLM calls over query results
 
-Never fan out chat completions (Atlas `ai/internal/agents/chat`, OpenAI/Anthropic, or similar) across DMS/SDK result rows. One user action that maps an LLM call over a query can blow the project's AI budget.
+Do not map chat completions (Atlas `agents/chat`, OpenAI/Anthropic, `useAtlasChat().send`) over DMS/SDK rows. Prefer one `sendAgentMessage` or a resource the sidebar agent can read.
 
-**Do this instead:** put the data in an agent **resource**, or send **one** `sendAgentMessage` with a short summary and let the user continue in the Atlas sidebar.
-
-If a product requirement still needs per-item completions (ask first; default is no):
+If per-item completions are an explicit product requirement (default: no):
 
 | Rule | Limit |
 | --- | --- |
-| Default budget | **5** completions per user-initiated action |
-| Absolute ceiling | **50** — never generate code that can exceed this |
-| Cache | Key by `space:externalId:lastUpdatedTime` (or equivalent). Cache hits do not spend budget |
-| Batch | Prefer **one** prompt covering N items over N separate calls |
-| UX | Tell the user when the cap truncated the set ("summarized 5 of 200") |
+| Default | **5** completions per user-initiated action |
+| Ceiling | **50** — never generate code that can exceed this |
+| Cache | `space:externalId:lastUpdatedTime`; hits do not spend budget |
+| Batch | One prompt covering N items, not N calls |
 | Trigger | User-initiated only — never on render, poll, or an unbounded list |
+| UX | Say when the cap truncated the set |
 
-```typescript
-const MAX_LLM_CALLS_PER_ACTION = 5; // raise only with explicit product need; never above 50
-const ABSOLUTE_CEILING = 50;
-const cache = new Map<string, string>();
-
-async function enrichWithLlm<T extends { space: string; externalId: string; lastUpdatedTime?: string | number }>(
-  items: T[],
-  complete: (item: T) => Promise<string>,
-): Promise<string[]> {
-  const budget = Math.min(MAX_LLM_CALLS_PER_ACTION, ABSOLUTE_CEILING);
-  const out: string[] = [];
-  let spent = 0;
-  for (const item of items) {
-    const key = `${item.space}:${item.externalId}:${item.lastUpdatedTime ?? ''}`;
-    const cached = cache.get(key);
-    if (cached !== undefined) {
-      out.push(cached);
-      continue;
-    }
-    if (spent >= budget) break;
-    const text = await complete(item);
-    cache.set(key, text);
-    out.push(text);
-    spent += 1;
-  }
-  return out;
-}
-```
-
-Forbidden: `items.map((row) => chat.completions.create(...))`, `Promise.all` of completions over a query page, or calling Atlas chat once per instance from `instances.list` / `instances.query`.
-
----
-
-## Known pitfalls
-
-### Embedding a custom chat UI
-
-Do not vendor `atlas-agent` or wire `useAtlasChat` because "the app needs a chat". That is the Atlas / EOS sidebar. Custom in-app chat is `integrate-atlas-chat` and only after the user confirms the host sidebar cannot work.
-
-### `setApi(resolvedApi)` stores a Promise, not the proxy
-
-Comlink proxies are callable objects. React's `useState` setter, when given a function, calls it as `fn(prevState)` to compute the new state. Because a Comlink proxy responds to function calls (forwarding them to the remote), `setApi(proxy)` causes React to invoke the proxy, and the resulting Promise becomes the state value.
-
-**Symptom:** `api` appears non-null (a Promise is truthy), but calling `api.sendAgentLayoutMode(...)` or checking `typeof api.sendAgentLayoutMode` returns nonsense.
-
-**Fix:** Always use the updater form: `setApi(() => resolvedApi)`.
-
-### `typeof proxy.method === 'function'` is always `true`
-
-Comlink Proxy objects return `'function'` for any property access via `typeof`. This means you cannot use `typeof` guards to detect whether a method is actually supported by the host. Use `try/catch` or `.catch()` on the call instead.
+Forbidden: `items.map((row) => complete(row))`, `Promise.all` of completions over a query page.
 
 ---
 
 ## Checklist
 
-- [ ] Chose Atlas / EOS sidebar — no in-app `useAtlasChat`, vendored `atlas-agent`, or third-party chat widget
-- [ ] Topbar Atlas button is the launcher (`use-topbar`); no duplicate "Open Assistant" chrome
-- [ ] `@cognite/app-sdk@0.3.1+` installed
-- [ ] `useHostApp` hook uses `setApi(() => resolvedApi)` — NOT `setApi(resolvedApi)`
-- [ ] `useHostApp` hook catches rejection (outside Fusion), stores `api` in state
-- [ ] In-app agent triggers only render when `api` is not null
-- [ ] `useAgentServer` registered on mount, unregistered on unmount
-- [ ] `registerAgentServer` and `unregisterAgentServer` calls have `.catch()` handlers
-- [ ] Resource `description` fields explain what data is returned and when to read it
-- [ ] Action `name` fields are `snake_case`
-- [ ] Mutating actions warn in their `description` that confirmation is required
-- [ ] Services injected into action/resource factories (not imported directly) — enables unit testing
-- [ ] No unbounded LLM / chat-completion loops over DMS results; if any completions exist they are capped (default 5, max 50) and cached
+- [ ] Topbar Atlas launcher (`use-topbar`); no in-app chat widget
+- [ ] `@cognite/app-sdk@0.3.1+`; `setApi(() => resolvedApi)`; catch outside-Fusion rejection
+- [ ] Triggers hidden when `api` is null; server registered/unregistered with `.catch()`
+- [ ] Resource descriptions say what/when; action names `snake_case`; mutating actions require prior approval
+- [ ] Factories take services as args; LLM-over-rows capped (5 / max 50) and cached if present

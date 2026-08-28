@@ -140,12 +140,10 @@ Read the auth setup (likely `src/contexts/`, `src/hooks/`, or `setup-flows-auth`
 - The CDF client must be initialized with short-lived OIDC tokens, not a static API key.
 - User role/capability checks must happen server-side (CDF ACLs) — do not rely solely on hiding UI elements.
 
-Check the Atlas / agent integration:
-- Prefer the Atlas / EOS sidebar (`integrate-fusion-agent`). An in-app `useAtlasChat` UI is an exception path only.
-- The `agentExternalId` must not be constructed from user-supplied input.
-- Tool / action `execute` / `handler` functions must not trust `args` blindly — validate or guard before using values in CDF queries.
-- Do not send CDF data to third-party LLM APIs (OpenAI, Anthropic, etc.). Use Atlas in the host sidebar.
-- Do not fan out chat completions over query results (see `integrate-fusion-agent` hard gate: default 5, max 50, cached).
+Check Atlas / agent:
+- Prefer EOS sidebar (`integrate-fusion-agent`); in-app `useAtlasChat` is exception-only
+- `agentExternalId` not from user input; validate tool/action args before CDF queries
+- No third-party LLM APIs with CDF data; no uncapped completions over query results (5 / max 50, cached)
 
 ### How to fix
 

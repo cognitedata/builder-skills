@@ -1,18 +1,14 @@
 ---
 name: integrate-todo-list
-description: "MUST be used whenever adding a task/todo list feature to a Flows app that already has an approved in-app Atlas chat (exception path). Prefer the Atlas / EOS sidebar (integrate-fusion-agent) for new AI features. Do NOT manually create todo state management or tool definitions — this skill handles the full module and wiring. Prerequisite: integrate-atlas-chat exception path. Triggers: todo list, task list, task tracking, TodoWrite, todo panel, task panel, progress tracking, add todos, add tasks — only when an in-app useAtlasChat UI already exists."
+description: "TodoWrite panel for an already-approved in-app useAtlasChat UI. New AI features use integrate-fusion-agent. Triggers: TodoWrite, todo panel — only when useAtlasChat already exists."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # Integrate Todo List
 
-Add a structured task-tracking feature to this Flows app. The agent will use a `TodoWrite` tool
-to create and update a task list as it works through multi-step queries, giving the user real-time
-visibility into what the agent is doing and why.
+Add a `TodoWrite` tool and panel so the in-app Atlas agent can show task progress.
 
-This skill is for the **in-app Atlas chat exception path** only. New AI features should use the Atlas / EOS sidebar (`integrate-fusion-agent`).
-
-**Prerequisite:** **`integrate-atlas-chat`** must already be complete — `useAtlasChat` must be wired (typically from `./atlas-agent/react`), `src/atlas-agent/` must contain the vendored atlas-agent sources, and `@sinclair/typebox` must be installed per that skill.
+Skip if the app uses the Atlas / EOS sidebar (`integrate-fusion-agent`). Prerequisite: `useAtlasChat` + `src/atlas-agent/` + `@sinclair/typebox` from `integrate-atlas-chat`.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: performance
-description: "MUST be used whenever fixing performance issues in a Flows app. This skill finds AND fixes performance problems — re-renders, inefficient queries, missing pagination, unbounded fetches, unbounded LLM / chat completions over query results, large bundles, and memory leaks. It does not just report them. Always measure before and after. Triggers: performance, slow, laggy, optimize, re-render, bundle size, load time, CDF query, large list, memory leak, debounce, virtualize, lazy load, code split, chat completions, LLM cost."
+description: "MUST be used when fixing Flows app performance — re-renders, query patterns, pagination, unbounded fetches, LLM-over-query-results, bundles, memory leaks. Measure before and after. Triggers: performance, slow, laggy, optimize, re-render, bundle size, CDF query, virtualize, chat completions, LLM cost."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[file, component, or area to optimize — e.g. 'src/components/AssetTable.tsx']"
@@ -123,21 +123,13 @@ const result = await client.instances.query({
 
 For deeper rationale on search vs relational paths, cardinality, and materialization tradeoffs, consult the `semantic-knowledge/` directory if available in the workspace.
 
-### Hard gate — LLM / chat completions over query results
-
-Never fan out chat completions across DMS/SDK result rows. Mapping an LLM call over `instances.list` / `query` / `search` hits explodes project AI cost.
+### Hard gate — LLM over query results
 
 ```bash
 grep -rn --include="*.ts" --include="*.tsx" -E "chat\.completions|agents/chat|useAtlasChat|openai|anthropic" src/
 ```
 
-**Fix:** move the work into one Atlas / EOS sidebar turn (`integrate-fusion-agent`: `sendAgentMessage` or an agent resource). Do not embed a custom chat UI for this.
-
-If per-item completions remain an explicit product requirement:
-
-- Default **5** completions per user-initiated action; absolute ceiling **50**
-- Cache by `space:externalId:lastUpdatedTime`; cache hits do not spend budget
-- Batch into one prompt when possible; never fire on render, poll, or an unbounded list
+Do not map completions over DMS rows. Fix: one `sendAgentMessage` or agent resource (`integrate-fusion-agent`). If per-item completions remain: **5** / ceiling **50**, cache by `space:externalId:lastUpdatedTime`, user-initiated only.
 
 ---
 

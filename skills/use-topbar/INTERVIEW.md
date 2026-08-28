@@ -148,7 +148,7 @@ Ask each separately (in this order for consistency with the bar):
 - **Share:** "Do users need share? Should the Share icon (ghost, small) appear?"
 - **Notifications:** "Does this app surface notifications? Should the bell appear?"
 - **Theme menu:** "Should users switch light/dark theme from the Topbar (sun/moon trigger + menu with checkmarked Light/Dark rows)?"
-- **Atlas:** "This app should use the platform Atlas / EOS sidebar (not an in-app chat). I'll turn the Topbar Atlas button on unless you have a reason to hide it. OK to show Atlas?" Default **on** when the app has any AI, agent, or assistant intent. If they want chat, enable Atlas and follow **`integrate-fusion-agent`** — do not scaffold a custom chat UI.
+- **Atlas:** "Show the Atlas button (opens the EOS sidebar)?" Default **on** if the app has AI. Do not scaffold an in-app chat; wire with **`integrate-fusion-agent`**.
 - **User Avatar:** "Should the signed-in user Avatar appear on the far right?"
 
 Fixed order when visible (left → right): **Share → Notifications → Theme → Atlas → user Avatar**.
