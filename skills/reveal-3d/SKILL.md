@@ -21,10 +21,10 @@ Do **not** use the deprecated app-local "copy the bundle" approach — that patt
 
 ## Prerequisites
 
-- The app uses React + TypeScript and is wrapped in `@cognite/dune` auth (Flows auth), which supplies the `CogniteClient` (`sdk`).
+- The app uses React + TypeScript and is wrapped in `@cognite/app-sdk`'s `CogniteSdkProvider` (Flows auth), which supplies the `CogniteClient` (`sdk`) via `useCogniteSdk()` from `@cognite/app-sdk/react`. `@cognite/dune` is the CLI used to scaffold/deploy the app, not the runtime auth library — apps created with `npx @cognite/dune apps create` depend on `@cognite/app-sdk` for this, not `@cognite/dune` itself (the `useDune()`/`@cognite/dune/auth` hook only exists for legacy `--classic` scaffolds).
 - The CDF project has 3D models, or the user has supplied direct model/revision IDs or a CDM (`externalId`/`space`) model reference.
 - For DM-linked 3D, the instance/model must be identifiable via a CDM `externalId`/`space` pair or a classic `modelId`/`revisionId`; instance highlighting works once a model is loaded and the instance is contextualized (mapped) to it.
-- Know whether the target project actually uses the **Core Data Model** — `viewerOptions.useCoreDm` must match reality, not default to `true`. Getting this wrong causes confusing 401s and silent 360-collection failures rather than a clear error. See [csp-and-fixes.md](references/csp-and-fixes.md).
+- Determine whether the project's 3D content lives in the **Core Data Model** or the classic 3D API before setting `viewerOptions.useCoreDm` — don't default it to `true`. There's no single flag for this; [csp-and-fixes.md](references/csp-and-fixes.md) gives the exact SDK calls to check directly.
 
 ## Integration Workflow
 
@@ -111,7 +111,7 @@ Suggested versions are starting points. If the target app already pins compatibl
 | `@cognite/reveal` | `4.35.3` (peer) | Reveal viewer runtime — peer dependency, exact match required |
 | `@cognite/sdk` | `^10.13.0` (peer) | CDF API client — peer dependency |
 
-Everything else (`three`, `@tanstack/react-query`, `@base-ui/react`, `@floating-ui/react`, `@tabler/icons-react`, `dayjs`, `lodash-es`, `ml-matrix`, `random-seed`, `@cognite/aura`) is a transitive dependency of the package and installs automatically — do not add it manually unless the app needs to pin a version.
+Everything else (`three`, `@tanstack/react-query`, `@base-ui/react`, `@floating-ui/react`, `@tabler/icons-react`, `dayjs`, `lodash-es`, `ml-matrix`, `random-seed`, `@cognite/aura`) is a transitive dependency of the package and installs automatically — do not add it manually unless the app needs to pin a version, **or unless app code imports from it directly**. The model-browser pattern in [implementation.md](references/implementation.md) does exactly that with `@tanstack/react-query` (`useInfiniteQuery`/`useQuery`) — add it as a direct dependency in that case, since importing from an undeclared transitive dependency breaks under strict package managers like pnpm.
 
 Example install (pnpm; adapt to the app's package manager):
 
@@ -132,9 +132,7 @@ Do **not** copy any source bundle into the app and do **not** install `process`,
 - Instance highlighting only affects instances that are already contextualized (mapped) to a loaded model; load the model first, then call `styleByInstance`/`focusInstances`.
 - `RevealWidget`'s container must have an explicit height — it fills its parent.
 - Lazy-load canvas-heavy viewer content with `React.lazy` + `Suspense` when adding a route/page.
-- `useCoreDm` must reflect the actual project, not default to `true` — see [csp-and-fixes.md](references/csp-and-fixes.md).
-- Do not wrap the app in `React.StrictMode` — its dev-only double-mount tears down and recreates `RevealWidget`'s internal viewer while async loads are in flight, producing errors (e.g. `Invalid buffer: pointSize=17, byteLength=0`) for content that loads fine in production. See [csp-and-fixes.md](references/csp-and-fixes.md).
-- `manifest.json` can't grant `data:` under any CSP directive, so point cloud content (which Reveal loads via an inline `data:` WASM URI in a Worker — a normal pattern outside Flows' locked-down CSP) needs an app-side fix instead: redirect that URI to a same-origin static asset before the worker compiles. This is the recommended, expected way to enable point cloud support in a Flows app, not a fallback — see [csp-and-fixes.md](references/csp-and-fixes.md) for the full implementation.
+- `useCoreDm` must match the project, not default to `true` — wrong 401s and silent 360-collection failures otherwise. Don't wrap the app in `React.StrictMode` — it tears down `RevealWidget`'s viewer mid-load in dev and produces errors that don't occur in production. Point clouds need an app-side same-origin fix, since `manifest.json` can't grant the `data:` CSP allowance they'd otherwise need. All three: see [csp-and-fixes.md](references/csp-and-fixes.md).
 
 ## Advanced Reference
 
@@ -153,7 +151,7 @@ For CSP/`manifest.json` allowances, the `useCoreDm`/StrictMode gotchas, the poin
 - [ ] `RevealWidget` is mounted once, is not nested in another Reveal provider, and its container has an explicit height.
 - [ ] `viewerOptions.useCoreDm` matches whether the target project is actually Core-Data-Model-based.
 - [ ] The app does not wrap itself in `React.StrictMode`.
-- [ ] `manifest.json` grants `img-src` for `https://*.cognitedata.com` and `connect-src` for the project's blob-storage host if the app loads scenes with ground planes/skybox or 360° image collections. If the app needs point cloud support, the same-origin `Blob`-patch fix has been applied and verified.
+- [ ] `manifest.json` grants `img-src` for `https://*.cognitedata.com` if the app loads scenes with ground planes/skybox, and `connect-src` for the actual signed-URL host observed from a CSP violation if it loads 360° image collections. If the app needs point cloud support, the same-origin `Blob`-patch fix has been applied and verified.
 - [ ] A controller class wraps `RevealWidgetController`, obtained via `setControllerRef`, and drives `addResource`/`styleByInstance`/`focusInstances`/`cameraController` imperatively.
 - [ ] The controller class is disposed (and tracked resource handles `.remove()`d) both when a new controller is set and on unmount (`widgetController === undefined`).
 - [ ] Resource identifiers use the correct `type`/`sourceType` shape for the model being loaded.
