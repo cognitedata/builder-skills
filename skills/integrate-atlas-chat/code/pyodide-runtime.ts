@@ -133,6 +133,15 @@ function isPyProxy(value: unknown): value is { destroy(): void } {
   );
 }
 
+function isMicropip(value: unknown): value is Micropip {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'install' in value &&
+    typeof (value as Record<string, unknown>).install === 'function'
+  );
+}
+
 function destroyIfPyProxy(value: unknown): void {
   if (isPyProxy(value)) {
     value.destroy();
@@ -151,6 +160,7 @@ export class PyodideRuntime implements PythonRuntime {
   private pyodide?: PyodideInstance;
   private micropip?: Micropip;
   private _initialized = false;
+  private _initPromise?: Promise<void>;
   private readonly config: PyodideRuntimeConfig;
 
   constructor(config: PyodideRuntimeConfig) {
@@ -163,35 +173,54 @@ export class PyodideRuntime implements PythonRuntime {
 
   /**
    * Load Pyodide, install packages, and set up the Cognite SDK.
-   * Safe to call multiple times — subsequent calls are no-ops.
+   * Safe to call multiple times — concurrent callers await the same init.
    */
   async initialize(sdk: PyodideSDKConfig): Promise<void> {
     if (this._initialized) return;
+    // Memoize the in-flight initialization so concurrent callers await the same
+    // load instead of each triggering a full Pyodide setup. Running init /
+    // loadPackage / micropip concurrently corrupts package state and surfaces as
+    // intermittent "No module named 'micropip'" errors.
+    if (this._initPromise) return this._initPromise;
 
+    this._initPromise = this.doInitialize(sdk).catch((error) => {
+      this._initPromise = undefined;
+      throw error;
+    });
+
+    return this._initPromise;
+  }
+
+  private async doInitialize(sdk: PyodideSDKConfig): Promise<void> {
     const report = this.config.onProgress ?? (() => {});
     const cdnUrl = this.config.cdnUrl ?? DEFAULT_CDN_URL;
 
-    // 1. Load Pyodide
+    // 1. Load Pyodide — keep a local reference until packages are fully installed.
     report('Loading Pyodide...', 10);
-    this.pyodide = await this.config.loadPyodide({ indexURL: cdnUrl });
+    const pyodide = await this.config.loadPyodide({ indexURL: cdnUrl });
     report('Pyodide loaded', 30);
 
     // 2. Core packages (micropip + HTTP patching)
     report('Loading core packages...', 40);
-    await this.pyodide.loadPackage(['micropip', 'pyodide-http']);
-    await this.pyodide.runPythonAsync(`
+    await pyodide.loadPackage(['micropip', 'pyodide-http']);
+    await pyodide.runPythonAsync(`
 try:
     import pyodide_http
     pyodide_http.patch_all()
 except Exception:
     pass
 `);
-    this.micropip = this.pyodide.pyimport('micropip') as Micropip;
+    const micropip = pyodide.pyimport('micropip');
+    if (!isMicropip(micropip)) {
+      throw new Error(
+        'micropip did not load correctly — pyimport returned an unexpected shape',
+      );
+    }
 
     // 3. Cognite SDK
     const verb = isCacheValid() ? 'Loading' : 'Downloading';
     report(`${verb} cognite-sdk...`, 60);
-    await this.micropip.install('cognite-sdk');
+    await micropip.install('cognite-sdk');
     if (!isCacheValid()) markCacheValid();
     report('cognite-sdk ready', 80);
 
@@ -199,15 +228,15 @@ except Exception:
     const reqs = this.config.requirements ?? [];
     if (reqs.length > 0) {
       report('Installing packages...', 85);
-      await this.micropip.install(reqs);
+      await micropip.install(reqs);
     }
 
     // 5. Utility functions + Cognite client
     report('Setting up environment...', 90);
-    this.pyodide.runPython(PYTHON_UTILS);
+    pyodide.runPython(PYTHON_UTILS);
 
     report('Initializing Cognite client...', 95);
-    this.pyodide.runPython(`
+    pyodide.runPython(`
 import os
 os.environ["COGNITE_PROJECT"] = "${sdk.project}"
 os.environ["COGNITE_BASE_URL"] = "${sdk.baseUrl}"
@@ -218,6 +247,8 @@ from cognite.client import CogniteClient
 client = CogniteClient()
 `);
 
+    this.pyodide = pyodide;
+    this.micropip = micropip;
     this._initialized = true;
     report('Ready', 100);
   }
@@ -237,7 +268,7 @@ client = CogniteClient()
   }
 
   private requirePyodide(): PyodideInstance {
-    if (!this.pyodide) {
+    if (!this._initialized || !this.pyodide) {
       throw new Error(
         'PyodideRuntime not initialized — call initialize() first',
       );

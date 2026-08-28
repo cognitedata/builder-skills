@@ -37,6 +37,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **integrate-atlas-chat** | Exception — in-app `useAtlasChat` when the EOS sidebar cannot work |
 | **create-client-tool** | `AtlasTool` for an approved in-app chat (sidebar tools: `integrate-fusion-agent`) |
 | **setup-python-tools** | Pyodide for in-app chat only |
+| **call-cognite-function** | Invokes a deployed CDF Function by ID or external ID — session nonce, call, poll until complete, return typed result |
 | **code-quality** | Reviews Flows apps for code quality, maintainability, and clean code issues |
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
 | **dm-graph-traversal** | CDF Data Modeling graph traversal patterns — query-vs-list decisions, traversal payload guardrails, failure debugging, and payload-shape test requirements |
@@ -47,6 +48,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **security** | Reviews for security issues — credentials, user input, external data |
 | **migrate-app-to-flows** | Migrates a legacy Dune POC app to Flows Custom App infrastructure — fixes `app.json`, auth, `manifest.json`, and deploy scripts |
 | **setup-flows-auth** | Migrates React apps to Flows auth or adds DuneAuthProvider |
+| **hide-show-shell** | Hides/reveals the Fusion sidebar + topbar for full-screen app-only mode via `api.setHideShell()`, with best practices for always giving users a way back |
 | **design** | Aura UI — components and tokens, layouts, UX copy, forms/async feedback, accessibility (`skills/design/`) |
 
 ## Contributing

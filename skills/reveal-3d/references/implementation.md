@@ -1,82 +1,117 @@
 # Implementation Reference — Reveal 3D Viewer
 
-Full copy-paste ready implementations. Copy `skills/reveal-3d/code/reveal/` into an app-local feature folder first, typically `src/features/reveal-3d/`, then import from that local folder. **Pattern B (model browser — auto-loads models) is the default** — use it unless the data has explicit FDM → CAD node linkage.
+Full copy-paste ready implementations using `@cognite/reveal-widget`. `RevealWidget` is driven imperatively through a `RevealWidgetController`, obtained via `setControllerRef` — there is no declarative provider tree to assemble.
 
 ---
 
-## Pattern B (default) — model browser, auto-discovers models via `sdk.models3D.list()`
+## Controller pattern (base for every variant below)
 
-Canvas-only component — no providers. `CacheProvider`, `RevealKeepAlive`, and `RevealProvider` live in App.tsx.
+Wrap `RevealWidgetController` in your own class so app code (click handlers, selection state, etc.) can drive the viewer without threading prop changes through `useEffect`.
 
 ```tsx
-import { useCallback, useMemo } from 'react';
+import { useRef } from 'react';
+import type { CogniteClient } from '@cognite/sdk';
 import {
-  Reveal3DResources,
-  RevealCanvas,
-  type AddCadResourceOptions,
-} from '@/features/reveal-3d';
+  RevealWidget,
+  type Reveal3DResourceHandle,
+  type RevealWidgetController,
+} from '@cognite/reveal-widget';
 
-export interface ViewerContentProps {
-  modelId: number;
-  revisionId: number;
+class ThreeDViewerController {
+  private models: Reveal3DResourceHandle[] = [];
+
+  constructor(private readonly widgetController: RevealWidgetController) {}
+
+  async add(resource: Parameters<RevealWidgetController['addResource']>[0]) {
+    const handle = await this.widgetController.addResource(resource);
+    this.models.push(handle);
+    this.widgetController.cameraController.focusModel(handle);
+    return handle;
+  }
+
+  dispose(): void {
+    this.models.forEach((m) => m.remove());
+    this.models = [];
+  }
 }
 
-/**
- * Canvas-only — no CacheProvider, RevealKeepAlive, or RevealProvider here.
- * All providers live in App.tsx so React StrictMode double-invoke completes
- * at startup before any model loading starts.
- */
-export function ViewerContent({ modelId, revisionId }: ViewerContentProps) {
-  // AddCadResourceOptions is just { modelId, revisionId } — no `type` field.
-  // Do NOT use { type: 'cad', modelId, revisionId } — that is TaggedAddResourceOptions.
-  const resources = useMemo<AddCadResourceOptions[]>(
-    () => [{ modelId, revisionId }],
-    [modelId, revisionId]
-  );
-  const onLoaded = useCallback(() => {}, []);
+export function ViewerHost({ sdk }: { sdk: CogniteClient }) {
+  const viewerRef = useRef<ThreeDViewerController>();
+
+  function handleControllerRef(widgetController: RevealWidgetController | undefined) {
+    viewerRef.current?.dispose();
+    viewerRef.current = widgetController
+      ? new ThreeDViewerController(widgetController)
+      : undefined;
+  }
 
   return (
-    <RevealCanvas>
-      <Reveal3DResources resources={resources} onModelsLoaded={onLoaded} />
-    </RevealCanvas>
+    <div style={{ width: '100%', height: '70vh', position: 'relative' }}>
+      <RevealWidget
+        viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
+        setControllerRef={handleControllerRef}
+      />
+    </div>
   );
 }
 ```
 
-### src/App.tsx — providers + model browser
+Reuse this shape across all patterns below — only the resource identifiers and the surrounding UI change.
+
+---
+
+## Pattern A (default) — model browser, classic modelId/revisionId
+
+Discover models via `sdk.models3D.list()`, let the user pick one, then load it with a classic CAD identifier.
+
+This pattern uses `@tanstack/react-query`'s `useInfiniteQuery`/`useQuery`. If the app doesn't
+already have a `QueryClientProvider` mounted somewhere above where these hooks are used, add one —
+these hooks throw without it. Since the app's own code imports directly from
+`@tanstack/react-query` here (not just `@cognite/reveal-widget` re-exporting it internally), add
+it as a direct dependency too, the same as `react`/`react-dom` — despite the general dependency
+guidance above that most of `@cognite/reveal-widget`'s dependencies only need to be transitive.
 
 ```tsx
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import * as THREE from 'three';
-import { useDune } from '@cognite/dune';
+import { useCogniteSdk } from '@cognite/app-sdk/react';
+import { useCallback, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { Model3D, Revision3D } from '@cognite/sdk';
 import {
-  CacheProvider,
-  RevealKeepAlive,
-  RevealProvider,
-  type ViewerOptions,
-} from '@/features/reveal-3d';
-
-// Lazy-load canvas content — providers are eagerly imported
-const ViewerContent = lazy(() =>
-  import('./components/ViewerContent').then((m) => ({ default: m.ViewerContent }))
-);
-
-// Module-level constants — stable references, never recreated on re-render
-const BG = new THREE.Color(0x1a1a2e);
-const VIEWER_OPTIONS: ViewerOptions = {
-  loadingIndicatorStyle: { placement: 'topRight', opacity: 0.1 },
-  antiAliasingHint: 'msaa2+fxaa',
-  ssaoQualityHint: 'medium',
-};
+  RevealWidget,
+  type CadAddOptions,
+  type Reveal3DResourceHandle,
+  type RevealWidgetController,
+} from '@cognite/reveal-widget';
 
 type SelectedModel = { modelId: number; revisionId: number };
+
+class ThreeDViewerController {
+  private current: Reveal3DResourceHandle | undefined;
+
+  constructor(private readonly widgetController: RevealWidgetController) {}
+
+  async loadModel(modelId: number, revisionId: number): Promise<void> {
+    this.current?.remove();
+    const resource: CadAddOptions = {
+      type: 'cad',
+      sourceType: 'classic',
+      modelId,
+      revisionId,
+      modelCategory: 'model3d',
+    };
+    this.current = await this.widgetController.addResource(resource);
+    this.widgetController.cameraController.focusModel(this.current);
+  }
+
+  dispose(): void {
+    this.current?.remove();
+  }
+}
 
 // --- Model discovery hooks ---
 
 function useModels(query?: string) {
-  const { sdk } = useDune();
+  const sdk = useCogniteSdk();
   return useInfiniteQuery({
     queryKey: ['3d-models', query],
     queryFn: ({ pageParam }: { pageParam?: string }) =>
@@ -86,7 +121,6 @@ function useModels(query?: string) {
       }>,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor,
-    enabled: !!sdk,
     select: useCallback(
       (data: any) => ({
         ...data,
@@ -105,7 +139,7 @@ function useModels(query?: string) {
 }
 
 function useBestRevision(modelId?: number) {
-  const { sdk } = useDune();
+  const sdk = useCogniteSdk();
   return useQuery({
     queryKey: ['3d-revisions', modelId],
     queryFn: async () => {
@@ -115,35 +149,23 @@ function useBestRevision(modelId?: number) {
         .autoPagingToArray({ limit: -1 });
       const published = all.filter((r) => r.published);
       const candidates = published.length ? published : all;
+      // reduce() with no initial value throws on an empty array rather than returning
+      // undefined, so a model with zero revisions needs its own explicit check first.
+      if (candidates.length === 0) return null;
       return candidates.reduce((best, cur) =>
         best.createdTime > cur.createdTime ? best : cur
-      ) ?? null;
+      );
     },
-    enabled: !!sdk && !!modelId,
+    enabled: !!modelId,
   });
 }
 
-// --- Model browser ---
-//
-// RULE 1: onSelect MUST be wrapped in useCallback at the call site.
-//   An inline arrow `(m) => setSelected(m)` creates a new reference every render.
-//   The useEffect([..., onSelect]) below fires on every render → infinite loop.
-//
-// RULE 2: call onSelect from useEffect, NOT during render.
-//   An if-block during render calling onSelect also causes infinite loops.
-
+// RULE: onSelect MUST be wrapped in useCallback at the call site, and called
+// from useEffect, never from render — otherwise React re-renders in a loop.
 function ModelBrowser({ onSelect }: { onSelect: (m: SelectedModel) => void }) {
   const [query, setQuery] = useState('');
-  const [pendingId, setPendingId] = useState<number>();
   const { data } = useModels(query);
-  const { data: revision } = useBestRevision(pendingId);
   const models = data?.pages.flatMap((p) => p.items) ?? [];
-
-  useEffect(() => {
-    if (revision && pendingId) {
-      onSelect({ modelId: pendingId, revisionId: revision.id });
-    }
-  }, [revision, pendingId, onSelect]);
 
   return (
     <div>
@@ -153,149 +175,160 @@ function ModelBrowser({ onSelect }: { onSelect: (m: SelectedModel) => void }) {
         onChange={(e) => setQuery(e.target.value)}
       />
       {models.map((m) => (
-        <button key={m.id} onClick={() => setPendingId(m.id)}>
-          {m.name}
-        </button>
+        <ModelRow key={m.id} model={m} onSelect={onSelect} />
       ))}
     </div>
   );
 }
 
+function ModelRow({
+  model,
+  onSelect,
+}: {
+  model: Model3D;
+  onSelect: (m: SelectedModel) => void;
+}) {
+  const { data: revision } = useBestRevision(model.id);
+  return (
+    <button
+      disabled={!revision}
+      onClick={() => revision && onSelect({ modelId: model.id, revisionId: revision.id })}
+    >
+      {model.name}
+    </button>
+  );
+}
+
 // --- App ---
 
-export default function App() {
-  const { sdk: client, isLoading } = useDune();
-  // Memoize on sdk.project — prevents RevealProvider from remounting on
-  // unrelated sdk object reference changes
-  const sdk = useMemo(() => client, [client.project]);
+// Render this inside your app's CogniteSdkProvider tree (see @cognite/app-sdk's own setup docs
+// for connecting to the Fusion host) — that provider already shows its own loadingFallback while
+// connecting, so useCogniteSdk() below always returns a ready client, no isLoading check needed.
+export function ViewerPage() {
+  const sdk = useCogniteSdk();
+  const viewerRef = useRef<ThreeDViewerController>();
 
-  const [selected, setSelected] = useState<SelectedModel | null>(null);
+  const handleControllerRef = useCallback(
+    (widgetController: RevealWidgetController | undefined) => {
+      viewerRef.current?.dispose();
+      viewerRef.current = widgetController
+        ? new ThreeDViewerController(widgetController)
+        : undefined;
+    },
+    []
+  );
 
-  // useCallback is mandatory — see ModelBrowser RULE 1 above
   const handleSelect = useCallback((m: SelectedModel) => {
-    setSelected((prev) => (!prev || prev.modelId !== m.modelId ? m : prev));
+    void viewerRef.current?.loadModel(m.modelId, m.revisionId);
   }, []);
 
-  if (isLoading) return <div>Connecting to CDF…</div>;
-
   return (
-    // CacheProvider + RevealKeepAlive always mounted → StrictMode double-invoke
-    // completes at startup with no viewer to dispose.
-    // RevealProvider conditionally mounts → finds stable RevealKeepAlive viewerRef.
-    <CacheProvider>
-      <RevealKeepAlive>
-        <div style={{ display: 'flex', height: '100vh' }}>
-          <aside style={{ width: 280, overflowY: 'auto' }}>
-            <ModelBrowser onSelect={handleSelect} />
-          </aside>
-          <div style={{ flex: 1, position: 'relative' }}>
-            {selected && (
-              <RevealProvider sdk={sdk} color={BG} viewerOptions={VIEWER_OPTIONS}>
-                <Suspense fallback={<div>Loading viewer…</div>}>
-                  <ViewerContent
-                    modelId={selected.modelId}
-                    revisionId={selected.revisionId}
-                  />
-                </Suspense>
-              </RevealProvider>
-            )}
-          </div>
-        </div>
-      </RevealKeepAlive>
-    </CacheProvider>
+    <div style={{ display: 'flex', height: '100vh' }}>
+      <aside style={{ width: 280, overflowY: 'auto' }}>
+        <ModelBrowser onSelect={handleSelect} />
+      </aside>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <RevealWidget
+          viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
+          setControllerRef={handleControllerRef}
+        />
+      </div>
+    </div>
   );
 }
 ```
 
 ---
 
-## Pattern A (fallback) — FDM auto-discover from an asset instance
+## Pattern B — direct model ID (classic or CDM)
 
-Use only when you have a `DMInstanceRef` and the instance has `CogniteVisualizable.object3D → CogniteCADNode` linkage. Otherwise use Pattern B above.
-
-### src/components/ViewerContent.tsx (FDM variant)
+When the user already supplies IDs, skip the browser and load directly.
 
 ```tsx
-import { useCallback, useMemo, useState } from 'react';
-import type { DMInstanceRef } from '@cognite/reveal';
-import {
-  Reveal3DResources,
-  RevealCanvas,
-  useModelsForInstanceQuery,
-  type AddCadResourceOptions,
-  type TaggedAddResourceOptions,
-} from '@/features/reveal-3d';
+import type { CadAddOptions } from '@cognite/reveal-widget';
 
-function pickFirstCad(models: TaggedAddResourceOptions[]): AddCadResourceOptions | undefined {
-  const m = models[0];
-  return m?.type === 'cad'
-    ? { ...m.addOptions, styling: { default: { renderGhosted: true } } }
-    : undefined;
-}
-
-export function ViewerContent({ instance }: { instance: DMInstanceRef }) {
-  const { data: models, isLoading } = useModelsForInstanceQuery(instance);
-  const [loaded, setLoaded] = useState(false);
-  const selected = useMemo(() => pickFirstCad(models ?? []), [models]);
-  const resources = useMemo(() => (selected ? [selected] : []), [selected]);
-  const onLoaded = useCallback(() => setLoaded(true), []);
-
-  if (isLoading) return <div>Loading 3D model…</div>;
-  if (!resources.length) return <div>No 3D data linked to this instance.</div>;
-
-  return (
-    <RevealCanvas>
-      <Reveal3DResources resources={resources} onModelsLoaded={onLoaded} />
-    </RevealCanvas>
-  );
-}
-```
-
-### src/App.tsx (FDM variant)
-
-Same `CacheProvider` / `RevealKeepAlive` / `RevealProvider` structure as Pattern B.
-Pass `instance: DMInstanceRef` to `ViewerContent` instead of `modelId` / `revisionId`.
-
-```tsx
-import { useMemo, useState } from 'react';
-import * as THREE from 'three';
-import { useDune } from '@cognite/dune';
-import type { DMInstanceRef } from '@cognite/reveal';
-import {
-  CacheProvider,
-  RevealKeepAlive,
-  RevealProvider,
-  type ViewerOptions,
-} from '@/features/reveal-3d';
-import { ViewerContent } from './components/ViewerContent';
-
-const BG = new THREE.Color(0x1a1a2e);
-const OPTS: ViewerOptions = {
-  loadingIndicatorStyle: { placement: 'topRight', opacity: 0.1 },
-  antiAliasingHint: 'msaa2+fxaa',
-  ssaoQualityHint: 'medium',
+// Classic model/revision IDs
+const classicResource: CadAddOptions = {
+  type: 'cad',
+  sourceType: 'classic',
+  modelId: 206509079235820,
+  revisionId: 576781257263693,
+  modelCategory: 'model3d',
 };
 
-export default function App() {
-  const { sdk: client, isLoading } = useDune();
-  const sdk = useMemo(() => client, [client.project]);
-  // Replace with however you receive the instance ref (prop, route param, selection, etc.)
-  const [instance] = useState<DMInstanceRef | null>(null);
+// CDM (data-modeling) model reference
+const cdmResource: CadAddOptions = {
+  type: 'cad',
+  sourceType: 'cdm',
+  externalId: 'my-cad-model',
+  space: 'my-space',
+  modelCategory: 'model3d',
+};
 
-  if (isLoading) return <div>Connecting to CDF…</div>;
+// await widgetController.addResource(classicResource) or (cdmResource)
+```
 
-  return (
-    <CacheProvider>
-      <RevealKeepAlive>
-        <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
-          {instance && sdk.project && (
-            <RevealProvider sdk={sdk} color={BG} viewerOptions={OPTS}>
-              <ViewerContent instance={instance} />
-            </RevealProvider>
-          )}
-        </div>
-      </RevealKeepAlive>
-    </CacheProvider>
+Everything else — mounting `RevealWidget`, the controller class, cleanup — is identical to the controller pattern above; only the resource identifier changes.
+
+---
+
+## Highlighting and focusing an asset instance
+
+Once a model is loaded, highlight and focus specific instances (assets) that are contextualized (mapped) to it. Instances are identified either by classic numeric asset ID or by a data-modeling `{ externalId, space }` reference:
+
+```tsx
+import {
+  Default3DStyles,
+  type InstanceId,
+  type Reveal3DResourceHandle,
+  type RevealWidgetController,
+} from '@cognite/reveal-widget';
+
+async function highlightAsset(
+  widgetController: RevealWidgetController,
+  model: Reveal3DResourceHandle,
+  instanceId: InstanceId
+): Promise<void> {
+  await widgetController.styleByInstance(
+    [{ instanceIds: [instanceId], style: Default3DStyles.Highlighted }],
+    [model]
   );
+  await widgetController.focusInstances([instanceId]);
 }
+
+// Classic asset ID:
+// highlightAsset(controller, model, 1560727417020285)
+// DM instance reference:
+// highlightAsset(controller, model, { externalId: 'CogniteAsset-1022', space: 'my-space' })
+```
+
+There is no built-in hook in `@cognite/reveal-widget` (yet) that discovers "the CAD model linked to this DM instance" — that's a broader Reveal React Components capability not exposed here. If the app needs that discovery step, resolve the model identifier first (e.g. via the app's own DM query against `CogniteVisualizable.object3D`), then load it with `addResource` and highlight the instance as shown above.
+
+---
+
+## Other resource types
+
+`addResource` also accepts point clouds, 360° image collections, and CDF scenes:
+
+```ts
+// Point cloud (classic or CDM, same shape as CAD)
+{ type: 'pointcloud', sourceType: 'classic', modelId, revisionId, modelCategory: 'model3d' }
+{ type: 'pointcloud', sourceType: 'cdm', externalId, space, modelCategory: 'model3d' }
+
+// 360° image collection
+{ type: 'image360', sourceType: 'dm' | 'cdm', externalId, space, modelCategory: 'image360' }
+{ type: 'image360', sourceType: 'events', siteId, modelCategory: 'image360' }
+
+// CDF scene — resolves to a handle that only supports .remove()
+{ type: 'scene', externalId, space }
+```
+
+## Camera control
+
+```ts
+controller.cameraController.focusModel(handle);   // fit one model
+controller.cameraController.focusCameraAll();       // fit all loaded models
+controller.cameraController.getCameraState();
+controller.cameraController.setCameraState(state);
+await controller.focusInstances([instanceId]);      // zoom to a specific instance
 ```
