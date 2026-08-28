@@ -140,15 +140,18 @@ Read the auth setup (likely `src/contexts/`, `src/hooks/`, or `setup-flows-auth`
 - The CDF client must be initialized with short-lived OIDC tokens, not a static API key.
 - User role/capability checks must happen server-side (CDF ACLs) — do not rely solely on hiding UI elements.
 
-Check the `useAtlasChat` / Atlas agent integration:
+Check the Atlas / agent integration:
+- Prefer the Atlas / EOS sidebar (`integrate-fusion-agent`). An in-app `useAtlasChat` UI is an exception path only.
 - The `agentExternalId` must not be constructed from user-supplied input.
-- Tool `execute` functions must not trust `args` blindly — validate or guard before using values in CDF queries.
+- Tool / action `execute` / `handler` functions must not trust `args` blindly — validate or guard before using values in CDF queries.
+- Do not send CDF data to third-party LLM APIs (OpenAI, Anthropic, etc.). Use Atlas in the host sidebar.
+- Do not fan out chat completions over query results (see `integrate-fusion-agent` hard gate: default 5, max 50, cached).
 
 ### How to fix
 
 For each unguarded route that shows CDF data, wrap it with the auth guard component. For example, ensure the route element is wrapped in a component that checks `useCogniteClient` and renders a loading/login state when the SDK is not ready.
 
-For Atlas tool `execute` functions, add argument validation at the top of each function. Validate that each `args` field is the expected type and within expected bounds before using it in any CDF query.
+For Atlas tool `execute` functions and Fusion agent action handlers, add argument validation at the top of each function. Validate that each `args` field is the expected type and within expected bounds before using it in any CDF query.
 
 ---
 

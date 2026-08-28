@@ -1,6 +1,6 @@
 ---
 name: create-client-tool
-description: "MUST be used whenever creating an AtlasTool (client-side tool) for an Atlas agent. Do NOT manually write AtlasTool definitions or wire them into useAtlasChat — this skill handles the TypeBox schema, execute function, and hook wiring. Prerequisite: integrate-atlas-chat (vendored src/atlas-agent + TypeBox/AJV deps). This includes tools that fetch data, render UI, call APIs, show charts, query local state, or perform any browser-side action. Triggers: AtlasTool, client tool, add tool, create tool, new tool, tool definition, agent tool."
+description: "MUST be used whenever creating an AtlasTool (client-side tool) for an in-app Atlas agent. Prefer Fusion agent actions (createAgentAction via integrate-fusion-agent / Atlas EOS sidebar) unless an in-app useAtlasChat integration is already approved. Do NOT manually write AtlasTool definitions or wire them into useAtlasChat — this skill handles the TypeBox schema, execute function, and hook wiring. Prerequisite: integrate-atlas-chat exception path (vendored src/atlas-agent + TypeBox deps). Triggers: AtlasTool, client tool (in-app atlas chat), tool definition for useAtlasChat. For EOS sidebar tools, use integrate-fusion-agent instead."
 allowed-tools: Read, Glob, Grep, Edit, Write
 metadata:
   argument-hint: "[tool-name] [brief description of what it does]"
@@ -9,6 +9,8 @@ metadata:
 # Create a Client Tool
 
 Scaffold a new `AtlasTool` named **$ARGUMENTS** and wire it into the app.
+
+**Prefer the Atlas / EOS sidebar.** If this app does not already have an approved in-app `useAtlasChat` integration, implement the tool as a Fusion agent **action** (`createAgentAction`) via **`integrate-fusion-agent`** instead of this skill.
 
 ## Prerequisite
 
@@ -57,6 +59,7 @@ export const myTool: AtlasTool = {
   execute: async (args) => {
     // args is fully typed from the schema above
     // Do the work here — call APIs, update state, render UI, etc.
+    // Do NOT loop chat completions over DMS results. Cap at 5 (max 50) and cache if you must.
     return {
       output: "Plain text summary sent back to the agent",
       details: {

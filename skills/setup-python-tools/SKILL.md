@@ -1,6 +1,6 @@
 ---
 name: setup-python-tools
-description: "MUST be used when adding Pyodide or Python tool support to a Flows app. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Prerequisite: integrate-atlas-chat (vendored src/atlas-agent + atlas chat wiring). Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
+description: "MUST be used when adding Pyodide or Python tool support to a Flows app that already has an approved in-app Atlas chat (exception path). Prefer the Atlas / EOS sidebar (integrate-fusion-agent) — Python tools there run from agent CDF config, not Pyodide. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Prerequisite: integrate-atlas-chat exception path. Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[tool-names or agent-external-id]"
@@ -10,11 +10,13 @@ metadata:
 
 Add client-side Python tool execution via Pyodide to this Flows app.
 
+This skill is for the **in-app Atlas chat exception path** only. If the app uses the Atlas / EOS sidebar (`integrate-fusion-agent`), Python tools run from the agent's CDF config — do not vendor Pyodide.
+
 Target: **$ARGUMENTS**
 
 ## Prerequisite
 
-**`integrate-atlas-chat`** must already be complete: the app should have vendored atlas-agent code under `src/atlas-agent/` (including `react.ts` for `useAtlasChat`) and the peer dependency from that skill (`@sinclair/typebox`). Copy the Python-related modules from the **`integrate-atlas-chat`** skill `code/` directory into `src/atlas-agent/` when adding Pyodide (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts` — see **`integrate-atlas-chat`** Step 5).
+**`integrate-atlas-chat`** must already be complete: the app should have vendored atlas-agent code under `src/atlas-agent/` (including `react.ts` for `useAtlasChat`) and the peer dependency from that skill (`@sinclair/typebox`). Copy the Python-related modules from the **`integrate-atlas-chat`** skill `code/` directory into `src/atlas-agent/` (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts`).
 
 ## Background
 

@@ -1,27 +1,31 @@
 ---
 name: integrate-fusion-agent
 description: >-
-  Integrates a Flows/Dune app with the Fusion built-in PAIA agent panel using
-  @cognite/app-sdk. Use this skill whenever a developer wants to: open the
-  agent panel from their app, send the agent a contextual message, let the
-  agent read app state (resources), or let the agent call actions in the app.
-  Triggers: "fusion agent", "PAIA", "agent panel", "sendAgentMessage",
-  "sendAgentLayoutMode", "agent server", "registerAgentServer",
-  "connectToHostApp", "agent integration", "agent sidebar", "app-sdk agent".
-  Always use this skill instead of manually writing agent integration code —
-  it sets up the correct lifecycle, graceful fallback, and recommended file
-  structure.
+  MUST be used whenever adding AI, an agent, a chat UI, Atlas, an assistant,
+  or any LLM-backed feature to a Flows/Fusion app. Default to the Atlas / EOS
+  sidebar (Fusion PAIA panel) via @cognite/app-sdk. Do NOT embed a custom chat
+  UI, vendor atlas-agent, wire useAtlasChat, or loop chat completions over
+  query results. Triggers: atlas, atlas chat, EOS sidebar, EOS, agent chat,
+  chat UI, chat interface, chat component, assistant, PAIA, fusion agent,
+  sendAgentMessage, sendAgentLayoutMode, registerAgentServer, connectToHostApp,
+  agent panel, agent sidebar, useAtlasChat, chat completions, LLM. Use
+  integrate-atlas-chat only when the user explicitly requires an in-app chat
+  after confirming the platform sidebar cannot work.
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
-# Integrate Fusion Agent Panel
+# Integrate Atlas / EOS Sidebar
 
-Wire a Flows/Dune app into the Fusion built-in PAIA agent using `@cognite/app-sdk`.
+The default — and almost always the only — way to add AI to a Flows/Fusion app is the **platform Atlas sidebar** (EOS / Fusion PAIA panel) via `@cognite/app-sdk`.
+
+Do **not** embed a custom chat UI (`useAtlasChat`, vendored `atlas-agent`, a third-party chat widget, or OpenAI/Anthropic completions in the app). Those duplicate the shell, split conversation history from Atlas, and make it easy to fan out unbounded LLM calls against CDF data.
+
+`integrate-atlas-chat` is an exception path only: the user must explicitly require an in-app chat **and** confirm the EOS sidebar cannot work (typically: the app is not hosted in Fusion/EOS). If that is not both true, implement this skill instead.
 
 There are three independent capabilities — implement only the ones needed:
 
-1. **Open the agent panel** — a button that shows the sidebar/fullscreen agent UI
-2. **Send the agent a message** — inject context into the chat (e.g. on item click)
+1. **Open the Atlas sidebar** — Topbar Atlas button (preferred) plus `sendAgentLayoutMode` for in-app triggers
+2. **Send the agent a message** — inject context into the platform chat (e.g. on item click)
 3. **Register an agent server** — expose app state (resources) and actions the agent can call
 
 ---
@@ -33,7 +37,7 @@ Before writing any code, read:
 - `package.json` — detect package manager and whether `@cognite/app-sdk` is already installed
 - `src/App.tsx` (or main entry) — understand current structure, existing SDK usage
 
-Ask the user which of the three capabilities they need if it's not clear from context.
+Ask the user which of the three capabilities they need if it's not clear from context. Do not offer an in-app chat UI as an option unless they already insisted on the exception path.
 
 ---
 
@@ -85,9 +89,11 @@ Call `useHostApp()` at the root of your app and pass `api` down (or put it in co
 
 ---
 
-## Step 3 — Opening the agent panel
+## Step 3 — Opening the Atlas sidebar
 
-Wire a persistent toolbar button (or equivalent trigger) to `api.sendAgentLayoutMode`.
+The **primary** open affordance is the Aura Topbar **Atlas** button (`systemActions.atlas.visible: true`). Follow `use-topbar` — do not add a second "Open Assistant" / "Chat" control in the app chrome.
+
+Use `api.sendAgentLayoutMode` for **in-app contextual triggers** (e.g. "Analyse this item"), not as a duplicate launcher.
 
 ```typescript
 import { type AgentLayoutPayload } from '@cognite/app-sdk';
@@ -100,15 +106,7 @@ await api.sendAgentLayoutMode({ mode: 'fullscreen' });
 await api.sendAgentLayoutMode({ mode: 'closed' });
 ```
 
-The button should only render when `api` is not null — agent features are unavailable outside Fusion.
-
-```tsx
-{api && (
-  <button onClick={() => api.sendAgentLayoutMode({ mode: 'sidebar' })}>
-    Open Assistant
-  </button>
-)}
-```
+Hide or disable in-app triggers when `api` is null — agent features are unavailable outside Fusion. The Topbar Atlas button is also a no-op outside the host.
 
 ---
 
@@ -127,7 +125,7 @@ await api.sendAgentMessage({
 
 Use `newSession: true` when the user is starting a new task from a specific item. Omit it when you want to continue an existing conversation.
 
-The message text should include relevant context the agent can act on immediately — item names, IDs, current state summary.
+The message text should include relevant context the agent can act on immediately — item names, IDs, current state summary. This is the alternative to looping chat completions over query rows: **one** sidebar message (or a resource the agent can read), not N LLM calls.
 
 ---
 
@@ -273,12 +271,15 @@ function App() {
 
   return (
     <AppLayout>
-      <MainContent />
-      {api && (
-        <ToolbarButton onClick={() => api.sendAgentLayoutMode({ mode: 'sidebar' })}>
-          Open Assistant
-        </ToolbarButton>
-      )}
+      {/* Topbar Atlas button is the launcher — see use-topbar */}
+      <MainContent onAnalyseItem={async (item) => {
+        if (!api) return;
+        await api.sendAgentLayoutMode({ mode: 'sidebar' });
+        await api.sendAgentMessage({
+          message: `Analyse "${item.name}" (id: ${item.id}).`,
+          newSession: true,
+        });
+      }} />
     </AppLayout>
   );
 }
@@ -312,7 +313,61 @@ expect(result.content[0].data).toEqual({ id: '1', name: 'Test' });
 
 ---
 
+## Hard gate — LLM calls over query results
+
+Never fan out chat completions (Atlas `ai/internal/agents/chat`, OpenAI/Anthropic, or similar) across DMS/SDK result rows. One user action that maps an LLM call over a query can blow the project's AI budget.
+
+**Do this instead:** put the data in an agent **resource**, or send **one** `sendAgentMessage` with a short summary and let the user continue in the Atlas sidebar.
+
+If a product requirement still needs per-item completions (ask first; default is no):
+
+| Rule | Limit |
+| --- | --- |
+| Default budget | **5** completions per user-initiated action |
+| Absolute ceiling | **50** — never generate code that can exceed this |
+| Cache | Key by `space:externalId:lastUpdatedTime` (or equivalent). Cache hits do not spend budget |
+| Batch | Prefer **one** prompt covering N items over N separate calls |
+| UX | Tell the user when the cap truncated the set ("summarized 5 of 200") |
+| Trigger | User-initiated only — never on render, poll, or an unbounded list |
+
+```typescript
+const MAX_LLM_CALLS_PER_ACTION = 5; // raise only with explicit product need; never above 50
+const ABSOLUTE_CEILING = 50;
+const cache = new Map<string, string>();
+
+async function enrichWithLlm<T extends { space: string; externalId: string; lastUpdatedTime?: string | number }>(
+  items: T[],
+  complete: (item: T) => Promise<string>,
+): Promise<string[]> {
+  const budget = Math.min(MAX_LLM_CALLS_PER_ACTION, ABSOLUTE_CEILING);
+  const out: string[] = [];
+  let spent = 0;
+  for (const item of items) {
+    const key = `${item.space}:${item.externalId}:${item.lastUpdatedTime ?? ''}`;
+    const cached = cache.get(key);
+    if (cached !== undefined) {
+      out.push(cached);
+      continue;
+    }
+    if (spent >= budget) break;
+    const text = await complete(item);
+    cache.set(key, text);
+    out.push(text);
+    spent += 1;
+  }
+  return out;
+}
+```
+
+Forbidden: `items.map((row) => chat.completions.create(...))`, `Promise.all` of completions over a query page, or calling Atlas chat once per instance from `instances.list` / `instances.query`.
+
+---
+
 ## Known pitfalls
+
+### Embedding a custom chat UI
+
+Do not vendor `atlas-agent` or wire `useAtlasChat` because "the app needs a chat". That is the Atlas / EOS sidebar. Custom in-app chat is `integrate-atlas-chat` and only after the user confirms the host sidebar cannot work.
 
 ### `setApi(resolvedApi)` stores a Promise, not the proxy
 
@@ -330,13 +385,16 @@ Comlink Proxy objects return `'function'` for any property access via `typeof`. 
 
 ## Checklist
 
+- [ ] Chose Atlas / EOS sidebar — no in-app `useAtlasChat`, vendored `atlas-agent`, or third-party chat widget
+- [ ] Topbar Atlas button is the launcher (`use-topbar`); no duplicate "Open Assistant" chrome
 - [ ] `@cognite/app-sdk@0.3.1+` installed
 - [ ] `useHostApp` hook uses `setApi(() => resolvedApi)` — NOT `setApi(resolvedApi)`
 - [ ] `useHostApp` hook catches rejection (outside Fusion), stores `api` in state
-- [ ] Agent UI buttons only render when `api` is not null
+- [ ] In-app agent triggers only render when `api` is not null
 - [ ] `useAgentServer` registered on mount, unregistered on unmount
 - [ ] `registerAgentServer` and `unregisterAgentServer` calls have `.catch()` handlers
 - [ ] Resource `description` fields explain what data is returned and when to read it
 - [ ] Action `name` fields are `snake_case`
 - [ ] Mutating actions warn in their `description` that confirmation is required
 - [ ] Services injected into action/resource factories (not imported directly) — enables unit testing
+- [ ] No unbounded LLM / chat-completion loops over DMS results; if any completions exist they are capped (default 5, max 50) and cached

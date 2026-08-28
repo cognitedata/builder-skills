@@ -1,6 +1,6 @@
 ---
 name: dm-limits-and-best-practices
-description: "Reference skill for CDF Data Modeling API best practices. Covers concurrency limits (avoiding 429s), pagination patterns for instances.list and instances.query, batching write operations, search vs filter guidance, and the QueuedTaskRunner (Semaphore) utility for controlling concurrent requests. Triggers: DMS limits, 429 error, rate limit, pagination, cursor, nextCursor, batching, semaphore, QueuedTaskRunner, cdfTaskRunner, instances.search, instances.list, instances.query, instances.upsert, concurrency, deadlock."
+description: "Reference skill for CDF Data Modeling API best practices. Covers concurrency limits (avoiding 429s), pagination patterns for instances.list and instances.query, batching write operations, search vs filter guidance, the QueuedTaskRunner (Semaphore) utility, and the hard gate against unbounded LLM / chat completions over query results (default 5, max 50, cached). Triggers: DMS limits, 429 error, rate limit, pagination, cursor, nextCursor, batching, semaphore, QueuedTaskRunner, cdfTaskRunner, instances.search, instances.list, instances.query, instances.upsert, concurrency, deadlock, chat completions, LLM over query results, summarize each row."
 allowed-tools: Read, Glob, Grep, Edit, Write
 metadata:
   argument-hint: ""
@@ -532,6 +532,25 @@ async function batchDeleteNodes(
 
 ---
 
+## Hard gate — LLM / chat completions over query results
+
+Never fan out chat completions (Atlas `ai/internal/agents/chat`, `useAtlasChat().send`, OpenAI/Anthropic, or similar) across DMS result rows. Mapping an LLM call over `instances.list` / `instances.query` / `instances.search` hits can explode project AI cost.
+
+**Do this instead:** one user-initiated Atlas / EOS sidebar turn (`integrate-fusion-agent`: `sendAgentMessage` or an agent resource). Do not embed a custom chat UI to run per-row completions.
+
+If a product requirement still needs per-item completions (ask first; default is no):
+
+- **Default budget:** 5 completions per user-initiated action
+- **Absolute ceiling:** 50 — never generate code that can exceed this
+- **Cache** by `space:externalId:lastUpdatedTime` (or equivalent). Cache hits do not spend budget
+- **Batch** into one prompt when possible instead of N calls
+- **UX:** tell the user when the cap truncated the set
+- **Trigger:** user-initiated only — never on render, poll, or an unbounded list
+
+Forbidden: `items.map((row) => complete(row))`, `Promise.all` of completions over a query page.
+
+---
+
 ## Common Pitfalls
 
 ### 1. Deadlocks from Nested Semaphore Calls
@@ -600,6 +619,10 @@ Each table expression in `instances.query` has its own `limit`. If your traversa
 
 `in` filters are capped at 1000 values per expression. Passing more than 1000 values in a single `in` filter can fail or produce incomplete behavior depending on endpoint/version. Always chunk the values and run batched requests.
 
+### 6. Unbounded LLM calls over query results
+
+Do not map chat completions over DMS hits. Cap at 5 (absolute max 50) per user action, cache by instance identity, or — better — send one Atlas / EOS sidebar message. See the hard gate section above.
+
 ---
 
 ## Summary Checklist
@@ -613,4 +636,5 @@ Each table expression in `instances.query` has its own `limit`. If your traversa
 - [ ] Use `Promise.all` with semaphore-wrapped functions, never with raw API calls
 - [ ] Use `instances.search` for text matching, `filter` for exact-match queries
 - [ ] Split `in` filter values into batches of at most 1000 and merge responses
+- [ ] No unbounded LLM / chat-completion loops over DMS results; if any completions exist they are capped (default 5, max 50) and cached
 - [ ] Refer to https://docs.cognite.com/cdf/dm/dm_reference/dm_limits_and_restrictions for current limits

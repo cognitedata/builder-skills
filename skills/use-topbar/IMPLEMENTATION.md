@@ -148,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onSelectLight: () => setTheme('light'),
             onSelectDark: () => setTheme('dark'),
           },
-          atlas: { visible: true },
+          atlas: { visible: true }, // opens EOS / Fusion Atlas sidebar — wire context via integrate-fusion-agent
           avatar: { visible: true, src: userPhotoSrc, alt: userName },
         }}
       />
