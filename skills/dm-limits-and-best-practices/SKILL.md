@@ -1,6 +1,6 @@
 ---
 name: dm-limits-and-best-practices
-description: "Reference skill for CDF Data Modeling API best practices. Covers concurrency limits (avoiding 429s), pagination patterns for instances.list and instances.query, batching write operations, search vs filter guidance, and the QueuedTaskRunner (Semaphore) utility for controlling concurrent requests. Triggers: DMS limits, 429 error, rate limit, pagination, cursor, nextCursor, batching, semaphore, QueuedTaskRunner, cdfTaskRunner, instances.search, instances.list, instances.query, instances.upsert, concurrency, deadlock."
+description: "CDF Data Modeling limits: concurrency (429s), pagination, batching, search vs filter, QueuedTaskRunner, and the cap on LLM calls over query results (5 default, 50 max, cached). Triggers: DMS limits, 429, pagination, nextCursor, cdfTaskRunner, instances.query, chat completions over query results."
 allowed-tools: Read, Glob, Grep, Edit, Write
 metadata:
   argument-hint: ""
@@ -532,6 +532,12 @@ async function batchDeleteNodes(
 
 ---
 
+## Hard gate — LLM calls over query results
+
+Do not map chat completions over `instances.list` / `query` / `search` hits. Prefer one Atlas / EOS sidebar turn (`integrate-fusion-agent`). If per-item completions are required: **5** per user action, ceiling **50**, cache by `space:externalId:lastUpdatedTime`, user-initiated only.
+
+---
+
 ## Common Pitfalls
 
 ### 1. Deadlocks from Nested Semaphore Calls
@@ -613,4 +619,5 @@ Each table expression in `instances.query` has its own `limit`. If your traversa
 - [ ] Use `Promise.all` with semaphore-wrapped functions, never with raw API calls
 - [ ] Use `instances.search` for text matching, `filter` for exact-match queries
 - [ ] Split `in` filter values into batches of at most 1000 and merge responses
+- [ ] LLM-over-query-results capped (5 / max 50) and cached, or not present
 - [ ] Refer to https://docs.cognite.com/cdf/dm/dm_reference/dm_limits_and_restrictions for current limits

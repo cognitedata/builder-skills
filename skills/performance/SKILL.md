@@ -1,6 +1,6 @@
 ---
 name: performance
-description: "MUST be used whenever fixing performance issues in a Flows app. This skill finds AND fixes performance problems — re-renders, inefficient queries, missing pagination, unbounded fetches, large bundles, and memory leaks. It does not just report them. Always measure before and after. Triggers: performance, slow, laggy, optimize, re-render, bundle size, load time, CDF query, large list, memory leak, debounce, virtualize, lazy load, code split."
+description: "MUST be used when fixing Flows app performance — re-renders, query patterns, pagination, unbounded fetches, LLM-over-query-results, bundles, memory leaks. Measure before and after. Triggers: performance, slow, laggy, optimize, re-render, bundle size, CDF query, virtualize, chat completions, LLM cost."
 allowed-tools: Read, Glob, Grep, Shell, Write
 metadata:
   argument-hint: "[file, component, or area to optimize — e.g. 'src/components/AssetTable.tsx']"
@@ -122,6 +122,14 @@ const result = await client.instances.query({
 | `instances.aggregate` | Counts, histograms | — |
 
 For deeper rationale on search vs relational paths, cardinality, and materialization tradeoffs, consult the `semantic-knowledge/` directory if available in the workspace.
+
+### Hard gate — LLM over query results
+
+```bash
+grep -rn --include="*.ts" --include="*.tsx" -E "chat\.completions|agents/chat|useAtlasChat|openai|anthropic" src/
+```
+
+Do not map completions over DMS rows. Fix: one `sendAgentMessage` or agent resource (`integrate-fusion-agent`). If per-item completions remain: **5** / ceiling **50**, cache by `space:externalId:lastUpdatedTime`, user-initiated only.
 
 ---
 

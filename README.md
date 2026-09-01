@@ -13,7 +13,7 @@ npx @cognite/cli@latest apps skills pull
 Pull a specific skill:
 
 ```bash
-npx @cognite/cli@latest apps skills pull --skill create-client-tool
+npx @cognite/cli@latest apps skills pull --skill integrate-fusion-agent
 ```
 
 ## Certification flow
@@ -33,14 +33,15 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **flows-code-review** | Technical review (step 3) — writes `reviews/code-review/feedback-round-<N>/{code-review-report.md, review-files.md, review-packages.md}` |
 | **flows-design-review** | Manual design quality assessment (step 4) — scores the 10 quality-guidelines questions, writes `reviews/design-review/feedback-round-<N>/design-review-report.md` |
 | **flows-external-app-submit** | Submission gate (step 5) — verifies brief + code review (0 Must Fix) + design review (avg ≥ 3.8), then runs `npx @cognite/cli apps submit` |
+| **integrate-fusion-agent** | Default AI path — Atlas / EOS sidebar |
+| **integrate-atlas-chat** | Exception — in-app `useAtlasChat` when the EOS sidebar cannot work |
+| **create-client-tool** | `AtlasTool` for an approved in-app chat (sidebar tools: `integrate-fusion-agent`) |
+| **setup-python-tools** | Pyodide for in-app chat only |
 | **call-cognite-function** | Invokes a deployed CDF Function by ID or external ID — session nonce, call, poll until complete, return typed result |
-| **create-client-tool** | Scaffolds an `AtlasTool` and wires it into `useAtlasChat` |
-| **integrate-atlas-chat** | Adds streaming Atlas Agent chat UI to a Flows app |
-| **setup-python-tools** | Adds Pyodide-based Python tool execution |
 | **code-quality** | Reviews Flows apps for code quality, maintainability, and clean code issues |
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
 | **dm-graph-traversal** | CDF Data Modeling graph traversal patterns — query-vs-list decisions, traversal payload guardrails, failure debugging, and payload-shape test requirements |
-| **dm-limits-and-best-practices** | CDF Data Modeling API best practices — concurrency, pagination, batching |
+| **dm-limits-and-best-practices** | DMS concurrency, pagination, batching; LLM-over-rows cap (5 / max 50) |
 | **integrate-file-viewer** | Integrates CogniteFileViewer to preview CDF files (PDFs, images, text) |
 | **performance** | Optimizes Flows apps for speed, render counts, and bundle size |
 | **pull-changes-resolve-conflicts** | Merge or rebase workflow — list conflicts, analyze ours/theirs, get user approval before resolving |

@@ -1,6 +1,6 @@
 ---
 name: create-client-tool
-description: "MUST be used whenever creating an AtlasTool (client-side tool) for an Atlas agent. Do NOT manually write AtlasTool definitions or wire them into useAtlasChat — this skill handles the TypeBox schema, execute function, and hook wiring. Prerequisite: integrate-atlas-chat (vendored src/atlas-agent + TypeBox/AJV deps). This includes tools that fetch data, render UI, call APIs, show charts, query local state, or perform any browser-side action. Triggers: AtlasTool, client tool, add tool, create tool, new tool, tool definition, agent tool."
+description: "Scaffolds an AtlasTool for an already-approved in-app useAtlasChat UI. For EOS sidebar tools, use integrate-fusion-agent (createAgentAction) instead. Triggers: AtlasTool, useAtlasChat tool, in-app atlas client tool."
 allowed-tools: Read, Glob, Grep, Edit, Write
 metadata:
   argument-hint: "[tool-name] [brief description of what it does]"
@@ -8,24 +8,19 @@ metadata:
 
 # Create a Client Tool
 
-Scaffold a new `AtlasTool` named **$ARGUMENTS** and wire it into the app.
+Scaffold an `AtlasTool` named **$ARGUMENTS**. If the app has no approved in-app `useAtlasChat`, implement a Fusion **action** via **`integrate-fusion-agent`** instead.
 
-## Prerequisite
-
-**`integrate-atlas-chat`** must already be complete: the app should vend the atlas-agent sources under `src/atlas-agent/` (including `react.ts`) and have `@sinclair/typebox` installed as in that skill.
+**Prerequisite:** vendored `src/atlas-agent/` and `@sinclair/typebox` from `integrate-atlas-chat`.
 
 ## Background
 
-Client tools let the Atlas Agent invoke logic that runs in the browser — rendering charts,
-querying local state, showing UI panels, triggering navigation, etc. The agent decides when
-to call the tool; the app executes it and returns a result.
+Client tools let the Atlas Agent invoke browser-side logic — charts, local state, UI panels, navigation. The agent decides when to call; the app executes and returns a result.
 
-The flow is:
 1. Agent responds with a `clientTool` action
-2. The library validates the arguments against the TypeBox schema
+2. TypeBox validates the arguments
 3. `execute()` runs in the browser and returns `{ output, details }`
-4. `output` (string) is sent back to the agent as the tool result
-5. `details` (any shape) is available on `message.toolCalls` for the UI to render
+4. `output` (string) is sent back to the agent
+5. `details` is available on `message.toolCalls` for the UI to render
 
 ---
 
@@ -40,7 +35,7 @@ Before writing anything, read:
 
 ## Step 2 — Define the tool
 
-Create the tool as a typed constant. Use `Type` from `@sinclair/typebox` to define the parameters schema — this gives both compile-time types and runtime validation (same stack as the vendored atlas-agent from **`integrate-atlas-chat`**).
+Use `Type` from `@sinclair/typebox` for the parameters schema (compile-time types + runtime validation).
 
 ```ts
 import { Type } from "@sinclair/typebox";
@@ -55,8 +50,6 @@ export const myTool: AtlasTool = {
     optionalNum: Type.Optional(Type.Number({ description: "..." })),
   }),
   execute: async (args) => {
-    // args is fully typed from the schema above
-    // Do the work here — call APIs, update state, render UI, etc.
     return {
       output: "Plain text summary sent back to the agent",
       details: {
@@ -82,7 +75,7 @@ Adjust the `./atlas-agent/...` path if the tool file is not directly under `src/
 | `Type.Object({ ... })` | object |
 | `Type.Optional(...)` | mark any field optional |
 
-Always add a `description` to each field — the agent uses these to understand what to pass.
+Always add a `description` on the tool and on each parameter — the agent uses those strings.
 
 ---
 
@@ -113,10 +106,3 @@ If the tool returns structured `details`, render them in the message list.
   <MyToolOutput key={i} data={tc.details as MyToolDetails} />
 ))}
 ```
-
----
-
-## Done
-
-The agent can now invoke `$ARGUMENTS`. Describe what it does clearly in the `description`
-field — the agent relies on that string to decide when and how to call the tool.

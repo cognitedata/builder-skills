@@ -79,6 +79,7 @@ Fixed order (left → right within the strip):
 Rules:
 
 - Visibility of Share, Notifications, Theme, Atlas, and user Avatar is **configurable** per app where the Aura API allows — enable only what the product needs.
+- **Atlas** opens the EOS sidebar. Default **on** when the app has AI. Wire context via `integrate-fusion-agent`; do not embed a chat UI.
 - Theme and user Avatar are **typically always on** for authenticated apps; hide them only when the Aura/shell API and product policy explicitly allow.
 - **Do not reorder** items; **do not** override Aura styling or behavior for these controls.
 - If Storybook documents additional entries (e.g. a separate agent affordance), follow the **current** `@aura/topbar` API — this document lists the canonical Flows/Fusion strip above.

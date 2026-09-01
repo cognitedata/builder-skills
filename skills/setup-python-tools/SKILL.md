@@ -1,6 +1,6 @@
 ---
 name: setup-python-tools
-description: "MUST be used when adding Pyodide or Python tool support to a Flows app. Do NOT manually configure usePyodideRuntime or wire pythonRuntime into useAtlasChat — this skill handles pyodide installation, hook setup, loading UI, and chat hook wiring. Prerequisite: integrate-atlas-chat (vendored src/atlas-agent + atlas chat wiring). Triggers: Pyodide, Python tools, pythonRuntime, usePyodideRuntime, runPythonCode, Python execution, client-side Python."
+description: "Pyodide Python tools for an already-approved in-app useAtlasChat UI. EOS sidebar Python tools run from agent CDF config — do not vendor Pyodide. Triggers: Pyodide, pythonRuntime, usePyodideRuntime, runPythonCode."
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[tool-names or agent-external-id]"
@@ -8,32 +8,11 @@ metadata:
 
 # Set Up Python Tool Execution
 
-Add client-side Python tool execution via Pyodide to this Flows app.
+Add client-side Pyodide execution for **$ARGUMENTS**. Skip this if the app uses the Atlas / EOS sidebar (`integrate-fusion-agent`).
 
-Target: **$ARGUMENTS**
+**Prerequisite:** `src/atlas-agent/` from `integrate-atlas-chat`, plus `@sinclair/typebox`. Copy `python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts` from `integrate-atlas-chat/code/` into `src/atlas-agent/`.
 
-## Prerequisite
-
-**`integrate-atlas-chat`** must already be complete: the app should have vendored atlas-agent code under `src/atlas-agent/` (including `react.ts` for `useAtlasChat`) and the peer dependency from that skill (`@sinclair/typebox`). Copy the Python-related modules from the **`integrate-atlas-chat`** skill `code/` directory into `src/atlas-agent/` when adding Pyodide (`python.ts`, `pyodide.ts`, `pyodide-react.ts`, `pyodide-runtime.ts` — see **`integrate-atlas-chat`** Step 5).
-
-## Background
-
-Atlas agents can have Python tools defined in their CDF config (`type: "runPythonCode"`).
-When the agent calls one, it arrives as a `toolConfirmation` (auto-allowed) followed by a
-`clientTool` action. The library fetches the tool's Python code from the agent config
-automatically and executes it via the provided `pythonRuntime`.
-
-You only need to:
-1. Set up `usePyodideRuntime` to get a runtime instance
-2. Pass `pythonRuntime` to `useAtlasChat`
-
-No `PythonToolConfig` entries — the library reads the code from the agent's CDF config.
-
-The flow is:
-1. `usePyodideRuntime` loads Pyodide (~30MB, cached after first load), installs packages,
-   and injects Cognite SDK credentials into the Python environment
-2. When the agent calls a Python tool, the library fetches its code from the agent's CDF
-   config (cached per session), wraps it, executes it in Pyodide, and returns the result
+CDF `runPythonCode` tools arrive as `toolConfirmation` + `clientTool`. Wire `usePyodideRuntime` and pass `pythonRuntime` to `useAtlasChat` — no `PythonToolConfig` entries. Pyodide is ~30MB, cached after first load.
 
 ---
 
@@ -55,8 +34,7 @@ This version must match the CDN artifacts loaded at runtime — installing a dif
 - npm  → `npm install pyodide@0.29.3`
 - yarn → `yarn add pyodide@0.29.3`
 
-> **Note**: After **`integrate-atlas-chat`**, `@sinclair/typebox` should
-> already be installed. If anything is missing, install the versions listed in that skill's **Dependencies** table.
+> `@sinclair/typebox` should already be installed from `integrate-atlas-chat`. Add it if missing.
 
 ---
 

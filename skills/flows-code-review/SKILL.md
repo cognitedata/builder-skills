@@ -47,6 +47,7 @@ Before any scoring, read all relevant skill files. The skills ship alongside thi
 
 **Conditional read:**
 - `setup-flows-auth` — read if the app imports `connectToHostApp`, `useHostApp`, or configures OAuth in Vite.
+- `integrate-fusion-agent` — if the app has chat, Atlas, an agent, or LLM calls. Custom in-app chat is Should Fix; uncapped completions over query results are Must Fix.
 
 **Note on DMS patterns:** the `dm-limits-and-best-practices` skill is the canonical local reference for search vs joins, cardinality, and query-time semantics — no external `semantic-knowledge/` submodule is needed.
 
@@ -261,17 +262,19 @@ export function useMyHook() {
 | 2 | Frequent large pages or prefetch storms. |
 | 1 | Unbounded lists, deep prefetch chains, or N+1 DMS patterns. |
 
-### 2.4 Rate of calls — do not hammer DMS
+### 2.4 Rate of calls — do not hammer DMS or AI
 
 **Check:** Debouncing, batching, caching; no tight loops of identical requests; no re-fetching on every render without need.
 
+**Hard gate:** Do not map chat completions over DMS rows. AI belongs in the Atlas / EOS sidebar (`integrate-fusion-agent`). Per-item completions: **5** / ceiling **50**, cached, user-initiated. Uncapped loops score 1–2 (Must Fix). Search: `chat.completions|agents/chat|useAtlasChat|openai|anthropic`.
+
 | Score | Why |
 | ----- | --- |
-| 5 | Request rate proportional to user intent; caching and deduplication in place. |
+| 5 | Request rate matches user intent; caching/dedup in place; no per-row LLM fan-out (or ≤5, cached, user-initiated). |
 | 4 | Mostly fine; a hot path could batch or debounce slightly. |
 | 3 | Chatty UI or polling without backoff; risk under concurrent users. |
-| 2 | Clear risk of overwhelming DMS or shared quotas. |
-| 1 | Tight loops, runaway polling, or duplicate parallel identical calls. |
+| 2 | Clear risk of overwhelming DMS, shared quotas, or project AI cost (uncapped completions over a result set). |
+| 1 | Tight loops, runaway polling, duplicate parallel identical calls, or unbounded LLM calls over query results. |
 
 ### 2.5 Throttling and 429 responses — backoff with jitter
 
@@ -288,6 +291,8 @@ export function useMyHook() {
 ### 3.1 Aura design system
 
 **Check:** Prefer Aura components and tokens for layout, forms, tables, feedback, and typography; custom UI should align with Aura spacing, color, and interaction patterns.
+
+**Atlas:** In Fusion/EOS, embedded `useAtlasChat` / vendored `atlas-agent` is **Should Fix** (use the Topbar + EOS sidebar). Uncapped LLM fan-out is **Must Fix** under 2.4.
 
 | Score | Why |
 | ----- | --- |
@@ -311,7 +316,7 @@ This document is the platform review for [App name], conducted as part of the Co
 ## What this review covers
 
 - **Protect the user and the customer** — no known bugs, correct SDK usage, healthy dependencies, adequate test coverage, and a clean codebase.
-- **Protect Cognite services** — efficient DMS query patterns, server-side filtering, bounded pagination, and graceful rate-limit handling.
+- **Protect Cognite services** — DMS query patterns, server-side filtering, bounded pagination, 429 backoff, LLM-over-rows capped (5 / max 50).
 - **Protect the brand** — UI consistency with the Aura design system.
 
 Scores are 1–5. A score of 1–2 on any criterion blocks approval. Score 3 is acceptable with tracked follow-up. Scores 4–5 are good.
@@ -371,8 +376,8 @@ This review found **[N] must-fix item(s)** that block approval. [One sentence on
 ```
 
 **Categorization:**
-- **Must fix** (score 1–2): security issues, broken core flows, unbounded API calls, missing SDK usage for CDF, test coverage below 80% or tooling not configured, unreachable pages or significant dead code, pervasive hard-coded dependencies with no DI path. Each must-fix item **must** include an `_Impact:_` note explaining the user/customer consequence.
-- **Should fix** (score 3): missing test files for non-trivial services/hooks/utils, missing tests for critical paths, client-side filtering of large datasets, missing backoff/retry, accessibility gaps, `vi.mock` overuse without justification.
+- **Must fix** (score 1–2): security issues, broken core flows, unbounded API or LLM-over-query-results calls, missing SDK usage for CDF, coverage < 80% or tooling missing, unreachable pages or significant dead code, no DI path. Each must-fix item **must** include an `_Impact:_` note.
+- **Should fix** (score 3): missing tests for non-trivial modules or critical paths, client-side filtering of large datasets, missing backoff, a11y gaps, `vi.mock` overuse, custom in-app Atlas chat on Fusion/EOS.
 - **Nice to fix** (score 4 gaps): minor Aura inconsistencies, small cleanup, non-critical package updates, minor dead exports.
 
 End the file with a machine-readable summary block (exact format required by `flows-external-app-submit`):

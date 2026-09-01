@@ -1,13 +1,27 @@
 ---
 name: integrate-atlas-chat
-description: "MUST be used whenever building a chat UI with Atlas agents in a Flows app. Do NOT manually write useAtlasChat integration code — this skill handles installation, component structure, and hook wiring. Triggers: useAtlasChat, atlas chat, streaming chat, agent chat, chat interface, chat component, chat UI. For a full chat app, run skills in order: (1) integrate-atlas-chat, (2) create-client-tool (per tool), (3) setup-python-tools (if Python tools needed)."
+description: >-
+  Exception path. Use integrate-fusion-agent for Atlas/chat/agent. Only when the
+  user explicitly requires in-app useAtlasChat and connectToHostApp cannot
+  provide the EOS sidebar (standalone app, always rejects). Triggers:
+  useAtlasChat, in-app atlas chat, embedded chat, vendored atlas-agent. Not for
+  generic "add a chat".
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 metadata:
   argument-hint: "[agent-external-id]"
 ---
 
-# Integrate Atlas Agent Chat
+# Integrate Atlas Agent Chat (exception path)
 
-Follow the guide at https://docs.cognite.com/cdf/flows/guides/ai_agent_integration to add a streaming Atlas Agent chat UI to this Flows app.
+**Stop.** Use **`integrate-fusion-agent`** (Atlas / EOS sidebar) unless all of:
 
-Agent external ID: **$ARGUMENTS**
+1. The user asked for an **in-app / embedded** chat — not "add Atlas" / "add a chat"
+2. The host Atlas sidebar cannot work. There is **no manifest field** for this. Probe the app:
+   - `@cognite/app-sdk` + `connectToHostApp` / `useHostApp` resolving inside Fusion/EOS → sidebar works; do not continue
+   - Standalone-only (host connect always rejects; app is never loaded in Fusion) → in-app chat is allowed
+   - If unsure, ask. Default to the sidebar.
+3. The user accepted this as the non-standard path
+
+Then follow https://docs.cognite.com/cdf/flows/guides/ai_agent_integration and wire `useAtlasChat` for **$ARGUMENTS**. Keep the product UI; do not replace the app with a chat view.
+
+Do not map `send()` / chat completions over DMS rows. If per-item completions are required: **5** per user action, ceiling **50**, cache by `space:externalId:lastUpdatedTime`. See `integrate-fusion-agent`.

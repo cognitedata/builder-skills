@@ -1,59 +1,49 @@
 ---
 name: integrate-fusion-agent
 description: >-
-  Integrates a Flows/Dune app with the Fusion built-in PAIA agent panel using
-  @cognite/app-sdk. Use this skill whenever a developer wants to: open the
-  agent panel from their app, send the agent a contextual message, let the
-  agent read app state (resources), or let the agent call actions in the app.
-  Triggers: "fusion agent", "PAIA", "agent panel", "sendAgentMessage",
-  "sendAgentLayoutMode", "agent server", "registerAgentServer",
-  "connectToHostApp", "agent integration", "agent sidebar", "app-sdk agent".
-  Always use this skill instead of manually writing agent integration code —
-  it sets up the correct lifecycle, graceful fallback, and recommended file
-  structure.
+  MUST be used when adding AI, Atlas, an agent, a chat UI, or LLM features to a
+  Flows/Fusion app. Use the Atlas/EOS sidebar via @cognite/app-sdk — not
+  useAtlasChat, vendored atlas-agent, or per-row chat completions. Triggers:
+  atlas, EOS, PAIA, agent chat, chat UI, sendAgentMessage, sendAgentLayoutMode,
+  registerAgentServer, connectToHostApp, useAtlasChat, LLM. In-app chat:
+  integrate-atlas-chat only if the host sidebar cannot work.
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
-# Integrate Fusion Agent Panel
+# Integrate Atlas / EOS Sidebar
 
-Wire a Flows/Dune app into the Fusion built-in PAIA agent using `@cognite/app-sdk`.
+Default AI path: the platform Atlas sidebar (EOS / Fusion PAIA) via `@cognite/app-sdk`. Do not embed `useAtlasChat`, vendor `atlas-agent`, or call third-party LLM APIs.
 
-There are three independent capabilities — implement only the ones needed:
+`integrate-atlas-chat` only if the user explicitly requires in-app chat **and** `connectToHostApp` cannot provide the sidebar (standalone app; always rejects). There is no manifest field for this.
 
-1. **Open the agent panel** — a button that shows the sidebar/fullscreen agent UI
-2. **Send the agent a message** — inject context into the chat (e.g. on item click)
-3. **Register an agent server** — expose app state (resources) and actions the agent can call
+Implement only what is needed:
 
----
-
-## Step 0 — Understand the app
-
-Before writing any code, read:
-
-- `package.json` — detect package manager and whether `@cognite/app-sdk` is already installed
-- `src/App.tsx` (or main entry) — understand current structure, existing SDK usage
-
-Ask the user which of the three capabilities they need if it's not clear from context.
+1. **Open** — Topbar Atlas button; `sendAgentLayoutMode` for in-app triggers
+2. **Message** — `sendAgentMessage` to inject context
+3. **Server** — resources (app state) and actions (tools)
 
 ---
 
-## Step 1 — Install the SDK
+## Step 0 — Read the app
 
-If `@cognite/app-sdk` is not already in `package.json`, install it:
+- `package.json` — package manager, `@cognite/app-sdk`
+- `src/App.tsx` — structure, existing SDK usage
 
-```shell
-pnpm add @cognite/app-sdk     # or npm/yarn depending on the app
-```
-
-Minimum required version: `0.3.1`
+Ask which of the three capabilities are needed. Do not offer an in-app chat unless they already insisted.
 
 ---
 
-## Step 2 — Connect to the host app
+## Step 1 — Install
 
-All capabilities require a `HostAppAPI` instance. Obtain it once on mount and store it in React state or context. Always catch the rejection — the SDK throws when running outside Fusion (e.g. standalone `vite dev`).
+`pnpm add @cognite/app-sdk` (or npm/yarn). Minimum `0.3.1`.
 
-**Pattern for React apps:**
+---
+
+## Step 2 — Connect to the host
+
+`connectToHostApp` rejects outside Fusion (standalone `vite dev`). Catch that; hide agent triggers when `api` is null.
+
+Comlink proxies are callable — `setApi(proxy)` makes React treat the proxy as an updater and stores a Promise. Always `setApi(() => resolvedApi)`.
 
 ```typescript
 // src/hooks/useHostApp.ts
@@ -65,95 +55,60 @@ export function useHostApp(): HostAppAPI | null {
 
   useEffect(() => {
     connectToHostApp({ applicationName: 'my-app' })
-      .then(({ api: resolvedApi }) => {
-        // IMPORTANT: use the updater form here. Comlink proxies are callable
-        // objects, so setApi(proxy) causes React to invoke the proxy as a
-        // state-updater function — storing a Promise instead of the proxy.
-        // setApi(() => proxy) returns the proxy as the new state value.
-        setApi(() => resolvedApi);
-      })
-      .catch(() => {
-        // Running outside Fusion — agent features disabled, no-op
-      });
+      .then(({ api: resolvedApi }) => setApi(() => resolvedApi))
+      .catch(() => { /* outside Fusion — no-op */ });
   }, []);
 
   return api;
 }
 ```
 
-Call `useHostApp()` at the root of your app and pass `api` down (or put it in context). When `api` is `null`, all agent UI triggers should be hidden or disabled — not shown as broken.
+Call at the root; pass `api` down or via context. `typeof proxy.method === 'function'` is always true — do not feature-detect with `typeof`; use try/catch.
 
 ---
 
-## Step 3 — Opening the agent panel
+## Step 3 — Open the sidebar
 
-Wire a persistent toolbar button (or equivalent trigger) to `api.sendAgentLayoutMode`.
+Primary launcher: Aura Topbar Atlas (`systemActions.atlas.visible: true`, see `use-topbar`). No second "Open Assistant" control.
+
+`sendAgentLayoutMode` is for contextual triggers only (`sidebar` | `fullscreen` | `closed`):
 
 ```typescript
-import { type AgentLayoutPayload } from '@cognite/app-sdk';
-
-// Open as sidebar (most common)
 await api.sendAgentLayoutMode({ mode: 'sidebar' });
-
-// Other modes
-await api.sendAgentLayoutMode({ mode: 'fullscreen' });
-await api.sendAgentLayoutMode({ mode: 'closed' });
-```
-
-The button should only render when `api` is not null — agent features are unavailable outside Fusion.
-
-```tsx
-{api && (
-  <button onClick={() => api.sendAgentLayoutMode({ mode: 'sidebar' })}>
-    Open Assistant
-  </button>
-)}
 ```
 
 ---
 
-## Step 4 — Sending the agent a message
+## Step 4 — Send a message
 
-Use `sendAgentMessage` on contextual triggers (e.g. "Analyse this item" button). Always pair it with `sendAgentLayoutMode` so the panel is visible.
+Pair with `sendAgentLayoutMode`. `newSession: true` for a new task from an item; omit to continue the thread. Put names/IDs/state in the message — one sidebar turn, not N completions over query rows.
 
 ```typescript
-// Open sidebar then inject context
 await api.sendAgentLayoutMode({ mode: 'sidebar' });
 await api.sendAgentMessage({
   message: `Analyse the schedule for "${itemName}" and suggest how to reduce total duration.`,
-  newSession: true,   // clears previous conversation — appropriate for contextual entry points
+  newSession: true,
 });
 ```
 
-Use `newSession: true` when the user is starting a new task from a specific item. Omit it when you want to continue an existing conversation.
-
-The message text should include relevant context the agent can act on immediately — item names, IDs, current state summary.
-
 ---
 
-## Step 5 — Registering an agent server
+## Step 5 — Agent server
 
-An agent server exposes **resources** (read-only app state the agent can read) and **actions** (tools the agent can invoke). Register once on mount, unregister on unmount.
-
-### Recommended file structure
-
-Separate concerns so each piece is independently testable:
+Register on mount, unregister on unmount. Factories take services as args so they can be unit-tested without React:
 
 ```
 src/features/agent/
-  agentActions.ts     — pure factory: (deps) => Action[]
-  agentResources.ts   — pure factory: (deps) => Resource[]
-  useAgentServer.ts   — useEffect lifecycle hook; calls the factories and registers
+  agentActions.ts     — (deps) => Action[]
+  agentResources.ts   — (deps) => Resource[]
+  useAgentServer.ts   — register / unregister
 ```
 
-### Resources
-
-Resources are the agent's window into app state. Write `description` as you would a function docstring — the agent reads it to decide when to fetch the resource.
+Resource `read()` returns `{ type: 'json', data }` (preferred) or `{ type: 'text', text }`. Write `description` like a docstring.
 
 ```typescript
 // src/features/agent/agentResources.ts
 import { createAgentResource } from '@cognite/app-sdk';
-import type { StorageService } from '../storage/StorageService';
 
 export function buildAgentResources(storage: StorageService) {
   return [
@@ -161,35 +116,27 @@ export function buildAgentResources(storage: StorageService) {
       uri: 'my-app://current-state',
       name: 'Current application state',
       description:
-        'The current list of items visible in the app, their statuses, and any active filters. Read this before answering questions about what the user is looking at.',
+        'Items currently visible, their statuses, and active filters. Read before answering questions about what the user is looking at.',
       async read() {
-        const data = storage.getAll();
-        return [{ type: 'json', data }];
+        return [{ type: 'json', data: storage.getAll() }];
       },
     }),
   ];
 }
 ```
 
-Each resource's `read()` returns an array of content parts:
-- `{ type: 'json', data: unknown }` — structured data (preferred; agent reasons over it directly)
-- `{ type: 'text', text: string }` — free-form text
-
-### Actions
-
-Actions are tools the agent can invoke. Use `snake_case` names and Zod for parameter schemas. The `.describe()` on each field is the agent's documentation.
+Actions: `snake_case` names, Zod params, `.describe()` on every field. The agent does **not** confirm before calling — mutating actions must say so in `description` and require prior user approval.
 
 ```typescript
 // src/features/agent/agentActions.ts
 import { createAgentAction } from '@cognite/app-sdk';
 import { z } from 'zod';
-import type { DataService } from '../data/DataService';
 
 export function buildAgentActions(dataService: DataService) {
   return [
     createAgentAction({
       name: 'get_item_details',
-      description: 'Retrieve full details for a specific item by ID. Returns all fields including history.',
+      description: 'Full details for an item by ID, including history.',
       parameters: z.object({
         item_id: z.string().describe('The ID of the item to retrieve'),
       }),
@@ -202,13 +149,11 @@ export function buildAgentActions(dataService: DataService) {
 }
 ```
 
-**Mutating actions:** The agent does NOT ask the user for confirmation before calling actions — so use caution with actions that write data. Be explicit in the `description` that the action is destructive, and require the user to have approved before the agent calls it.
-
 ```typescript
 createAgentAction({
   name: 'update_item_status',
   description:
-    'Update the status of an item. Call this ONLY when the user has explicitly approved the change. The UI updates immediately.',
+    'Update item status. Call ONLY when the user has explicitly approved the change.',
   parameters: z.object({
     item_id: z.string().describe('The item to update'),
     status: z.enum(['active', 'closed', 'pending']).describe('The new status'),
@@ -219,8 +164,6 @@ createAgentAction({
   },
 })
 ```
-
-### Lifecycle hook
 
 ```typescript
 // src/features/agent/useAgentServer.ts
@@ -237,17 +180,14 @@ export function useAgentServer(api: HostAppAPI | null): void {
 
   useEffect(() => {
     if (!api) return;
-
     const server = createAgentServer({
-      uri: 'my-app',   // namespaced by Fusion with instance ID — no need to be globally unique
+      uri: 'my-app', // Fusion namespaces with instance ID
       actions: buildAgentActions(dataService),
       resources: buildAgentResources(storage),
     });
-
     void registerAgentServer(api, server).catch((err: unknown) => {
       console.warn('[agent] registerAgentServer failed:', err);
     });
-
     return () => {
       void api.unregisterAgentServer('my-app').catch((err: unknown) => {
         console.warn('[agent] unregisterAgentServer failed:', err);
@@ -257,86 +197,65 @@ export function useAgentServer(api: HostAppAPI | null): void {
 }
 ```
 
-Call `useAgentServer(api)` near the root of your component tree, after `api` is available.
-
 ---
 
-## Step 6 — Wire it all together
-
-Call `useHostApp()` at the root, pass `api` to `useAgentServer`, and thread it down to any UI triggers:
+## Step 6 — Wire together
 
 ```tsx
-// src/App.tsx
 function App() {
   const api = useHostApp();
-  useAgentServer(api);   // registers resources + actions when api is ready
+  useAgentServer(api);
 
   return (
     <AppLayout>
-      <MainContent />
-      {api && (
-        <ToolbarButton onClick={() => api.sendAgentLayoutMode({ mode: 'sidebar' })}>
-          Open Assistant
-        </ToolbarButton>
-      )}
+      <MainContent onAnalyseItem={async (item) => {
+        if (!api) return;
+        await api.sendAgentLayoutMode({ mode: 'sidebar' });
+        await api.sendAgentMessage({
+          message: `Analyse "${item.name}" (id: ${item.id}).`,
+          newSession: true,
+        });
+      }} />
     </AppLayout>
   );
 }
 ```
 
----
-
-## Dev vs. production
-
-| Environment | `connectToHostApp` | Effect |
-|---|---|---|
-| Inside Fusion | Resolves with `{ api }` | All features work |
-| Standalone `vite dev` | Rejects | Agent features silently disabled |
-
-This is handled by the `useHostApp` hook above — no extra conditionals needed elsewhere.
-
----
-
-## Testing
-
-Because `buildAgentActions` and `buildAgentResources` are pure factories that accept services as arguments, test them directly without mounting React:
+Test factories directly:
 
 ```typescript
-// agentActions.test.ts
-const mockDataService = { getItem: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }) };
-const [getItemAction] = buildAgentActions(mockDataService);
-
+const [getItemAction] = buildAgentActions({
+  getItem: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }),
+});
 const result = await getItemAction.handler({ item_id: '1' });
 expect(result.content[0].data).toEqual({ id: '1', name: 'Test' });
 ```
 
 ---
 
-## Known pitfalls
+## Hard gate — LLM calls over query results
 
-### `setApi(resolvedApi)` stores a Promise, not the proxy
+Do not map chat completions (Atlas `agents/chat`, OpenAI/Anthropic, `useAtlasChat().send`) over DMS/SDK rows. Prefer one `sendAgentMessage` or a resource the sidebar agent can read.
 
-Comlink proxies are callable objects. React's `useState` setter, when given a function, calls it as `fn(prevState)` to compute the new state. Because a Comlink proxy responds to function calls (forwarding them to the remote), `setApi(proxy)` causes React to invoke the proxy, and the resulting Promise becomes the state value.
+If per-item completions are an explicit product requirement (default: no):
 
-**Symptom:** `api` appears non-null (a Promise is truthy), but calling `api.sendAgentLayoutMode(...)` or checking `typeof api.sendAgentLayoutMode` returns nonsense.
+| Rule | Limit |
+| --- | --- |
+| Default | **5** completions per user-initiated action |
+| Ceiling | **50** — never generate code that can exceed this |
+| Cache | `space:externalId:lastUpdatedTime`; hits do not spend budget |
+| Batch | One prompt covering N items, not N calls |
+| Trigger | User-initiated only — never on render, poll, or an unbounded list |
+| UX | Say when the cap truncated the set |
 
-**Fix:** Always use the updater form: `setApi(() => resolvedApi)`.
-
-### `typeof proxy.method === 'function'` is always `true`
-
-Comlink Proxy objects return `'function'` for any property access via `typeof`. This means you cannot use `typeof` guards to detect whether a method is actually supported by the host. Use `try/catch` or `.catch()` on the call instead.
+Forbidden: `items.map((row) => complete(row))`, `Promise.all` of completions over a query page.
 
 ---
 
 ## Checklist
 
-- [ ] `@cognite/app-sdk@0.3.1+` installed
-- [ ] `useHostApp` hook uses `setApi(() => resolvedApi)` — NOT `setApi(resolvedApi)`
-- [ ] `useHostApp` hook catches rejection (outside Fusion), stores `api` in state
-- [ ] Agent UI buttons only render when `api` is not null
-- [ ] `useAgentServer` registered on mount, unregistered on unmount
-- [ ] `registerAgentServer` and `unregisterAgentServer` calls have `.catch()` handlers
-- [ ] Resource `description` fields explain what data is returned and when to read it
-- [ ] Action `name` fields are `snake_case`
-- [ ] Mutating actions warn in their `description` that confirmation is required
-- [ ] Services injected into action/resource factories (not imported directly) — enables unit testing
+- [ ] Topbar Atlas launcher (`use-topbar`); no in-app chat widget
+- [ ] `@cognite/app-sdk@0.3.1+`; `setApi(() => resolvedApi)`; catch outside-Fusion rejection
+- [ ] Triggers hidden when `api` is null; server registered/unregistered with `.catch()`
+- [ ] Resource descriptions say what/when; action names `snake_case`; mutating actions require prior approval
+- [ ] Factories take services as args; LLM-over-rows capped (5 / max 50) and cached if present
