@@ -12,7 +12,15 @@ Scaffold an `AtlasTool` named **$ARGUMENTS**. If the app has no approved in-app 
 
 **Prerequisite:** vendored `src/atlas-agent/` and `@sinclair/typebox` from `integrate-atlas-chat`.
 
-Agent sends `clientTool` → TypeBox validates → `execute()` returns `{ output, details }`. `output` goes back to the agent; `details` is on `message.toolCalls` for the UI.
+## Background
+
+Client tools let the Atlas Agent invoke browser-side logic — charts, local state, UI panels, navigation. The agent decides when to call; the app executes and returns a result.
+
+1. Agent responds with a `clientTool` action
+2. TypeBox validates the arguments
+3. `execute()` runs in the browser and returns `{ output, details }`
+4. `output` (string) is sent back to the agent
+5. `details` is available on `message.toolCalls` for the UI to render
 
 ---
 

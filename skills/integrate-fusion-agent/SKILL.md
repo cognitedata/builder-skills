@@ -14,7 +14,7 @@ allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 
 Default AI path: the platform Atlas sidebar (EOS / Fusion PAIA) via `@cognite/app-sdk`. Do not embed `useAtlasChat`, vendor `atlas-agent`, or call third-party LLM APIs.
 
-`integrate-atlas-chat` only if the user explicitly requires in-app chat **and** the app is not hosted in Fusion/EOS.
+`integrate-atlas-chat` only if the user explicitly requires in-app chat **and** `connectToHostApp` cannot provide the sidebar (standalone app; always rejects). There is no manifest field for this.
 
 Implement only what is needed:
 
