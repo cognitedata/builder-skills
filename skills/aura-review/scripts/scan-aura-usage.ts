@@ -388,8 +388,6 @@ function main(): void {
     },
     auraUsages,
     nonAuraUsages,
-    allAuraUsages,
-    allNonAuraUsages,
     escapeHatches,
     // Framework/routing/provider noise and namespaced tags, excluded from
     // every count above but kept here so nothing is silently dropped.

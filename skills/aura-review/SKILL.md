@@ -57,6 +57,10 @@ a reliable index of story code (index.json / per-story JSON work).
 ## Step 0 — locate the app and confirm prerequisites
 
 Resolve `<app-dir>` from `$ARGUMENTS`, or default to the current directory.
+Print the resolved absolute `<app-dir>` path before doing anything else — if
+`$ARGUMENTS` was empty and this silently defaulted to the current directory,
+that's the only signal a user gets that they may be auditing the wrong app.
+
 Confirm `<app-dir>/node_modules/@cognite/aura/package.json` and
 `<app-dir>/node_modules/@cognite/aura/DESIGN.md` both exist — if not, stop and
 report that `npm`/`pnpm install` needs to run first (this skill never installs
@@ -97,10 +101,6 @@ Read the resulting `aura-review/scan.json`. It contains:
   `unresolved-local` for components defined in the same file) — this covers
   both first-party components the app built and third-party ones it chose
   instead (icons, `react-router-dom`, providers, etc.).
-- `allAuraUsages` / `allNonAuraUsages` — the same two populations, but as raw
-  per-occurrence lists (so `Card` used 6 times is 6 entries, not 1). Useful
-  for locating a specific usage or for occurrence-weighted analysis later;
-  not what `auraCoveragePct` is based on.
 - `excludedUsages` — framework/router noise (`Route`, `Link`, `Fragment`,
   ...) and namespaced tags (`React.StrictMode`, property access on a
   namespace import, not a component the app authored). Excluded from every
@@ -153,10 +153,20 @@ deliberate choice unrelated to Aura, not a compliance signal):
 5. If none of those sources support a specific match, record
    `{ identifier, couldHaveBeenAura: null }` — do not guess.
 
-`nonCompliancePct` = (# entries with a non-null `couldHaveBeenAura`) ÷
-(total entries considered). Report the count either side of that ratio, not
-just the percentage — a percentage over 2 components reads very differently
-than over 20.
+`couldHaveBeenAuraPct` = (# entries with a non-null `couldHaveBeenAura`) ÷
+(total entries considered, i.e. `couldHaveBeenAuraConsideredCount`). Report
+the count either side of that ratio, not just the percentage — a percentage
+over 2 components reads very differently than over 20.
+
+Also report `couldHaveBeenAuraOfNonAuraPct` = (# entries with a non-null
+`couldHaveBeenAura`) ÷ `nonAuraUsages.length` (the full distinct non-Aura
+population from the scan, including `external` entries this step
+deliberately skipped). This is a secondary, broader-context number — it's
+expected to read lower than `couldHaveBeenAuraPct` whenever the app has
+legitimate third-party usage, since that usage counts in this denominator
+but was never a compliance candidate. Don't use it in place of
+`couldHaveBeenAuraPct`; the considered-only ratio above is still the fair
+compliance signal.
 
 ## Step 4 — judge documented usage-quality findings
 
@@ -188,7 +198,7 @@ Write `aura-review/report.md`:
 ## Headline numbers
 
 - Aura coverage: <auraCoveragePct>% (<auraUsages> / <totalUsages> distinct component types; <allAuraUsages> / <allAuraUsages + allNonAuraUsages> raw occurrences)
-- Non-compliance: <nonCompliancePct>% (<n> / <total> custom components had a documented Aura equivalent)
+- Could have been Aura: <couldHaveBeenAuraPct>% (<n> / <total> custom components had a documented Aura equivalent; <couldHaveBeenAuraOfNonAuraPct>% of all non-Aura usages)
 - Documented usage-quality findings: <count>
 
 ## Non-compliance findings
@@ -218,9 +228,10 @@ consumes, so keep the field names stable:
   "nonAuraUsages": 5,
   "allAuraUsages": 18,
   "allNonAuraUsages": 11,
-  "nonCompliancePct": 0.25,
-  "nonCompliantCount": 2,
-  "nonCompliantConsideredCount": 8,
+  "couldHaveBeenAuraPct": 0.25,
+  "couldHaveBeenAuraCount": 2,
+  "couldHaveBeenAuraConsideredCount": 8,
+  "couldHaveBeenAuraOfNonAuraPct": 0.4,
   "usageQualityFindingsCount": 3
 }
 ```
@@ -230,5 +241,5 @@ consumes, so keep the field names stable:
 Print to stdout, so a CI log shows the result without opening any file:
 
 ```
-aura-review: coverage=<auraCoveragePct>% non-compliance=<nonCompliancePct>% (<n>/<total>) usage-quality-findings=<count>
+aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAuraPct>% (<n>/<total>) usage-quality-findings=<count>
 ```
