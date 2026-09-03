@@ -1,17 +1,16 @@
 ---
 name: aura-review
 description: >-
-  Fully automated, engineering-based audit of how well a generated app uses
-  Aura components — no human interaction required, so it is safe to run
-  unattended in CI. Scans the app's own source with a bundled TypeScript AST
-  script to compute an Aura coverage percentage and flag raw Tailwind
-  color/spacing/arbitrary-value overrides on Aura components ("escape
-  hatches"), then uses DESIGN.md and the public Aura docs sites to judge
-  whether custom, first-party components could have been Aura components
-  instead — only when a specific documented "Use when" rule supports it.
-  Writes aura-review/report.md and aura-review/stats.json. Use when asked to
-  run an Aura audit, check Aura compliance, or score how compliant an app is
-  with the Aura design system.
+  Checks how well an app uses Aura, Cognite's design system: what fraction of
+  its components are Aura vs. custom-built, whether any custom components
+  should really have been an existing Aura component, and whether Aura
+  components got styled in ways that break the design system's own rules.
+  Runs fully automatically by scanning the app's source and checking it
+  against Aura's docs — no back-and-forth, so it also works unattended in CI.
+  Writes a plain-language report to aura-review/report.md and a
+  machine-readable aura-review/stats.json. Use when asked to run an Aura
+  audit, check Aura compliance, or score how compliant an app is with the
+  Aura design system.
 allowed-tools: Read, Glob, Grep, Bash, Write, WebFetch
 ---
 
