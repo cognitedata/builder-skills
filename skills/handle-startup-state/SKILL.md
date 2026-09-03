@@ -36,8 +36,7 @@ regardless of source:
   `api.syncInternalState(...)` (the `customAppInternalState` URL param).
 - A host embedded your app with a startup argument baked in (a Flows
   dashboard widget, or any other surface that programmatically launches your
-  app with initial arguments). There's no UI for this on the host side —
-  it's set in the host's own config, not by your app.
+  app with initial arguments).
 - The app was reloaded and the current URL still has the param from an
   earlier `syncInternalState` call.
 
@@ -100,7 +99,10 @@ export function useAppState() {
         setState(parseInitialState(initialState));
       })
       .catch(() => {
-        // Outside Fusion (standalone `vite dev`) — continue with defaults.
+        // connectToHostApp rejects when there's no Fusion parent window to
+        // connect to (e.g. opening the raw Vite dev URL directly instead of
+        // through Fusion). api and state simply stay at their initial
+        // values (null / DEFAULT_STATE) — nothing else to do here.
       });
   }, []);
 
@@ -115,8 +117,6 @@ Key points:
   `undefined` fields breaking downstream components.
 - **`try`/`catch` around `JSON.parse`, always** — this is the one part of
   this skill that is not optional.
-- Comlink proxies are callable, so `setApi(proxy)` makes React treat the
-  proxy as a state *updater function*. Always wrap it: `setApi(() => resolvedApi)`.
 - Extract the parsing logic (`parseInitialState`) into a plain function so
   it's unit-testable without mounting a component or mocking
   `connectToHostApp`.
@@ -139,13 +139,12 @@ function App() {
 }
 ```
 
-## Step 4 — Only if you also want shareable URLs: sync state back
+## Step 4 — Sync state back with `syncInternalState`
 
-Reading `initialState` and writing `syncInternalState` are independent —
-implement Step 4 only if you want users to be able to copy the current URL
-and share it. If your app is only ever launched with host-provided startup
-arguments (never itself producing shareable links), you can stop after
-Step 3.
+Do this by default so the current URL always reflects what the user is
+looking at, and can be copied and shared. Skip it only if your app is
+launched exclusively with host-provided startup arguments and truly has no
+notion of a shareable link (rare — most apps benefit from this).
 
 ```typescript
 function updateState(patch: Partial<AppState>) {
@@ -158,10 +157,18 @@ function updateState(patch: Partial<AppState>) {
 ```
 
 `syncInternalState` **replaces** the stored value on every call — always
-pass the complete state object, not just the changed field. See
+pass the complete state object, not just the changed field.
+
+Keep the serialized state small. It's URL-encoded into the
+`customAppInternalState` search param, and browsers cap total URL length at
+roughly **2,000 characters** (varies by browser/server). As a rule of thumb,
+keep your serialized state under a **few hundred characters**: store IDs and
+view parameters (active tab, selected asset ID, filters), not full data
+objects or large blobs — re-fetch data from the API on mount using the
+restored IDs instead of persisting the data itself. See
 [App state in URLs](https://docs.cognite.com/cdf/flows/guides/shareable-app-state-with-urls)
-for the full write-side guide, including what to include/exclude from
-persisted state and the URL length caveat.
+for the full write-side guide and the include/exclude table for what
+belongs in persisted state.
 
 ## Step 5 — Add tests
 
@@ -205,8 +212,11 @@ describe('parseInitialState', () => {
 - [ ] Parsing logic extracted into a plain, unit-testable function
 - [ ] `connectToHostApp().catch()` handled — app still renders with
       defaults when run standalone (outside Fusion)
-- [ ] If shareable URLs are also needed: `syncInternalState` called with
-      the full state object on every change, not just the changed field
+- [ ] `syncInternalState` called with the full state object on every
+      change (not just the changed field), unless there's a specific
+      reason to skip syncing back
+- [ ] Serialized state kept small (IDs and view params, not full data
+      objects) to stay well under the ~2,000-character URL length limit
 
 ## Related
 
