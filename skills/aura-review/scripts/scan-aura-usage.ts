@@ -1,16 +1,3 @@
-// This file may be replaced by a standardised usage scan from Aura 
-// metrics work undertaken by Tom Scott <tom.scott@cognite.com>
-//
-// Objective, deterministic scan for the aura-review skill.
-//
-// Usage: npx tsx scan-aura-usage.ts <app-dir> [--out <file>]
-//
-// Walks <app-dir>/src for every capitalized JSX component usage, resolves
-// which ones are @cognite/aura components, and flags raw color/spacing/
-// arbitrary-value overrides on Aura component usages ("escape hatches").
-// Deliberately does no judgment calls (that's the LLM's job in SKILL.md) —
-// this script only reports what is objectively true about the source.
-
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import ts from 'typescript';
@@ -88,9 +75,6 @@ function loadAvailableComponentSlugs(appDir: string): string[] {
     .map((key) => key.slice('./components/'.length));
 }
 
-// Framework/routing/provider/icon identifiers are not design-system
-// substitution candidates — excluded from both the coverage and
-// non-compliance denominators, but still recorded for transparency.
 const STRUCTURAL_IDENTIFIER_DENYLIST = new Set([
   'Fragment',
   'StrictMode',
@@ -121,10 +105,6 @@ function collectImports(source: ts.SourceFile): Map<string, string> {
   return importsByIdentifier;
 }
 
-// Only called once a tag has already failed Aura-slug resolution, so
-// "from @cognite/aura but not a known slug" (e.g. a hook or type used as
-// JSX by mistake) is bucketed as 'external' rather than getting its own
-// case — it isn't a design-system usage signal either way.
 function classifyImportSource(
   moduleSpecifier: string | undefined
 ): 'relative' | 'external' | 'unresolved-local' {
@@ -161,11 +141,6 @@ function classifyClassNameRegion(region: string): string[] {
 interface AuraElementUsage {
   identifier: string;
   slug: string;
-  // True for the family's own tag (e.g. `Card`), false for a compound/slot
-  // sub-component of it (e.g. `CardContent`, `CardHeader`). Sub-components
-  // still get scanned for escape hatches, but don't count as a separate
-  // "component usage" — a Card composed of five slots is one usage of
-  // Card, not five usages of the design system.
   isRootComponent: boolean;
   file: string;
   line: number;
@@ -230,9 +205,6 @@ function scan(appDir: string): {
             source.getLineAndCharacterOfPosition(node.getStart(source)).line +
             1;
 
-          // Dotted tags (React.StrictMode, Motion.div, ...) are property
-          // access on a namespace import, not a component the app
-          // authored — not a design-system compliance signal either way.
           if (identifier.includes('.')) {
             excludedUsages.push({
               identifier,
@@ -250,11 +222,6 @@ function scan(appDir: string): {
           } else {
             const moduleSpecifier =
               importsByIdentifier.get(identifier) ?? null;
-            // Only resolve against Aura's slug index when the tag was
-            // actually imported from @cognite/aura — matching by name
-            // prefix alone (e.g. a first-party `CommandCenterNav`
-            // starting with Aura's `Command` slug) produces false
-            // positives otherwise.
             const slug = moduleSpecifier?.startsWith('@cognite/aura')
               ? (resolveSlugForIdentifier(identifier, slugIndex) ?? null)
               : null;
@@ -313,10 +280,6 @@ function main(): void {
 
   const availableAuraComponents = availableAuraSlugs.map(pascalCase);
 
-  // Only root-family tags (e.g. `Card`) count as a "component usage" for
-  // coverage purposes — compound slots (`CardContent`, `CardHeader`, ...)
-  // are part of that same usage, not usages of their own. They still show
-  // up below in escapeHatches.
   const allAuraUsages = auraElementUsages.filter((u) => u.isRootComponent);
 
   function groupByIdentifier<T extends { identifier: string; file: string; line: number }>(
@@ -337,10 +300,6 @@ function main(): void {
     }));
   }
 
-  // Distinct, grouped views — one entry per component type, with every
-  // occurrence's location folded in. This is what auraCoveragePct is based
-  // on: how many different *kinds* of components were used, not how many
-  // times each was used.
   const auraUsages = groupByIdentifier(allAuraUsages, (first) => ({
     slug: first.slug,
   }));
@@ -349,10 +308,6 @@ function main(): void {
     moduleSpecifier: first.moduleSpecifier,
   }));
 
-  // Escape hatches are checked on every Aura element, including compound
-  // slots — a raw color/spacing override on `CardContent` is just as real
-  // a compliance issue as one on `Card` itself, even though it doesn't
-  // count as its own "usage" above.
   const escapeHatches = auraElementUsages
     .filter((u) => u.escapeHatchCategories.length > 0)
     .map((u) => ({
@@ -367,18 +322,11 @@ function main(): void {
   const totalUsages = auraUsages.length + nonAuraUsages.length;
 
   const result = {
-    // Aura's full component catalog, for computing catalog utilization in
-    // aggregate across many scans — deliberately not the denominator for
-    // this run's auraCoveragePct (see SKILL.md for why).
     availableAuraComponents,
     totals: {
       totalUsages,
-      // Distinct component-type counts — what auraCoveragePct is based on.
       auraUsages: auraUsages.length,
       nonAuraUsages: nonAuraUsages.length,
-      // Raw occurrence counts — how many times a tag appeared, not how many
-      // distinct kinds of components. Useful context (e.g. "Card was reused
-      // 6 times"), but not what auraCoveragePct is based on.
       allAuraUsages: allAuraUsages.length,
       allNonAuraUsages: allNonAuraUsages.length,
       auraCoveragePct:
@@ -389,8 +337,6 @@ function main(): void {
     auraUsages,
     nonAuraUsages,
     escapeHatches,
-    // Framework/routing/provider noise and namespaced tags, excluded from
-    // every count above but kept here so nothing is silently dropped.
     excludedUsages,
   };
 
