@@ -3,7 +3,7 @@ name: handle-startup-state
 description: >-
   MUST be used when a Flows/Fusion app needs to read state it was launched
   with — a deep link, a shareable URL, or startup/bootstrap arguments set by
-  a host embedding the app (e.g. an EOS dashboard widget). Triggers:
+  a host embedding the app (e.g. a Flows dashboard widget). Triggers:
   initialState, connectToHostApp initialState, startup arguments, bootstrap
   state, initial state, deep link, restore state on mount, syncInternalState,
   customAppInternalState.
@@ -34,7 +34,7 @@ regardless of source:
 
 - A user opened a shareable URL your app previously wrote via
   `api.syncInternalState(...)` (the `customAppInternalState` URL param).
-- A host embedded your app with a startup argument baked in (an EOS
+- A host embedded your app with a startup argument baked in (a Flows
   dashboard widget, or any other surface that programmatically launches your
   app with initial arguments). There's no UI for this on the host side —
   it's set in the host's own config, not by your app.
