@@ -29,38 +29,76 @@ function walkSourceFiles(rootDir: string, extensions: string[]): string[] {
   return files;
 }
 
-function pascalCase(slug: string): string {
-  return slug
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
+function isPascalCase(name: string): boolean {
+  return /^[A-Z]/.test(name);
 }
 
-interface SlugPascalEntry {
-  slug: string;
-  pascal: string;
+function hasExportModifier(node: ts.Node): boolean {
+  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+  return !!modifiers?.some((m: ts.Modifier) => m.kind === ts.SyntaxKind.ExportKeyword);
 }
 
-function buildSlugPascalIndex(availableSlugs: string[]): SlugPascalEntry[] {
-  return availableSlugs
-    .map((slug) => ({ slug, pascal: pascalCase(slug) }))
-    .sort((a, b) => b.pascal.length - a.pascal.length);
-}
-
-function resolveSlugForIdentifier(
-  identifier: string,
-  slugsByPascalLengthDesc: SlugPascalEntry[]
-): string | undefined {
-  return slugsByPascalLengthDesc.find(({ pascal }) =>
-    identifier.startsWith(pascal)
-  )?.slug;
-}
-
-function loadAvailableComponentSlugs(appDir: string): string[] {
-  const packageJsonPath = path.join(
-    appDir,
-    'node_modules/@cognite/aura/package.json'
+function extractExportedIdentifiers(typesFilePath: string): string[] {
+  if (!fs.existsSync(typesFilePath)) return [];
+  const content = fs.readFileSync(typesFilePath, 'utf-8');
+  const source = ts.createSourceFile(
+    typesFilePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
   );
+  const names = new Set<string>();
+
+  for (const statement of source.statements) {
+    if (ts.isExportDeclaration(statement)) {
+      if (statement.isTypeOnly) continue;
+      if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
+        for (const element of statement.exportClause.elements) {
+          if (element.isTypeOnly) continue;
+          if (isPascalCase(element.name.text)) names.add(element.name.text);
+        }
+      }
+      continue;
+    }
+    if (ts.isFunctionDeclaration(statement) && statement.name && hasExportModifier(statement)) {
+      if (isPascalCase(statement.name.text)) names.add(statement.name.text);
+      continue;
+    }
+    if (ts.isClassDeclaration(statement) && statement.name && hasExportModifier(statement)) {
+      if (isPascalCase(statement.name.text)) names.add(statement.name.text);
+      continue;
+    }
+    if (ts.isVariableStatement(statement) && hasExportModifier(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name) && isPascalCase(declaration.name.text)) {
+          names.add(declaration.name.text);
+        }
+      }
+    }
+  }
+
+  return [...names];
+}
+
+function pickRootIdentifiers(identifiers: string[]): string[] {
+  if (identifiers.length <= 1) return identifiers;
+  const shortest = [...identifiers].sort((a, b) => a.length - b.length)[0];
+  const shortestIsCommonPrefix = identifiers.every(
+    (id) => id === shortest || id.startsWith(shortest)
+  );
+  return shortestIsCommonPrefix ? [shortest] : identifiers;
+}
+
+interface ComponentCatalogEntry {
+  slug: string;
+  identifiers: string[];
+  rootIdentifiers: string[];
+}
+
+function loadComponentCatalog(appDir: string): ComponentCatalogEntry[] {
+  const auraDir = path.join(appDir, 'node_modules/@cognite/aura');
+  const packageJsonPath = path.join(auraDir, 'package.json');
   if (!fs.existsSync(packageJsonPath)) {
     throw new Error(
       `Could not find @cognite/aura package.json at ${packageJsonPath}. ` +
@@ -69,10 +107,15 @@ function loadAvailableComponentSlugs(appDir: string): string[] {
   }
   const packageJson = JSON.parse(
     fs.readFileSync(packageJsonPath, 'utf-8')
-  ) as { exports: Record<string, unknown> };
-  return Object.keys(packageJson.exports)
-    .filter((key) => key.startsWith('./components/'))
-    .map((key) => key.slice('./components/'.length));
+  ) as { exports: Record<string, { types?: string } | undefined> };
+  return Object.entries(packageJson.exports)
+    .filter(([key]) => key.startsWith('./components/'))
+    .map(([key, value]) => {
+      const slug = key.slice('./components/'.length);
+      const typesPath = value?.types ? path.join(auraDir, value.types) : null;
+      const identifiers = typesPath ? extractExportedIdentifiers(typesPath) : [];
+      return { slug, identifiers, rootIdentifiers: pickRootIdentifiers(identifiers) };
+    });
 }
 
 const STRUCTURAL_IDENTIFIER_DENYLIST = new Set([
@@ -164,13 +207,20 @@ interface ExcludedElementUsage {
 }
 
 function scan(appDir: string): {
-  availableAuraSlugs: string[];
+  catalog: ComponentCatalogEntry[];
   auraElementUsages: AuraElementUsage[];
   nonAuraUsages: NonAuraElementUsage[];
   excludedUsages: ExcludedElementUsage[];
 } {
-  const availableAuraSlugs = loadAvailableComponentSlugs(appDir);
-  const slugIndex = buildSlugPascalIndex(availableAuraSlugs);
+  const catalog = loadComponentCatalog(appDir);
+  const identifierToSlug = new Map<string, string>();
+  const rootIdentifiers = new Set<string>();
+  for (const entry of catalog) {
+    for (const identifier of entry.identifiers) {
+      if (!identifierToSlug.has(identifier)) identifierToSlug.set(identifier, entry.slug);
+    }
+    for (const identifier of entry.rootIdentifiers) rootIdentifiers.add(identifier);
+  }
   const auraElementUsages: AuraElementUsage[] = [];
   const nonAuraUsages: NonAuraElementUsage[] = [];
   const excludedUsages: ExcludedElementUsage[] = [];
@@ -223,7 +273,7 @@ function scan(appDir: string): {
             const moduleSpecifier =
               importsByIdentifier.get(identifier) ?? null;
             const slug = moduleSpecifier?.startsWith('@cognite/aura')
-              ? (resolveSlugForIdentifier(identifier, slugIndex) ?? null)
+              ? (identifierToSlug.get(identifier) ?? null)
               : null;
 
             if (slug) {
@@ -231,7 +281,7 @@ function scan(appDir: string): {
               auraElementUsages.push({
                 identifier,
                 slug,
-                isRootComponent: identifier === pascalCase(slug),
+                isRootComponent: rootIdentifiers.has(identifier),
                 file: relativeFile,
                 line,
                 classNameRegion,
@@ -258,7 +308,7 @@ function scan(appDir: string): {
     visit(source);
   }
 
-  return { availableAuraSlugs, auraElementUsages, nonAuraUsages, excludedUsages };
+  return { catalog, auraElementUsages, nonAuraUsages, excludedUsages };
 }
 
 function main(): void {
@@ -272,13 +322,15 @@ function main(): void {
   const outFile = outIndex !== -1 ? args[outIndex + 1] : null;
 
   const {
-    availableAuraSlugs,
+    catalog,
     auraElementUsages,
     nonAuraUsages: allNonAuraUsages,
     excludedUsages,
   } = scan(path.resolve(appDir));
 
-  const availableAuraComponents = availableAuraSlugs.map(pascalCase);
+  const availableAuraComponents = [
+    ...new Set(catalog.flatMap((entry) => entry.rootIdentifiers)),
+  ].sort();
 
   const allAuraUsages = auraElementUsages.filter((u) => u.isRootComponent);
 
