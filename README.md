@@ -30,7 +30,8 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | Skill | Description |
 |-------|-------------|
 | **flows-app-brief** | Certification coach (step 1) — captures app details, persona, problem, and success criteria, writes `App-Brief.md` |
-| **flows-code-review** | Technical review (step 3) — writes `reviews/code-review/feedback-round-<N>/{code-review-report.md, review-files.md, review-packages.md}` |
+| **flows-review-checks** | Shared technical-review bar (hunts, coverage scope, public criteria). Loaded by `flows-code-review` and by external review skills — do not copy |
+| **flows-code-review** | Local technical review runner (step 3) — loads `flows-review-checks`, writes `reviews/code-review/feedback-round-<N>/` |
 | **flows-design-review** | Manual design quality assessment (step 4) — scores the 10 quality-guidelines questions, writes `reviews/design-review/feedback-round-<N>/design-review-report.md` |
 | **flows-external-app-submit** | Submission gate (step 5) — verifies brief + code review (0 Must Fix) + design review (avg ≥ 3.8), then runs `npx @cognite/cli apps submit` |
 | **integrate-fusion-agent** | Default AI path — Atlas / EOS sidebar |
