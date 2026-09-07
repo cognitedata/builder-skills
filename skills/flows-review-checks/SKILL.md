@@ -2,8 +2,8 @@
 name: flows-review-checks
 description: >-
   Canonical Flows technical-review checks and scoring (hunt commands, coverage
-  scope, package audit, 13 criteria, Must/Should/Nice). Loaded by
-  flows-code-review and by any external/Zendesk review skill. Do not copy these
+  scope, package audit, public criteria, Must/Should/Nice). Loaded by
+  flows-code-review and by any external review skill. Do not copy these
   checks into another skill. Do not use this skill to fix code. Use when an
   orchestrator says to load flows-review-checks, or when aligning two review
   flows on the same bar.
@@ -12,7 +12,7 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 
 # Flows review checks (shared)
 
-This file is the **only** definition of what a Flows technical review must search for, how strict each bar is, and how to score 1.1–1.6, 2.1–2.6, 3.1.
+This file is the **public** definition of what a Flows technical review must search for in this repo, how strict each bar is, and how to score 1.1, 1.3–1.6, 2.1–2.6, 3.1.
 
 It does **not** decide:
 - whether you build the app
@@ -24,7 +24,7 @@ The **caller** sets those. Then it reads this file and runs every check.
 
 Do not edit the app. Do not “fix it now.”
 
-Load **`code-quality`** from the same `cognitedata/builder-skills` repo (see Step 1.6). Run its **searches**. Ignore every “fix / replace / write the file / pnpm add” instruction in that skill. Other skills (`test-coverage`, `security`, …) stay fixers and are not the review bar.
+Load **`code-quality`** from the same `cognitedata/builder-skills` repo (see hunt 1.5). Run its **searches**. Ignore every “fix / replace / write the file / pnpm add” instruction in that skill. Other skills (`test-coverage`, …) stay fixers and are not the review bar.
 
 ## Caller contract
 
@@ -43,7 +43,7 @@ Whatever the filenames, the review must include:
 1. **File inventory** — every `.ts`/`.tsx` except `node_modules`, `dist`, `.cognite-bundles`. Include `vitest.config.*` / `vite.config.*` / `jest.config.*`. Columns: Structure, Quality, Patterns, Tests, Notes. Then read every non-trivial production file (skip barrels, generated types, tests).
 2. **Findings** — every hunt below, with hits or `none`. Then must / should / nice with `file:line`.
 3. **Package audit** — Step 2 in this file.
-4. **Scored report** — 13 criteria, must/should/nice lists, `_Impact:_` on every Must Fix.
+4. **Scored report** — criteria 1.1, 1.3–1.6, 2.1–2.6, 3.1, must/should/nice lists, `_Impact:_` on every Must Fix.
 
 A 1–2 on any criterion is Must Fix. 3 is Should Fix. Gaps at 4 are Nice Fix.
 
@@ -81,18 +81,7 @@ grep -rn --include="*.tsx" -E "useQuery|useMutation|isLoading|isPending|isError"
 
 Flag: no ErrorBoundary; fetch UI with no loading / error / empty state; `useEffect` with timers, listeners, or async work and no cleanup; TODOs on critical paths.
 
-### 1.3 Security and SDK (criteria 1.1, 1.2)
-
-```bash
-grep -rn --include="*.ts" --include="*.tsx" --include="*.js" -E "(fetch\(|axios\.|axios\(|XMLHttpRequest)" src/
-grep -rn --include="*.ts" --include="*.tsx" -E "(cognitedata\.com|cognite\.ai|/api/v1/projects)" src/
-grep -rn --include="*.ts" --include="*.tsx" -E "dangerouslySetInnerHTML|innerHTML\s*=|eval\(|new Function\(" src/
-grep -rn --include="*.ts" --include="*.tsx" --include="*.js" -E "(password|secret|apikey|api_key|token|bearer|private_key)\s*=\s*['\"]" src/
-```
-
-Flag: `fetch`/`axios` to CDF; unsanitized HTML; hardcoded secrets.
-
-### 1.4 CDF Raw (criterion 2.6)
+### 1.3 CDF Raw (criterion 2.6)
 
 ```bash
 grep -rn --include="*.ts" --include="*.tsx" -E "client\.raw\.|\.raw\.(listRows|insertRows|retrieveRow|deleteRows)|listRows|insertRows|retrieveRow" src/
@@ -102,22 +91,17 @@ If there are **no hits**, 2.6 is **N/A**. Do not fold Raw issues into 2.1.
 
 Flag: Raw as the primary store; paging with no limit/cursor; download-then-filter in the client.
 
-### 1.5 DMS, limits, LLM (criteria 2.1–2.4)
+### 1.4 DMS and limits (criteria 2.1–2.5)
 
 ```bash
 grep -rn --include="*.ts" --include="*.tsx" -E "instances\.(list|search|query|aggregate|retrieve)" src/
 grep -rn --include="*.ts" --include="*.tsx" -E "QueuedTaskRunner|cdfTaskRunner" src/
 grep -rn --include="*.ts" --include="*.tsx" -E "429|Retry-After|exponential|backoff" src/
-grep -rn --include="*.ts" --include="*.tsx" -E "chat\.completions|agents/chat|useAtlasChat|openai|anthropic" src/
 ```
 
-Flag: `instances.list` for read-heavy UI that could be `query`/`search`; no limit/cursor; client-side filter of large results; no concurrency cap and no 429 handling; completions mapped over query rows.
+Flag: `instances.list` for read-heavy UI that could be `query`/`search`; no limit/cursor; client-side filter of large results; no concurrency cap and no 429 handling.
 
-If the app has chat, Atlas, an agent, or LLM calls, also read `integrate-fusion-agent` (local skill, or the same file the caller already uses). Custom in-app chat on Fusion/EOS is Should Fix; uncapped completions over query results are Must Fix.
-
-If the app imports `connectToHostApp`, `useHostApp`, or configures OAuth in Vite, also read `setup-flows-auth`.
-
-### 1.6 Quality and testability (criteria 1.5, 1.6) — includes `code-quality`
+### 1.5 Quality and testability (criteria 1.5, 1.6) — includes `code-quality`
 
 Load `skills/code-quality/SKILL.md` from **this same repo** (`cognitedata/builder-skills`). Local file if the workspace is `builder-skills`; otherwise:
 
@@ -177,13 +161,9 @@ Per `code-quality`: **lint errors and production `any` are blocking** (Must Fix)
 | ----- | ------------------------ |
 | ErrorBoundary | |
 | coverage/test exclude | |
-| fetch/axios / CDF URLs | |
-| dangerouslySetInnerHTML / eval | |
-| secrets | |
 | CDF Raw | |
 | instances.list/query/search | |
 | QueuedTaskRunner / 429 | |
-| LLM / Atlas | |
 | any / vi.mock | |
 | lint / tsc | |
 | CogniteClient / DI / ViewModel | |
@@ -262,9 +242,9 @@ For each non-trivial file: matching `.test.ts` / `.spec.ts`? If not, Tests: `✗
 
 ---
 
-## Step 4 — Score the 13 criteria
+## Step 4 — Score the public criteria
 
-Use hunt hits, files you read, coverage **scope**, and the package audit. Each score needs one or two sentences with paths. **N/A** only when the criterion does not apply (2.6 with no Raw usage is the usual case).
+Use hunt hits, files you read, coverage **scope**, and the package audit. Each score needs one or two sentences with paths. **N/A** only when the criterion does not apply (2.6 with no Raw usage is the usual case). Do not score **1.2** here.
 
 ### 1.1 No known bugs
 
@@ -280,21 +260,7 @@ Use hunt hits, files you read, coverage **scope**, and the package audit. Each s
 | 4 | Minor issues only; none affect core user flows or data integrity. |
 | 3 | Some known bugs or rough edges; workarounds exist or impact is limited. |
 | 2 | Material bugs, unreliable flows, or silent failures; users or data could be harmed. |
-| 1 | Broken primary flows, data corruption risk, or security-adjacent defects. |
-
-### 1.2 CDF access via Cognite SDK only
-
-**Check:** All CDF traffic through the official SDK. `fetch`/`axios`/raw REST to CDF-like URLs is a hit.
-
-**Fail this criterion (1–2) if:** a user-facing or data path talks to CDF outside the SDK, or tokens are handled by hand.
-
-| Score | Why |
-| ----- | --- |
-| 5 | CDF usage is exclusively via the SDK; non-CDF calls are minimal and intentional. |
-| 4 | SDK used for CDF; one borderline or legacy call worth confirming. |
-| 3 | Mix of SDK and direct calls with weak justification. |
-| 2 | Repeated or critical paths use raw CDF HTTP instead of the SDK. |
-| 1 | Custom CDF clients, token handling outside SDK patterns, or undisclosed CDF endpoints. |
+| 1 | Broken primary flows or data corruption risk. |
 
 ### 1.3 Dependencies and packages
 
@@ -407,21 +373,19 @@ export function useMyHook() {
 | 2 | Frequent large pages or prefetch storms. |
 | 1 | Unbounded lists, deep prefetch chains, or N+1 DMS patterns. |
 
-### 2.4 Rate of calls — do not hammer DMS or AI
+### 2.4 Rate of calls — do not hammer DMS
 
 **Check:** Debounce, batch, cache; no identical requests in a tight loop.
 
-**Hard gate:** Do not map chat completions over DMS rows. AI belongs in the Atlas / EOS sidebar (`integrate-fusion-agent`). Per-item completions: **5** / ceiling **50**, cached, user-initiated. Uncapped loops score 1–2 (Must Fix).
-
-**Fail this criterion (1–2) if:** uncapped LLM-over-rows, or request storms against DMS.
+**Fail this criterion (1–2) if:** request storms against DMS.
 
 | Score | Why |
 | ----- | --- |
-| 5 | Request rate matches user intent; caching/dedup in place; no per-row LLM fan-out (or ≤5, cached, user-initiated). |
+| 5 | Request rate matches user intent; caching/dedup in place. |
 | 4 | Mostly fine; a hot path could batch or debounce slightly. |
 | 3 | Chatty UI or polling without backoff; risk under concurrent users. |
-| 2 | Clear risk of overwhelming DMS, shared quotas, or project AI cost (uncapped completions over a result set). |
-| 1 | Tight loops, runaway polling, duplicate parallel identical calls, or unbounded LLM calls over query results. |
+| 2 | Clear risk of overwhelming DMS or shared quotas. |
+| 1 | Tight loops, runaway polling, or duplicate parallel identical calls. |
 
 ### 2.5 Throttling and 429 responses — backoff with jitter
 
@@ -459,8 +423,6 @@ Missing `QueuedTaskRunner` but TanStack Query (or similar) retries with backoff:
 
 **Check:** Aura components and tokens for layout, forms, tables, feedback, typography.
 
-**Atlas:** In Fusion/EOS, embedded `useAtlasChat` / vendored `atlas-agent` is **Should Fix**. Uncapped LLM fan-out is **Must Fix** under 2.4.
-
 A score of 3 does not block approval. Missing `aria-label` / unlabeled inputs → Should Fix even if Aura scores 4–5.
 
 | Score | Why |
@@ -475,8 +437,8 @@ A score of 3 does not block approval. Missing `aria-label` / unlabeled inputs �
 
 ## Step 5 — Categorize findings
 
-- **Must fix** (score 1–2): security issues (secrets, unsanitized HTML, high/critical CVEs, CDF outside the SDK), broken core flows, unbounded API or LLM-over-query-results, coverage < 80% **or coverage/test exclude lists hiding code or tests**, unreachable pages or significant dead code, **lint errors**, **production `any`**, no DI path, unbounded or primary-store CDF Raw.
-- **Should fix** (score 3): missing ErrorBoundary, missing loading/error/empty on some screens, missing `QueuedTaskRunner` when some retry exists, missing tests for non-trivial modules, client-side filtering of large datasets, missing backoff, a11y gaps, `vi.mock` overuse, custom in-app Atlas chat on Fusion/EOS, oversized components that mix fetch and UI, naming / folder-structure misses from `code-quality`.
+- **Must fix** (score 1–2): high/critical CVEs, broken core flows, unbounded API calls, coverage < 80% **or coverage/test exclude lists hiding code or tests**, unreachable pages or significant dead code, **lint errors**, **production `any`**, no DI path, unbounded or primary-store CDF Raw.
+- **Should fix** (score 3): missing ErrorBoundary, missing loading/error/empty on some screens, missing `QueuedTaskRunner` when some retry exists, missing tests for non-trivial modules, client-side filtering of large datasets, missing backoff, a11y gaps, `vi.mock` overuse, oversized components that mix fetch and UI, naming / folder-structure misses from `code-quality`.
 - **Nice to fix** (score 4 gaps): minor Aura inconsistencies, small cleanup, non-critical package updates, minor dead exports.
 
 Each Must Fix item needs `_Impact:_` (one sentence on user/customer consequence).
@@ -486,7 +448,6 @@ Scores table every report must include:
 | Area | Criterion | Score | Notes |
 | ---- | --------- | ----- | ----- |
 | User & customer | 1.1 Known bugs | /5 | |
-| User & customer | 1.2 CDF via SDK | /5 | |
 | User & customer | 1.3 Packages | /5 | |
 | User & customer | 1.4 Tests & coverage | /5 | |
 | User & customer | 1.5 Dead code | /5 | |
@@ -505,9 +466,9 @@ Scores table every report must include:
 
 The caller may add extra verify steps (artifact paths, no GitHub curl, Codespace, …). These always apply:
 
-1. Every hunt in Step 1 has hits or `none` (blank is not a result), including the `code-quality` searches in 1.6.
+1. Every hunt in Step 1 has hits or `none` (blank is not a result), including the `code-quality` searches.
 2. `code-quality` was loaded from `cognitedata/builder-skills` (local or `main`). Its fix steps were not applied.
 3. Coverage config was read. If excludes hide production code or tests, 1.4 is 1–2 and there is a Must Fix item — even if the printed % is ≥ 80%.
-4. Every criterion 1.1–1.6, 2.1–2.6, 3.1 has a score or **N/A** (2.6 only).
+4. Every scored criterion (1.1, 1.3–1.6, 2.1–2.6, 3.1) has a score or **N/A** (2.6 only).
 5. Every Must Fix has `_Impact:_`.
 6. Open must/should/nice counts match the lists.

@@ -18,7 +18,7 @@ This skill is the **local runner** for the technical review step:
 flows-app-brief  →  build  →  flows-code-review (this skill, repeat until clean)  →  flows-design-review  →  flows-external-app-submit
 ```
 
-**Checks and scoring live in `flows-review-checks`.** Do not copy them here. Do not score from memory. Do not substitute `security`, `test-coverage`, or other **fix** skills for the review bar.
+**Checks and scoring live in `flows-review-checks`.** Do not copy them here. Do not score from memory. Do not substitute `test-coverage` or other **fix** skills for the review bar.
 
 This file only decides: git/app-brief pre-checks, feedback-round folder, that the working directory is the app root, where to write files, and the submitter Summary block.
 
@@ -52,9 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/cognitedata/builder-skills/main/ski
 curl -fsSL https://raw.githubusercontent.com/cognitedata/builder-skills/main/skills/code-quality/SKILL.md
 ```
 
-Then `Glob '**/skills/flows-review-checks/SKILL.md'` and `Read` the first match (after a successful pull, that is the copy you just fetched). Follow it completely: hunt (including `code-quality` searches — do not apply its fixes), packages, coverage, 13 scores, categorization, shared verify.
-
-Do not pull or curl `security`, `test-coverage`, or skills from any other repo as the review bar.
+Then `Glob '**/skills/flows-review-checks/SKILL.md'` and `Read` the first match (after a successful pull, that is the copy you just fetched). Follow it completely: hunt (including `code-quality` searches — do not apply its fixes), packages, coverage, scores, categorization, shared verify.
 
 ## Step 2 — Write artifacts here
 
@@ -67,7 +65,7 @@ Round dir: `reviews/code-review/feedback-round-<N>/`
 | Package audit | `review-packages.md` |
 | Scored report | `code-review-report.md` |
 
-`code-review-report.md` must include everything `flows-review-checks` requires (checks performed, coverage **scope**, scores 1.1–2.6 and 3.1, must/should/nice with `_Impact:_` on Must Fix), plus:
+`code-review-report.md` must include everything `flows-review-checks` requires (checks performed, coverage **scope**, scores 1.1 and 1.3–1.6, 2.1–2.6, 3.1, must/should/nice with `_Impact:_` on Must Fix), plus:
 
 ```markdown
 # [App name] — Flows code review
