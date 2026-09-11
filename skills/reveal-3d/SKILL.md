@@ -106,20 +106,20 @@ Suggested versions are starting points. If the target app already pins compatibl
 
 | Package | Suggested version | Purpose |
 |---------|-------------------|---------|
-| `@cognite/reveal-widget` | `^0.1.0` | The `RevealWidget` component and its types |
+| `@cognite/reveal-widget` | `^0.2.0` | The `RevealWidget` component and its types |
 | `react` / `react-dom` | `^18.3.1` (peer) | UI framework — peer dependency, must match the app |
-| `@cognite/reveal` | `4.35.3` (peer) | Reveal viewer runtime — peer dependency, exact match required |
-| `@cognite/sdk` | `^10.13.0` (peer) | CDF API client — peer dependency |
+| `@cognite/reveal` | `4.36.0` | Reveal viewer runtime — exact match required. Pin to `4.36.0`, not the `4.35.3` in `@cognite/reveal-widget`'s own declared peer range — see note below. |
+| `@cognite/sdk` | `^10.14.0` (peer) | CDF API client — peer dependency |
 
-Everything else (`three`, `@tanstack/react-query`, `@base-ui/react`, `@floating-ui/react`, `@tabler/icons-react`, `dayjs`, `lodash-es`, `ml-matrix`, `random-seed`, `@cognite/aura`) is a transitive dependency of the package and installs automatically — do not add it manually unless the app needs to pin a version, **or unless app code imports from it directly**. The model-browser pattern in [implementation.md](references/implementation.md) does exactly that with `@tanstack/react-query` (`useInfiniteQuery`/`useQuery`) — add it as a direct dependency in that case, since importing from an undeclared transitive dependency breaks under strict package managers like pnpm.
+Everything else (`three`, `@tanstack/react-query`, `@base-ui/react`, `@floating-ui/react`, `@tabler/icons-react`, `dayjs`, `lodash-es`, `ml-matrix`, `random-seed`, `@cognite/aura`, `@cognite/reveal-components`) is a transitive dependency of the package and installs automatically — do not add it manually unless the app needs to pin a version, **or unless app code imports from it directly**. The model-browser pattern in [implementation.md](references/implementation.md) does exactly that with `@tanstack/react-query` (`useInfiniteQuery`/`useQuery`) — add it as a direct dependency in that case, since importing from an undeclared transitive dependency breaks under strict package managers like pnpm.
 
 Example install (pnpm; adapt to the app's package manager):
 
 ```bash
-pnpm add @cognite/reveal-widget @cognite/reveal @cognite/sdk react react-dom
+pnpm add @cognite/reveal-widget @cognite/reveal@4.36.0 @cognite/sdk react react-dom
 ```
 
-After install, check that the app's `@cognite/reveal` and `react`/`react-dom` versions satisfy the package's peer ranges (`@cognite/reveal` requires an exact `4.35.3` match).
+`@cognite/reveal-widget@0.2.0`'s own peer range still says `@cognite/reveal@4.35.3`, but its dependency `@cognite/reveal-components` hardcodes `@cognite/reveal@4.36.0` internally. Pin the app to `4.36.0` and confirm the lockfile resolves a single `@cognite/reveal` version — the peer range is stale, and a real version split here (unlike a `resolve.dedupe` gap) breaks Reveal's shared viewer state silently.
 
 Do **not** copy any source bundle into the app and do **not** install `process`, `util`, `assert`, `ajv`, or `vite-plugin-node-polyfills` for this package — none of that is needed.
 
@@ -145,7 +145,8 @@ For CSP/`manifest.json` allowances, the `useCoreDm`/StrictMode gotchas, the poin
 ## Verification Checklist
 
 - [ ] `@cognite/reveal-widget` is installed alongside its peers (`react`, `react-dom`, `@cognite/reveal`, `@cognite/sdk`) at compatible versions.
-- [ ] No source bundle was copied into the app; all imports come from `@cognite/reveal-widget`.
+- [ ] The app's `@cognite/reveal` is pinned to `4.36.0` (not the stale `4.35.3` in `@cognite/reveal-widget`'s peer range), with only one resolved `@cognite/reveal` version in the lockfile.
+- [ ] No source bundle was copied into the app; all imports come from `@cognite/reveal-widget`, and no app code imports from `@cognite/reveal-components` directly.
 - [ ] `vite.config.ts` includes `resolve.dedupe: ['three', '@cognite/reveal']` (plus the app's existing dedupe entries).
 - [ ] No `process`/`util`/`assert` polyfills or `vite-plugin-node-polyfills` were added for this package.
 - [ ] `RevealWidget` is mounted once, is not nested in another Reveal provider, and its container has an explicit height.

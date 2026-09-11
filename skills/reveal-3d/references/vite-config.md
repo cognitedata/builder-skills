@@ -24,6 +24,8 @@ Without this, a bundler that doesn't already dedupe singletons across the depend
 
 If the app's `vite.config.ts` already dedupes `three` (e.g. from a prior Reveal integration), just confirm `@cognite/reveal` is present too.
 
+Note that `resolve.dedupe` only collapses multiple installed copies *of the same resolved version* — it can't fix an actual version split (see the `@cognite/reveal` pin note in [SKILL.md](../SKILL.md#dependencies)).
+
 ## Nothing else to configure
 
 Do **not** carry over any of the following from an old copied-bundle Reveal integration when migrating to `@cognite/reveal-widget`:
@@ -45,6 +47,6 @@ If migrating an app that has these from a prior integration, it's safe to remove
 | Mistake | Symptom | Fix |
 |---|---|---|
 | Missing `three`/`@cognite/reveal` in `resolve.dedupe` | "Multiple instances of Three.js" warning, broken/blank rendering | Add both to `resolve.dedupe` |
-| Mismatched `@cognite/reveal` peer version | Type errors or runtime API mismatches | `@cognite/reveal-widget` requires an exact `@cognite/reveal` version match — align the app's pinned version |
+| Mismatched `@cognite/reveal` peer version | Type errors or runtime API mismatches | `@cognite/reveal-widget` requires an exact `@cognite/reveal` version match — pin `4.36.0` (see [SKILL.md](../SKILL.md#dependencies)), not the `4.35.3` in its own peer range |
 | `RevealWidget`'s container has no height | Canvas collapses to 0px, nothing renders | Give the parent element an explicit height (`70vh`, `100vh`, `h-full` on a sized ancestor, etc.) |
 | Nesting `RevealWidget` inside another Reveal provider from this package | Duplicate/conflicting Reveal context | `RevealWidget` manages its own context — mount it directly, don't wrap it |
