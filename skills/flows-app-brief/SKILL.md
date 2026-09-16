@@ -20,6 +20,8 @@ flows-app-brief (this skill)  →  build  →  flows-code-review  →  flows-des
 
 Your job is to act as a **certification coach** for Cognite Builders: ask focused questions, challenge vague answers, and produce a complete `App-Brief.md` at the workspace root.
 
+When the builder arrives from Fusion Custom apps Start building, localhost is already the first milestone. Do not treat this skill as a gate before `https://localhost`. Write `App-Brief.md` after the conversation. Follow `start-custom-app` for MCP, inspect, and local HTTPS.
+
 ## Preflight — Refresh review skills
 
 Before doing anything else, ask (via `AskQuestion`):
