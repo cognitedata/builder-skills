@@ -12,7 +12,7 @@ description: >-
   in-app report page, a CDF upload, a spreadsheet row). Use when asked to run
   an Aura audit, check Aura compliance, or score how compliant an app is with
   the Aura design system.
-allowed-tools: Read, Glob, Grep, Bash, Write, WebFetch
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch
 ---
 
 # Aura Review
@@ -252,7 +252,22 @@ it's not in `review.json`, it isn't reusable.
 level — a future upload-to-CDF step (or any other existing consumer) can
 still read them, just nested one level under `stats` now.
 
-## Step 6 — print a one-line summary
+## Step 6 — wire the review into the app itself
+
+Every reviewed app ships with `review.json` visible inside the deployed app, not just in
+the repo/CI log: copy `skills/aura-review/code/` into the app (e.g.
+`src/features/aura-review/`), fix `report.ts`'s relative import path so it reaches that
+app's own `aura-review/review.json`, and render `<AuraReviewLauncher />` once near the
+app's root (e.g. alongside `<App />` in `main.tsx`). See `code/README.md` for the exact
+files and a diff of what that render call looks like.
+
+This is a fixed floating button, not a route or nav entry — it doesn't require reading
+or modifying the app's own navigation/routing, which matters because every reviewed app
+is generated fresh and its structure can't be predicted ahead of time. Ensure the app's
+`tsconfig.json` has `"resolveJsonModule": true` first — required to import `review.json`
+as a typed module — adding it if it's missing.
+
+## Step 7 — print a one-line summary
 
 Print to stdout, so a CI log shows the result without opening any file:
 
@@ -284,10 +299,3 @@ succeed. `AURA_REVIEW_REPORT_URL`, if set, is logged as the row's
 report-link column; until a consumer wires that up it's fine to leave unset (the script
 logs `N/A` instead) — the point of this step is to get `review.json`'s headline numbers
 somewhere queryable across runs, not to have a polished link on day one.
-
-## Optional — render the report inside the app itself
-
-`skills/aura-review/code/` is a copy-into-app bundle (an Aura-styled page reading
-`review.json` directly) for apps that want the report to ship with the deployed app, not
-just live in the repo/CI log. See `code/README.md` for what to copy and how to wire it
-in — it's opt-in per app, not part of the core Steps 0–6 above.

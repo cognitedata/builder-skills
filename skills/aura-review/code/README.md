@@ -1,8 +1,9 @@
 # Aura Review — in-app report page
 
-An optional Aura-styled page that renders `aura-review/review.json` inside the
-app itself, so the report ships with the deployed app instead of only living
-in the repo/CI log.
+A self-contained, Aura-styled floating button that renders `aura-review/review.json`
+inside the app itself, so the report ships with the deployed app instead of only living
+in the repo/CI log. This is a required part of an unattended skill run (see SKILL.md's
+Step 6) — every reviewed app gets this wired in, not just apps a human opts into it for.
 
 ## Files
 
@@ -11,8 +12,11 @@ in the repo/CI log.
   `tsconfig.json`). This is the one file whose relative import path depends on where you
   copy the bundle — see Step below.
 - `useAuraReviewViewModel.ts` — derives display labels (percent formatting) from the report.
-- `AuraReviewPage.tsx` — the page itself: headline stats, a non-compliance findings table,
-  and the excluded (third-party) usages list.
+- `AuraReviewPage.tsx` — the report content: headline stats, a non-compliance findings
+  table, and the excluded (third-party) usages list.
+- `AuraReviewLauncher.tsx` — a fixed floating button (bottom-right) that opens
+  `AuraReviewPage` as a full-screen overlay on click. This is the only piece that needs
+  to be rendered by the app — it doesn't touch the app's own nav/routing at all.
 
 ## Copying into an app
 
@@ -26,16 +30,22 @@ in the repo/CI log.
    `aura-review/review.json` relative to wherever you placed the folder.
 3. Ensure the app's `tsconfig.json` has `"resolveJsonModule": true` — required to import
    `review.json` as a typed module.
-4. Render `<AuraReviewPage />` from wherever the app wants to expose it (a route, a tab,
-   a dedicated nav entry). This skill has no opinion on *how* it's surfaced — that's an
-   app-level decision.
+4. Render `<AuraReviewLauncher />` once, near the app's root — e.g. alongside `<App />`
+   in `main.tsx`:
 
-## Known placeholder: no host-sync yet
+   ```diff
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <App />
+   +      <AuraReviewLauncher />
+        </QueryClientProvider>
+      </React.StrictMode>
+    );
+   ```
 
-Whatever page/tab state the host app uses to show or hide this page (`useState`, a route,
-a tab index, ...) is **not wired to `@cognite/app-sdk`'s host-synced state** here — copying
-this bundle as-is means the page's visibility won't survive a reload or a shared link.
-That's deliberate for now: the goal was to get `review.json` rendering *somewhere* in the
-app and to start collecting data, not to design the final navigation. Wire up host sync
-(see the app's own `CLAUDE.md` §2 "Host integration") as a follow-up once there's a real
-navigation design to sync.
+   That's the entire integration — no route, tab, or nav entry needs to exist in the app
+   itself. The launcher's own `useState` for open/closed is intentionally local, not
+   host-synced (see the app's `CLAUDE.md` §2): a reviewer opening this overlay doesn't
+   need it to survive a reload or show up in a shared link, so plain React state is the
+   correct choice here, not an exception to that rule.
