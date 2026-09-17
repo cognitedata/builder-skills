@@ -9,10 +9,9 @@ description: >-
   against Aura's docs — no back-and-forth, so it also works unattended in CI.
   Writes a machine-readable aura-review/review.json (headline stats plus every
   finding, structured — the source of truth for any downstream consumer: an
-  in-app report page, a CDF upload, a spreadsheet row) and a plain-language
-  aura-review/report.md rendered from it. Use when asked to run an Aura
-  audit, check Aura compliance, or score how compliant an app is with the
-  Aura design system.
+  in-app report page, a CDF upload, a spreadsheet row). Use when asked to run
+  an Aura audit, check Aura compliance, or score how compliant an app is with
+  the Aura design system.
 allowed-tools: Read, Glob, Grep, Bash, Write, WebFetch
 ---
 
@@ -24,7 +23,7 @@ reach for correctly?**
 
 This skill never asks the user anything. It is designed to run unattended —
 inside a CI job on a nightly schedule, or by hand — and to always finish with
-a machine-readable `review.json` and a `report.md` rendered from it.
+a machine-readable `review.json`.
 
 ## The one rule that matters more than any step below
 
@@ -217,10 +216,10 @@ an app against knowledge the model has but the docs don't.
 
 Everything computed in Steps 1–4 goes into a single `aura-review/review.json`
 — headline stats *and* every finding, structured. This is deliberate: this
-file (not `report.md`) is what any downstream consumer reads — an in-app
-report page bundled into the deployed app, a future CDF upload, a
-spreadsheet row, anything else. Do not let any of that content exist only as
-markdown prose; if it's not in `review.json`, it isn't reusable.
+file is what any downstream consumer reads — an in-app report page bundled
+into the deployed app, a future CDF upload, a spreadsheet row, anything else.
+Do not let any of that content exist only as prose in your own output; if
+it's not in `review.json`, it isn't reusable.
 
 ```json
 {
@@ -253,19 +252,7 @@ markdown prose; if it's not in `review.json`, it isn't reusable.
 level — a future upload-to-CDF step (or any other existing consumer) can
 still read them, just nested one level under `stats` now.
 
-## Step 6 — render `report.md` from `review.json` (script, not you)
-
-Like Step 1, this must be deterministic — `report.md` is a *rendering* of
-`review.json`, never an independent write. Never hand-write `report.md`;
-always generate it from the file you just wrote in Step 5:
-
-```bash
-NODE_PATH="<app-dir>/node_modules" tsx <this-skill-dir>/scripts/render-report.ts aura-review/review.json --out aura-review/report.md
-```
-
-(Same `npx --yes tsx ...` fallback as Step 1 if `tsx` isn't on `PATH`.)
-
-## Step 7 — print a one-line summary
+## Step 6 — print a one-line summary
 
 Print to stdout, so a CI log shows the result without opening any file:
 
@@ -303,4 +290,4 @@ somewhere queryable across runs, not to have a polished link on day one.
 `skills/aura-review/code/` is a copy-into-app bundle (an Aura-styled page reading
 `review.json` directly) for apps that want the report to ship with the deployed app, not
 just live in the repo/CI log. See `code/README.md` for what to copy and how to wire it
-in — it's opt-in per app, not part of the core Steps 0–7 above.
+in — it's opt-in per app, not part of the core Steps 0–6 above.
