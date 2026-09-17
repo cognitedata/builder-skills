@@ -1,4 +1,4 @@
-import { IconChartBar, IconX } from '@tabler/icons-react';
+import { IconChartBar } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import { AuraReviewPage } from './AuraReviewPage';
@@ -24,15 +24,7 @@ export function AuraReviewLauncher() {
 
       {open && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close Aura Review"
-            className="fixed right-6 top-6 z-50 flex size-10 items-center justify-center rounded-full bg-muted text-foreground shadow"
-          >
-            <IconX aria-hidden className="size-5" />
-          </button>
-          <AuraReviewPage />
+          <AuraReviewPage onClose={() => setOpen(false)} />
         </div>
       )}
     </>

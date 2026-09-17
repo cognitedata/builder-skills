@@ -7,19 +7,29 @@ import {
   CardTitle,
 } from '@cognite/aura/components/card';
 import { Separator } from '@cognite/aura/components/separator';
-import { IconChartBar } from '@tabler/icons-react';
+import { IconChartBar, IconX } from '@tabler/icons-react';
 
 import { useAuraReviewViewModel } from './useAuraReviewViewModel';
 
-export function AuraReviewPage() {
+export function AuraReviewPage({ onClose }: { onClose?: () => void } = {}) {
   const { report, auraCoverageLabel, couldHaveBeenAuraLabel } = useAuraReviewViewModel();
 
   return (
     <main className="min-h-screen bg-muted/50 text-foreground">
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 py-8 sm:p-8">
-        <Card>
+        <Card className="relative">
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close Aura Review"
+              className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <IconX aria-hidden className="size-4" />
+            </button>
+          )}
           <CardHeader>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 pr-10">
               <IconChartBar aria-hidden className="size-6 text-primary" />
               <div className="space-y-1">
                 <CardTitle as="h1">Aura Review</CardTitle>
