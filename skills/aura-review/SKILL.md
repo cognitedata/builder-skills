@@ -275,8 +275,10 @@ aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAura
 
 ## Optional — log this run to a spreadsheet (script, not you)
 
-To track `auraCoveragePct` / `couldHaveBeenAuraPct` / `usageQualityFindingsCount` over
-time across runs, append a row to a Google Sheet:
+To track `stats` (every field, not just the headline numbers) plus finding counts over
+time across runs, append a row to a Google Sheet — see `HEADERS` in `log-to-sheet.ts` for
+the exact column list. The webhook writes that header row itself the first time it sees
+an empty sheet, so a fresh Sheet needs no manual setup beyond the deployment below:
 
 ```bash
 NODE_PATH="<app-dir>/node_modules" tsx <this-skill-dir>/scripts/log-to-sheet.ts aura-review/review.json

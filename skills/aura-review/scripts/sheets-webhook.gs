@@ -24,6 +24,9 @@ function doPost(e) {
   }
 
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  if (sheet.getLastRow() === 0 && body.headers) {
+    sheet.appendRow(body.headers);
+  }
   sheet.appendRow(body.row);
 
   return jsonResponse({ ok: true });

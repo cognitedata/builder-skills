@@ -4,18 +4,57 @@ interface AuraReview {
   appDir: string;
   stats: {
     auraCoveragePct: number;
+    auraUsages: number;
+    nonAuraUsages: number;
+    allAuraUsages: number;
+    allNonAuraUsages: number;
     couldHaveBeenAuraPct: number;
+    couldHaveBeenAuraCount: number;
+    couldHaveBeenAuraConsideredCount: number;
+    couldHaveBeenAuraOfNonAuraPct: number;
     usageQualityFindingsCount: number;
   };
+  nonComplianceFindings: unknown[];
+  thirdPartyUsages: unknown[];
 }
 
+// Keep in the same order as buildRow's return value — the webhook writes this as the
+// sheet's header row the first time it sees an empty sheet (see sheets-webhook.gs).
+export const HEADERS = [
+  'Timestamp',
+  'App',
+  'Aura coverage %',
+  'Aura usages (distinct)',
+  'Non-Aura usages (distinct)',
+  'Aura usages (all occurrences)',
+  'Non-Aura usages (all occurrences)',
+  'Could-have-been-Aura %',
+  'Could-have-been-Aura count',
+  'Could-have-been-Aura considered',
+  'Could-have-been-Aura of all non-Aura %',
+  'Usage-quality findings',
+  'Non-compliance findings',
+  'Third-party usages',
+  'Report URL',
+];
+
 export function buildRow(review: AuraReview): Array<string | number> {
+  const { stats } = review;
   return [
     new Date().toISOString(),
     review.appDir,
-    review.stats.auraCoveragePct,
-    review.stats.couldHaveBeenAuraPct,
-    review.stats.usageQualityFindingsCount,
+    stats.auraCoveragePct,
+    stats.auraUsages,
+    stats.nonAuraUsages,
+    stats.allAuraUsages,
+    stats.allNonAuraUsages,
+    stats.couldHaveBeenAuraPct,
+    stats.couldHaveBeenAuraCount,
+    stats.couldHaveBeenAuraConsideredCount,
+    stats.couldHaveBeenAuraOfNonAuraPct,
+    stats.usageQualityFindingsCount,
+    review.nonComplianceFindings.length,
+    review.thirdPartyUsages.length,
     // No host-sync wiring yet for a real shareable report link — placeholder until
     // that lands, so the sheet at least starts collecting a row per run now.
     process.env.AURA_REVIEW_REPORT_URL ?? 'N/A',
@@ -34,12 +73,13 @@ export function buildRow(review: AuraReview): Array<string | number> {
 export async function postRow(
   webhookUrl: string,
   webhookToken: string,
-  row: Array<string | number>
+  row: Array<string | number>,
+  headers: string[]
 ): Promise<void> {
   const response = await fetch(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: webhookToken, row }),
+    body: JSON.stringify({ token: webhookToken, row, headers }),
   });
   const text = await response.text();
   if (!response.ok) {
@@ -68,7 +108,7 @@ async function main(): Promise<void> {
   }
 
   const review = JSON.parse(fs.readFileSync(reviewPath, 'utf-8')) as AuraReview;
-  await postRow(webhookUrl, webhookToken, buildRow(review));
+  await postRow(webhookUrl, webhookToken, buildRow(review), HEADERS);
   console.log('Logged review to Sheet via webhook.');
 }
 
