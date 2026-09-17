@@ -11,7 +11,9 @@ description: >-
   finding, structured — the source of truth for any downstream consumer: an
   in-app report page, a CDF upload, a spreadsheet row). Use when asked to run
   an Aura audit, check Aura compliance, or score how compliant an app is with
-  the Aura design system.
+  the Aura design system, on an app that already exists. Do not use this
+  while generating, scaffolding, or implementing an app — it is a downstream
+  audit of finished work, not a build-time check.
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch
 ---
 
@@ -24,6 +26,26 @@ reach for correctly?**
 This skill never asks the user anything. It is designed to run unattended —
 inside a CI job on a nightly schedule, or by hand — and to always finish with
 a machine-readable `review.json`.
+
+## Never run this against an app that's still being built
+
+This is an audit of a finished app, not a build-time linter — only invoke it
+once the app is functionally complete, as a separate step after building
+finishes, never interleaved with it.
+
+This isn't just about wasted effort. This skill exists to measure how well a
+build agent reaches for Aura *on its own*, without having been coached — that
+signal only means something if the agent doing the building never saw this
+skill's grading criteria. Hand a build agent visibility into which "Use when"
+bullets get checked, what counts as non-compliance, or which escape hatches
+get flagged, and it will start writing code that satisfies those specific
+checks instead of genuinely reaching for Aura the way an app built without
+that knowledge would. At that point a high score stops meaning "this app uses
+Aura well" and starts meaning "this app was written by something that had
+already read the answer key" — the eval grading itself, contaminated by the
+thing it's supposed to be grading. Keep building and reviewing as separate
+stages with no shared context, the way `aura-eval-daily.yml` runs them: one
+agent builds, a second, independent one reviews.
 
 ## The one rule that matters more than any step below
 
