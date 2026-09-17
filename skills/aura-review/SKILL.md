@@ -282,10 +282,16 @@ time across runs, append a row to a Google Sheet:
 NODE_PATH="<app-dir>/node_modules" tsx <this-skill-dir>/scripts/log-to-sheet.ts aura-review/review.json
 ```
 
-Requires `AURA_REVIEW_SHEET_ID` (the target Sheet's id) and `GOOGLE_SHEETS_SA_KEY` (a GCP
-service-account key JSON, shared to that Sheet as an editor) as environment variables. If
-either is unset, the script prints a message and exits `0` — this step is skippable, not
-required for a run to succeed. `AURA_REVIEW_REPORT_URL`, if set, is logged as the row's
+This posts to an Apps Script Web App bound to the target Sheet, rather than calling the
+Sheets API directly — see `scripts/sheets-webhook.gs` for the `doPost` handler to paste
+into that Sheet's Apps Script editor (Extensions > Apps Script) and deploy as a Web App.
+That avoids provisioning a GCP project / service-account key just for this.
+
+Requires `AURA_REVIEW_SHEETS_WEBHOOK_URL` (the Web App deployment URL) and
+`AURA_REVIEW_SHEETS_WEBHOOK_TOKEN` (matching the `AURA_REVIEW_WEBHOOK_TOKEN` Script
+Property set on that deployment) as environment variables. If either is unset, the script
+prints a message and exits `0` — this step is skippable, not required for a run to
+succeed. `AURA_REVIEW_REPORT_URL`, if set, is logged as the row's
 report-link column; until a consumer wires that up it's fine to leave unset (the script
 logs `N/A` instead) — the point of this step is to get `review.json`'s headline numbers
 somewhere queryable across runs, not to have a polished link on day one.
