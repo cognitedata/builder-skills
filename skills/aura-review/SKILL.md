@@ -29,23 +29,14 @@ a machine-readable `review.json`.
 
 ## Never run this against an app that's still being built
 
-This is an audit of a finished app, not a build-time linter — only invoke it
-once the app is functionally complete, as a separate step after building
-finishes, never interleaved with it.
-
-This isn't just about wasted effort. This skill exists to measure how well a
-build agent reaches for Aura *on its own*, without having been coached — that
-signal only means something if the agent doing the building never saw this
-skill's grading criteria. Hand a build agent visibility into which "Use when"
-bullets get checked, what counts as non-compliance, or which escape hatches
-get flagged, and it will start writing code that satisfies those specific
-checks instead of genuinely reaching for Aura the way an app built without
-that knowledge would. At that point a high score stops meaning "this app uses
-Aura well" and starts meaning "this app was written by something that had
-already read the answer key" — the eval grading itself, contaminated by the
-thing it's supposed to be grading. Keep building and reviewing as separate
-stages with no shared context, the way `aura-eval-daily.yml` runs them: one
-agent builds, a second, independent one reviews.
+Only invoke this once the app is functionally complete, as a separate step
+after building finishes — never while scaffolding or implementing it, and
+never in the same context as the build. This isn't a linter; it's an eval of
+how well a build agent reaches for Aura *unprompted*. A build agent that can
+see this skill's grading criteria will write code to satisfy those specific
+checks instead — a high score would then mean "read the answer key," not
+"uses Aura well." Keep building and reviewing as separate agents with no
+shared context, the way `aura-eval-daily.yml` runs them.
 
 ## The one rule that matters more than any step below
 
