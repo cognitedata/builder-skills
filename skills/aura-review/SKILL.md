@@ -79,6 +79,13 @@ Confirm `<app-dir>/node_modules/@cognite/aura/package.json` and
 report that `npm`/`pnpm install` needs to run first (this skill never installs
 dependencies itself).
 
+`$ARGUMENTS` may also contain `--wire-in-app` and/or `--log-to-sheet`. Both
+default to **off** — a plain invocation (e.g. someone auditing their own app
+by hand) only ever reads the app and writes `review.json`; it never edits the
+app's files or sends data anywhere. See Step 6 and the spreadsheet-logging
+section below for what each flag enables and why they're opt-in rather than
+part of the default run.
+
 ## Step 1 — run the objective scan (script, not you)
 
 This is the part that must be deterministic, so it's a script, not something
@@ -265,10 +272,15 @@ it's not in `review.json`, it isn't reusable.
 level — a future upload-to-CDF step (or any other existing consumer) can
 still read them, just nested one level under `stats` now.
 
-## Step 6 — wire the review into the app itself
+## Step 6 (only if `--wire-in-app` was passed) — wire the review into the app itself
 
-Every reviewed app ships with `review.json` visible inside the deployed app, not just in
-the repo/CI log: copy `skills/aura-review/code/` into the app (e.g.
+Skip this step entirely if `--wire-in-app` wasn't in `$ARGUMENTS` — the default run
+never edits the app, only reads it and writes `review.json`. This exists for the CI eval
+pipeline (`aura-eval-daily.yml`), which wants every generated app to ship with its own
+review page; a one-off audit of someone's existing app has no reason to modify their
+source tree.
+
+When the flag is present: copy `skills/aura-review/code/` into the app (e.g.
 `src/features/aura-review/`), fix `report.ts`'s relative import path so it reaches that
 app's own `aura-review/review.json`, and render `<AuraReviewLauncher />` once near the
 app's root (e.g. alongside `<App />` in `main.tsx`). See `code/README.md` for the exact
@@ -288,7 +300,14 @@ Print to stdout, so a CI log shows the result without opening any file:
 aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAuraPct>% (<n>/<total>) usage-quality-findings=<count>
 ```
 
-## Optional — log this run to a spreadsheet (script, not you)
+## Optional, only if `--log-to-sheet` was passed — log this run to a spreadsheet (script, not you)
+
+Skip this entirely if `--log-to-sheet` wasn't in `$ARGUMENTS` — same reasoning as
+`--wire-in-app`: this exists for the CI eval pipeline tracking coverage over time, not for
+someone auditing their own app, whose results have no reason to land in Cognite's
+tracking sheet. The env-var check below is a second, independent gate (belt and braces —
+don't rely on the flag alone): even with `--log-to-sheet` passed, the script still no-ops
+unless the two env vars happen to be set in that environment too.
 
 To track `stats` (every field, not just the headline numbers) plus finding counts over
 time across runs, append a row to a Google Sheet — see `HEADERS` in `log-to-sheet.ts` for

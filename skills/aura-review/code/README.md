@@ -2,8 +2,10 @@
 
 A self-contained, Aura-styled floating button that renders `aura-review/review.json`
 inside the app itself, so the report ships with the deployed app instead of only living
-in the repo/CI log. This is a required part of an unattended skill run (see SKILL.md's
-Step 6) — every reviewed app gets this wired in, not just apps a human opts into it for.
+in the repo/CI log. The skill only wires this in when invoked with `--wire-in-app` (see
+SKILL.md's Step 6) — off by default, since a one-off audit of someone's existing app has
+no reason to modify their source tree. `aura-eval-daily.yml` passes the flag because it
+wants every nightly-generated app to ship with its own review page.
 
 ## Files
 
