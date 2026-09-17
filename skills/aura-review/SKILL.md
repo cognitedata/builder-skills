@@ -168,6 +168,15 @@ deliberate choice unrelated to Aura, not a compliance signal):
    entry with `couldHaveBeenAura: null` and `evidence` explaining what the
    component does — do not guess, and do not drop the entry (every
    first-party non-Aura component gets a row, matched or not).
+6. Before recording a match, confirm the named Aura component is actually
+   importable from the installed `@cognite/aura` — check it appears in
+   `scan.json`'s `availableAuraComponents`, or that the package's `exports`
+   map has a matching subpath (`node_modules/@cognite/aura/package.json`).
+   `DESIGN.md` documents some components (e.g. `Table`) that are
+   Storybook-only and not yet shipped as an importable component in every
+   version — naming one of those as `couldHaveBeenAura` is misleading, since
+   nobody can actually `import` it. If the documented match isn't shippable,
+   record `couldHaveBeenAura: null` instead and say so in `evidence`.
 
 `couldHaveBeenAuraPct` = (# entries with a non-null `couldHaveBeenAura`) ÷
 (total entries considered, i.e. `couldHaveBeenAuraConsideredCount`). Report
@@ -263,3 +272,27 @@ Print to stdout, so a CI log shows the result without opening any file:
 ```
 aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAuraPct>% (<n>/<total>) usage-quality-findings=<count>
 ```
+
+## Optional — log this run to a spreadsheet (script, not you)
+
+To track `auraCoveragePct` / `couldHaveBeenAuraPct` / `usageQualityFindingsCount` over
+time across runs, append a row to a Google Sheet:
+
+```bash
+NODE_PATH="<app-dir>/node_modules" tsx <this-skill-dir>/scripts/log-to-sheet.ts aura-review/review.json
+```
+
+Requires `AURA_REVIEW_SHEET_ID` (the target Sheet's id) and `GOOGLE_SHEETS_SA_KEY` (a GCP
+service-account key JSON, shared to that Sheet as an editor) as environment variables. If
+either is unset, the script prints a message and exits `0` — this step is skippable, not
+required for a run to succeed. `AURA_REVIEW_REPORT_URL`, if set, is logged as the row's
+report-link column; until a consumer wires that up it's fine to leave unset (the script
+logs `N/A` instead) — the point of this step is to get `review.json`'s headline numbers
+somewhere queryable across runs, not to have a polished link on day one.
+
+## Optional — render the report inside the app itself
+
+`skills/aura-review/code/` is a copy-into-app bundle (an Aura-styled page reading
+`review.json` directly) for apps that want the report to ship with the deployed app, not
+just live in the repo/CI log. See `code/README.md` for what to copy and how to wire it
+in — it's opt-in per app, not part of the core Steps 0–7 above.
