@@ -7,11 +7,14 @@ description: >-
   components got styled in ways that break the design system's own rules.
   Runs fully automatically by scanning the app's source and checking it
   against Aura's docs — no back-and-forth, so it also works unattended in CI.
-  Writes a plain-language report to aura-review/report.md and a
-  machine-readable aura-review/stats.json. Use when asked to run an Aura
-  audit, check Aura compliance, or score how compliant an app is with the
-  Aura design system.
-allowed-tools: Read, Glob, Grep, Bash, Write, WebFetch
+  Writes a machine-readable aura-review/review.json (headline stats plus every
+  finding, structured — the source of truth for any downstream consumer: an
+  in-app report page, a CDF upload, a spreadsheet row). Use when asked to run
+  an Aura audit, check Aura compliance, or score how compliant an app is with
+  the Aura design system, on an app that already exists. Do not use this
+  while generating, scaffolding, or implementing an app — it is a downstream
+  audit of finished work, not a build-time check.
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch
 ---
 
 # Aura Review
@@ -22,7 +25,18 @@ reach for correctly?**
 
 This skill never asks the user anything. It is designed to run unattended —
 inside a CI job on a nightly schedule, or by hand — and to always finish with
-a report and a machine-readable stats file.
+a machine-readable `review.json`.
+
+## Never run this against an app that's still being built
+
+Only invoke this once the app is functionally complete, as a separate step
+after building finishes — never while scaffolding or implementing it, and
+never in the same context as the build. This isn't a linter; it's an eval of
+how well a build agent reaches for Aura *unprompted*. A build agent that can
+see this skill's grading criteria will write code to satisfy those specific
+checks instead — a high score would then mean "read the answer key," not
+"uses Aura well." Keep building and reviewing as separate agents with no
+shared context, the way `aura-eval-daily.yml` runs them.
 
 ## The one rule that matters more than any step below
 
@@ -64,6 +78,13 @@ Confirm `<app-dir>/node_modules/@cognite/aura/package.json` and
 `<app-dir>/node_modules/@cognite/aura/DESIGN.md` both exist — if not, stop and
 report that `npm`/`pnpm install` needs to run first (this skill never installs
 dependencies itself).
+
+`$ARGUMENTS` may also contain `--wire-in-app` and/or `--log-to-sheet`. Both
+default to **off** — a plain invocation (e.g. someone auditing their own app
+by hand) only ever reads the app and writes `review.json`; it never edits the
+app's files or sends data anywhere. See Step 6 and the spreadsheet-logging
+section below for what each flag enables and why they're opt-in rather than
+part of the default run.
 
 ## Step 1 — run the objective scan (script, not you)
 
@@ -125,11 +146,23 @@ Read the resulting `aura-review/scan.json`. It contains:
 
 ## Step 2 — report the coverage number as-is
 
-`auraCoveragePct` from Step 1 goes straight into the report and
-`stats.json`, with the caveat above about what it does and doesn't count.
-Do not adjust it — it's meant to be a stable, comparable number across runs
-so KCIH-1222/1223 can track it over time. Judgment happens in the two steps
+`auraCoveragePct` from Step 1 goes straight into `review.json`'s `stats`,
+with the caveat above about what it does and doesn't count. Do not adjust
+it — it's meant to be a stable, comparable number across runs so a future
+aggregate/CDF step can track it over time. Judgment happens in the two steps
 below, as separate numbers.
+
+Also compute `thirdPartyUsages` here, mechanically, no judgment needed: it is
+exactly `scan.json`'s `nonAuraUsages` entries whose `importSource` is
+`external` (`{ identifier, usages: usageCount, packageName: moduleSpecifier }`
+for each). These are skipped in Step 3 below because they're a deliberate
+third-party choice, not a compliance signal — but that also means there's
+nothing to judge, so don't re-derive this list by hand later.
+
+(Don't confuse this with `scan.json`'s own `excludedUsages` field above —
+that's unrelated framework/router noise. `review.json`'s `thirdPartyUsages`
+is specifically the "Excluded from judgment" section: real components the
+app chose not to build in Aura, on purpose, for reasons unrelated to Aura.)
 
 ## Step 3 — judge non-compliance (this is where you read DESIGN.md)
 
@@ -143,14 +176,26 @@ deliberate choice unrelated to Aura, not a compliance signal):
    plausible component names, or read the whole section if it's short
    enough) for one whose "Use when" bullets match this component's apparent
    purpose.
-3. If you find a specific match, record `{ identifier, couldHaveBeenAura: "<ComponentName>", evidence: "<quoted Use when bullet>" }`.
+3. If you find a specific match, record a `nonComplianceFindings` entry:
+   `{ component: identifier, usages: usageCount, couldHaveBeenAura: "<ComponentName>", evidence: "<quoted Use when bullet>" }`.
 4. If `DESIGN.md` doesn't cover it, `WebFetch` the matching Primitives page on
    https://docs.cognite.com/aura-design-system (per DESIGN.md's own "Docs
    reference" URL pattern) or check
    https://cognitedata.github.io/flows-community-components/ the same way
    before giving up.
-5. If none of those sources support a specific match, record
-   `{ identifier, couldHaveBeenAura: null }` — do not guess.
+5. If none of those sources support a specific match, still record the
+   entry with `couldHaveBeenAura: null` and `evidence` explaining what the
+   component does — do not guess, and do not drop the entry (every
+   first-party non-Aura component gets a row, matched or not).
+6. Before recording a match, confirm the named Aura component is actually
+   importable from the installed `@cognite/aura` — check it appears in
+   `scan.json`'s `availableAuraComponents`, or that the package's `exports`
+   map has a matching subpath (`node_modules/@cognite/aura/package.json`).
+   `DESIGN.md` documents some components (e.g. `Table`) that are
+   Storybook-only and not yet shipped as an importable component in every
+   version — naming one of those as `couldHaveBeenAura` is misleading, since
+   nobody can actually `import` it. If the documented match isn't shippable,
+   record `couldHaveBeenAura: null` instead and say so in `evidence`.
 
 `couldHaveBeenAuraPct` = (# entries with a non-null `couldHaveBeenAura`) ÷
 (total entries considered, i.e. `couldHaveBeenAuraConsideredCount`). Report
@@ -176,8 +221,8 @@ doesn't cover the point, the matching page on
 https://docs.cognite.com/aura-design-system — for a specific "Dos and don'ts"
 or "Behavior" line the usage contradicts.
 
-- If you find one, record the finding with the exact quoted rule it
-  violates.
+- If you find one, record a `usageQualityFindings` entry with the exact
+  quoted rule it violates: `{ component: slug, location: "<file>:<line>", violates: "<short description>", quotedRule: "<exact quoted line>" }`.
 - If you don't, drop the escape-hatch finding from the final report — a raw
   Tailwind override that the docs don't actually forbid for that component
   isn't a usage-quality problem, it's just a mechanical hit that didn't hold
@@ -187,58 +232,102 @@ This step is deliberately the most expensive per-finding — it's also the one
 guarding against the exact failure mode called out in review: don't grade
 an app against knowledge the model has but the docs don't.
 
-## Step 5 — write the outputs
+## Step 5 — write `review.json` (the one structured source of truth)
 
-Write `aura-review/report.md`:
-
-```markdown
-# Aura Review — <app-dir>
-
-## Headline numbers
-
-- Aura coverage: <auraCoveragePct>% (<auraUsages> / <totalUsages> distinct component types; <allAuraUsages> / <allAuraUsages + allNonAuraUsages> raw occurrences)
-- Could have been Aura: <couldHaveBeenAuraPct>% (<n> / <total> custom components had a documented Aura equivalent; <couldHaveBeenAuraOfNonAuraPct>% of all non-Aura usages)
-- Documented usage-quality findings: <count>
-
-## Non-compliance findings
-
-| Component | Usages | Could have been | Evidence |
-| --------- | ------ | --------------- | -------- |
-| ...       | ...    | ...             | ...      |
-
-## Usage-quality findings
-
-| Aura component | File:Line | Violates | Quoted rule |
-| -------------- | --------- | -------- | ----------- |
-| ...            | ...       | ...      | ...         |
-
-## Excluded from judgment (third-party, not a design-system concern)
-
-- <identifier> (<count> usages, from `<package>`)
-```
-
-Write `aura-review/stats.json` — this is what a future upload-to-CDF step
-consumes, so keep the field names stable:
+Everything computed in Steps 1–4 goes into a single `aura-review/review.json`
+— headline stats *and* every finding, structured. This is deliberate: this
+file is what any downstream consumer reads — an in-app report page bundled
+into the deployed app, a future CDF upload, a spreadsheet row, anything else.
+Do not let any of that content exist only as prose in your own output; if
+it's not in `review.json`, it isn't reusable.
 
 ```json
 {
-  "auraCoveragePct": 0.62,
-  "auraUsages": 8,
-  "nonAuraUsages": 5,
-  "allAuraUsages": 18,
-  "allNonAuraUsages": 11,
-  "couldHaveBeenAuraPct": 0.25,
-  "couldHaveBeenAuraCount": 2,
-  "couldHaveBeenAuraConsideredCount": 8,
-  "couldHaveBeenAuraOfNonAuraPct": 0.4,
-  "usageQualityFindingsCount": 3
+  "appDir": "<app-dir>",
+  "stats": {
+    "auraCoveragePct": 0.62,
+    "auraUsages": 8,
+    "nonAuraUsages": 5,
+    "allAuraUsages": 18,
+    "allNonAuraUsages": 11,
+    "couldHaveBeenAuraPct": 0.25,
+    "couldHaveBeenAuraCount": 2,
+    "couldHaveBeenAuraConsideredCount": 8,
+    "couldHaveBeenAuraOfNonAuraPct": 0.4,
+    "usageQualityFindingsCount": 3
+  },
+  "nonComplianceFindings": [
+    { "component": "...", "usages": 1, "couldHaveBeenAura": null, "evidence": "..." }
+  ],
+  "usageQualityFindings": [
+    { "component": "...", "location": "src/File.tsx:42", "violates": "...", "quotedRule": "..." }
+  ],
+  "thirdPartyUsages": [
+    { "identifier": "...", "usages": 1, "packageName": "..." }
+  ]
 }
 ```
 
-## Step 6 — print a one-line summary
+`stats` keeps the same field names `stats.json` used to have at the top
+level — a future upload-to-CDF step (or any other existing consumer) can
+still read them, just nested one level under `stats` now.
+
+## Step 6 (only if `--wire-in-app` was passed) — wire the review into the app itself
+
+Skip this step entirely if `--wire-in-app` wasn't in `$ARGUMENTS` — the default run
+never edits the app, only reads it and writes `review.json`. This exists for the CI eval
+pipeline (`aura-eval-daily.yml`), which wants every generated app to ship with its own
+review page; a one-off audit of someone's existing app has no reason to modify their
+source tree.
+
+When the flag is present: copy `skills/aura-review/code/` into the app (e.g.
+`src/features/aura-review/`), fix `report.ts`'s relative import path so it reaches that
+app's own `aura-review/review.json`, and render `<AuraReviewLauncher />` once near the
+app's root (e.g. alongside `<App />` in `main.tsx`). See `code/README.md` for the exact
+files and a diff of what that render call looks like.
+
+This is a fixed floating button, not a route or nav entry — it doesn't require reading
+or modifying the app's own navigation/routing, which matters because every reviewed app
+is generated fresh and its structure can't be predicted ahead of time. Ensure the app's
+`tsconfig.json` has `"resolveJsonModule": true` first — required to import `review.json`
+as a typed module — adding it if it's missing.
+
+## Step 7 — print a one-line summary
 
 Print to stdout, so a CI log shows the result without opening any file:
 
 ```
 aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAuraPct>% (<n>/<total>) usage-quality-findings=<count>
 ```
+
+## Optional, only if `--log-to-sheet` was passed — log this run to a spreadsheet (script, not you)
+
+Skip this entirely if `--log-to-sheet` wasn't in `$ARGUMENTS` — same reasoning as
+`--wire-in-app`: this exists for the CI eval pipeline tracking coverage over time, not for
+someone auditing their own app, whose results have no reason to land in Cognite's
+tracking sheet. The env-var check below is a second, independent gate (belt and braces —
+don't rely on the flag alone): even with `--log-to-sheet` passed, the script still no-ops
+unless the two env vars happen to be set in that environment too.
+
+To track `stats` (every field, not just the headline numbers) plus finding counts over
+time across runs, append a row to a Google Sheet — see `HEADERS` in `log-to-sheet.ts` for
+the exact column list. The webhook writes that header row itself the first time it sees
+an empty sheet, so a fresh Sheet needs no manual setup beyond the deployment below:
+
+```bash
+NODE_PATH="<app-dir>/node_modules" tsx <this-skill-dir>/scripts/log-to-sheet.ts aura-review/review.json
+```
+
+This posts to an Apps Script Web App bound to the target Sheet, rather than calling the
+Sheets API directly — see `scripts/sheets-webhook.gs` for the `doPost` handler to paste
+into that Sheet's Apps Script editor (Extensions > Apps Script) and deploy as a Web App.
+That avoids provisioning a GCP project / service-account key just for this.
+
+Requires `AURA_REVIEW_SHEETS_WEBHOOK_URL` (the Web App deployment URL) and
+`AURA_REVIEW_SHEETS_WEBHOOK_TOKEN` (matching the `AURA_REVIEW_WEBHOOK_TOKEN` Script
+Property set on that deployment) as environment variables. If either is unset, the script
+prints a message and exits `0` — this step is skippable, not required for a run to
+succeed. `AURA_REVIEW_REPORT_URL`, if set, is logged as the row's
+report-link column; until a consumer wires that up it's fine to leave unset (the script
+logs `N/A` instead) — the point of this step is to get `review.json`'s headline numbers
+somewhere queryable across runs, not to have a polished link on day one.
