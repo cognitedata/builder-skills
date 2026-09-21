@@ -1,3 +1,14 @@
+// This file isn't executed from the repo — it's a paste-in template, kept here as the
+// versioned source of truth for what's manually copied into the target Sheet's Apps
+// Script editor, so what's actually deployed can be diffed against something instead of
+// living invisibly in a Google account nobody else can review. If this file changes,
+// re-paste it into the Sheet.
+//
+// Temporary: this Sheets integration exists only until aura-review results get a proper
+// CDF time series integration (see aura-eval-daily.yml's "Upload stats to CDF" TODO).
+// Once that lands, this file, log-to-sheet.ts, and the --log-to-sheet flag should all be
+// removed rather than kept running alongside the CDF path.
+//
 // Paste this into the target Sheet's Apps Script editor (Extensions > Apps Script),
 // replacing Code.gs's contents, then Deploy > New deployment > type "Web app"
 // (execute as yourself, access "Anyone"). The deployment URL is
