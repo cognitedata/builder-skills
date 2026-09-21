@@ -96,6 +96,23 @@ interface ComponentCatalogEntry {
   rootIdentifiers: string[];
 }
 
+// Non-component subpaths Aura's package.json also exports: the barrel itself,
+// docs/asset files, and utility/config entry points that don't render JSX. Every
+// other export (`./components/*` and top-level ones like `./chart`, `./data-grid`)
+// is a real, importable component surface and belongs in the catalog — missing
+// one here means the coverage/could-have-been-Aura math judges an app against an
+// incomplete picture of what Aura actually ships (see `./chart`, which used to be
+// invisible to this catalog because it isn't nested under `./components/`).
+const NON_COMPONENT_EXPORT_DENYLIST = new Set([
+  './components', // barrel re-export, not a distinct component
+  './DESIGN.md',
+  './colors.css',
+  './styles.css',
+  './styles.source.css',
+  './eslint',
+  './utils',
+]);
+
 function loadComponentCatalog(appDir: string): ComponentCatalogEntry[] {
   const auraDir = path.join(appDir, 'node_modules/@cognite/aura');
   const packageJsonPath = path.join(auraDir, 'package.json');
@@ -109,9 +126,14 @@ function loadComponentCatalog(appDir: string): ComponentCatalogEntry[] {
     fs.readFileSync(packageJsonPath, 'utf-8')
   ) as { exports: Record<string, { types?: string } | undefined> };
   return Object.entries(packageJson.exports)
-    .filter(([key]) => key.startsWith('./components/'))
+    .filter(
+      ([key]) =>
+        !NON_COMPONENT_EXPORT_DENYLIST.has(key) && !key.endsWith('.css') && !key.endsWith('.md')
+    )
     .map(([key, value]) => {
-      const slug = key.slice('./components/'.length);
+      const slug = key.startsWith('./components/')
+        ? key.slice('./components/'.length)
+        : key.slice('./'.length);
       const typesPath = value?.types ? path.join(auraDir, value.types) : null;
       const identifiers = typesPath ? extractExportedIdentifiers(typesPath) : [];
       return { slug, identifiers, rootIdentifiers: pickRootIdentifiers(identifiers) };
