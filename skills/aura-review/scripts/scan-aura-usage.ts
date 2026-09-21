@@ -131,8 +131,18 @@ const STRUCTURAL_IDENTIFIER_DENYLIST = new Set([
   'NavLink',
 ]);
 
-function collectImports(source: ts.SourceFile): Map<string, string> {
-  const importsByIdentifier = new Map<string, string>();
+interface ImportInfo {
+  moduleSpecifier: string;
+  // The name as actually exported by the module — differs from the map's key
+  // (the local binding name) whenever the import is aliased, e.g.
+  // `import { Alert as AlertBanner } from '@cognite/aura/components/alert'`.
+  // Catalog lookups must use this, not the local name, or an aliased Aura
+  // import gets silently misclassified as a non-Aura component.
+  originalName: string;
+}
+
+function collectImports(source: ts.SourceFile): Map<string, ImportInfo> {
+  const importsByIdentifier = new Map<string, ImportInfo>();
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement)) continue;
     const moduleSpecifier = (statement.moduleSpecifier as ts.StringLiteral)
@@ -142,7 +152,8 @@ function collectImports(source: ts.SourceFile): Map<string, string> {
       continue;
     for (const element of clause.namedBindings.elements) {
       const localName = element.name.text;
-      importsByIdentifier.set(localName, moduleSpecifier);
+      const originalName = element.propertyName?.text ?? localName;
+      importsByIdentifier.set(localName, { moduleSpecifier, originalName });
     }
   }
   return importsByIdentifier;
@@ -270,10 +281,10 @@ function scan(appDir: string): {
               reason: 'structural-denylist',
             });
           } else {
-            const moduleSpecifier =
-              importsByIdentifier.get(identifier) ?? null;
+            const importInfo = importsByIdentifier.get(identifier) ?? null;
+            const moduleSpecifier = importInfo?.moduleSpecifier ?? null;
             const slug = moduleSpecifier?.startsWith('@cognite/aura')
-              ? (identifierToSlug.get(identifier) ?? null)
+              ? (identifierToSlug.get(importInfo!.originalName) ?? null)
               : null;
 
             if (slug) {
@@ -281,7 +292,7 @@ function scan(appDir: string): {
               auraElementUsages.push({
                 identifier,
                 slug,
-                isRootComponent: rootIdentifiers.has(identifier),
+                isRootComponent: rootIdentifiers.has(importInfo!.originalName),
                 file: relativeFile,
                 line,
                 classNameRegion,
