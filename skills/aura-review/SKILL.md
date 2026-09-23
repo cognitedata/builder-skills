@@ -9,7 +9,7 @@ description: >-
   against Aura's docs — no back-and-forth, so it also works unattended in CI.
   Writes a machine-readable aura-review/review.json (headline stats plus every
   finding, structured — the source of truth for any downstream consumer: an
-  in-app report page, a CDF upload, a spreadsheet row). Use when asked to run
+  in-app report page, a CDF upload, a metrics pipeline). Use when asked to run
   an Aura audit, check Aura compliance, or score how compliant an app is with
   the Aura design system, on an app that already exists. Do not use this
   while generating, scaffolding, or implementing an app — it is a downstream
@@ -79,12 +79,16 @@ Confirm `<app-dir>/node_modules/@cognite/aura/package.json` and
 report that `npm`/`pnpm install` needs to run first (this skill never installs
 dependencies itself).
 
-`$ARGUMENTS` may also contain `--wire-in-app` and/or `--log-to-sheet`. Both
-default to **off** — a plain invocation (e.g. someone auditing their own app
-by hand) only ever reads the app and writes `review.json`; it never edits the
-app's files or sends data anywhere. See Step 6 and the spreadsheet-logging
-section below for what each flag enables and why they're opt-in rather than
+`$ARGUMENTS` may also contain `--wire-in-app`. It defaults to **off** — a
+plain invocation (e.g. someone auditing their own app by hand) only ever reads
+the app and writes `review.json`; it never edits the app's files or sends data
+anywhere. See Step 6 for what the flag enables and why it's opt-in rather than
 part of the default run.
+
+This skill never publishes results anywhere. Getting `review.json` into a
+tracking store (CDF, a spreadsheet, a dashboard) is the caller's job, not the
+skill's — see `cognitedata/aura-tools`'s `aura-eval-daily.yml` for how the CI
+eval pipeline does it.
 
 ## Step 1 — run the objective scan (script, not you)
 
@@ -237,7 +241,8 @@ an app against knowledge the model has but the docs don't.
 Everything computed in Steps 1–4 goes into a single `aura-review/review.json`
 — headline stats *and* every finding, structured. This is deliberate: this
 file is what any downstream consumer reads — an in-app report page bundled
-into the deployed app, a future CDF upload, a spreadsheet row, anything else.
+into the deployed app, a CDF upload, a spreadsheet row, anything else. None
+of those consumers live in this skill; they all just read this file.
 Do not let any of that content exist only as prose in your own output; if
 it's not in `review.json`, it isn't reusable.
 
@@ -300,34 +305,5 @@ Print to stdout, so a CI log shows the result without opening any file:
 aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAuraPct>% (<n>/<total>) usage-quality-findings=<count>
 ```
 
-## Optional, only if `--log-to-sheet` was passed — log this run to a spreadsheet (script, not you)
-
-Skip this entirely if `--log-to-sheet` wasn't in `$ARGUMENTS` — same reasoning as
-`--wire-in-app`: this exists for the CI eval pipeline tracking coverage over time, not for
-someone auditing their own app, whose results have no reason to land in Cognite's
-tracking sheet. The env-var check below is a second, independent gate (belt and braces —
-don't rely on the flag alone): even with `--log-to-sheet` passed, the script still no-ops
-unless the two env vars happen to be set in that environment too.
-
-To track `stats` (every field, not just the headline numbers) plus finding counts over
-time across runs, append a row to a Google Sheet — see `HEADERS` in `log-to-sheet.ts` for
-the exact column list. The webhook writes that header row itself the first time it sees
-an empty sheet, so a fresh Sheet needs no manual setup beyond the deployment below:
-
-```bash
-NODE_PATH="<app-dir>/node_modules" tsx <this-skill-dir>/scripts/log-to-sheet.ts aura-review/review.json
-```
-
-This posts to an Apps Script Web App bound to the target Sheet, rather than calling the
-Sheets API directly — see `scripts/sheets-webhook.gs` for the `doPost` handler to paste
-into that Sheet's Apps Script editor (Extensions > Apps Script) and deploy as a Web App.
-That avoids provisioning a GCP project / service-account key just for this.
-
-Requires `AURA_REVIEW_SHEETS_WEBHOOK_URL` (the Web App deployment URL) and
-`AURA_REVIEW_SHEETS_WEBHOOK_TOKEN` (matching the `AURA_REVIEW_WEBHOOK_TOKEN` Script
-Property set on that deployment) as environment variables. If either is unset, the script
-prints a message and exits `0` — this step is skippable, not required for a run to
-succeed. `AURA_REVIEW_REPORT_URL`, if set, is logged as the row's
-report-link column; until a consumer wires that up it's fine to leave unset (the script
-logs `N/A` instead) — the point of this step is to get `review.json`'s headline numbers
-somewhere queryable across runs, not to have a polished link on day one.
+Then stop. Publishing `review.json` anywhere — CDF, a spreadsheet, a dashboard — is
+the caller's job; this skill's output is the file and the summary line.
