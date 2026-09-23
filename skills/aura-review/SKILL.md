@@ -292,15 +292,15 @@ before `<App />`** at the app's root (e.g. in `main.tsx`), and add
 `code/README.md` for the exact files and a diff of what that render call looks like.
 
 It renders an Aura `Banner` (info variant) at the very top of the app — announcing that
-this build carries a review, linking to the report, and naming the env var that hides
-it. Rendering it before `<App />` keeps it in normal flow above the app's own chrome
-instead of covering any of it.
+this build carries a review, with a button that opens the report, and naming the env var
+that hides it. Rendering it before `<App />` keeps it in normal flow above the app's own
+chrome instead of covering any of it.
 
-Entry to the report is that banner link plus `window.location`-based deep links
-(`/aura-review`, `#aura-review`) — not a registered route or nav entry. It doesn't
-require reading or modifying the app's own navigation/routing, which matters because
-every reviewed app is generated fresh and its structure can't be predicted ahead of
-time.
+The button is the only way into the report — deliberately no route or deep-linkable URL,
+which matters because every reviewed app is generated fresh and its structure can't be
+predicted ahead of time. See `code/README.md` for why `window.location`-based deep links
+don't work here (this app runs inside a Fusion-managed iframe) and why Fusion's actual
+mechanism for that, `syncInternalState`, doesn't fit a drop-in bundle either.
 
 Two `tsconfig.json` settings are needed first, both adding them if missing:
 `"resolveJsonModule": true`, so `review.json` imports as a typed module; and — only if

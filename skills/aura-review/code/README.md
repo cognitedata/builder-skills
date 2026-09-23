@@ -17,7 +17,7 @@ wants every nightly-generated app to ship with its own review page.
 - `AuraReviewPage.tsx` — the report content: headline stats, a non-compliance findings
   table, and the excluded (third-party) usages list.
 - `AuraReviewLauncher.tsx` — an Aura `Banner` (info variant) pinned at the top of the
-  app, with a "View report" link that opens `AuraReviewPage` as a full-screen overlay.
+  app, with a "View report" button that opens `AuraReviewPage` as a full-screen overlay.
   This is the only piece that needs to be rendered by the app — it doesn't touch the
   app's own nav/routing at all.
 
@@ -90,25 +90,30 @@ secret.
 
 ## Reaching the report
 
-Three ways in, once the toggle is on:
+Once the toggle is on, the banner's "View report" button opens the overlay. That's the
+only entry point — deliberately no `/aura-review` path or `#aura-review` hash to visit
+directly.
 
-- The banner's "View report" link (a real anchor, so it can be copied or opened in a
-  new tab).
-- `/aura-review` — works wherever the host serves `index.html` for unknown paths (the
-  standard SPA fallback, which App Hosting does). If the app's own router redirects
-  unmatched paths back to `/`, this one won't stick.
-- `#aura-review` — needs nothing from the server and survives router redirects, so it's
-  the reliable one to share. Only conflicts if the app uses `HashRouter`.
+An earlier version of this bundle read `window.location` for exactly that, reasoning
+that it would work "regardless of whatever router the app uses." It didn't account for
+how Fusion actually hosts these apps: the app runs inside an iframe whose `src` Fusion
+computes itself from its own state (`cluster`/`workspace`/`customAppVersion`), so a path
+or hash appended to the *outer* Fusion URL never reaches this component on a cold load —
+only a click already inside the loaded app changes this window's own location, which is
+exactly why the button worked in testing and the URL didn't.
 
-Both URL forms are handled by reading `window.location` directly, so this bundle stays
-independent of whatever router (or no router) the app happens to use — the overlay just
-renders on top. The launcher listens for `hashchange`/`popstate` so in-app navigation to
-those URLs opens it too, and closing clears the deep link so it doesn't immediately
-reopen.
+The correct mechanism for a Fusion-reloadable/shareable deep link is
+`connectToHostApp`'s `initialState` / `api.syncInternalState` (see the app's own
+`CLAUDE.md` §2) — but that doesn't fit a drop-in bundle either. `syncInternalState` takes
+one opaque string for the *whole* app's state, with no merge semantics, so this
+component calling it independently of whatever state the host app already syncs would
+silently overwrite it. Making that safe means hand-integrating into each specific
+generated app's own state shape, not copying files into an unpredictable one — exactly
+the coupling this bundle exists to avoid. So there's no deep link; open the report from
+inside the app.
 
 The banner's own "Dismiss" hides it for the session only — `Banner` keeps that in React
 state, so it comes back on reload. The env var is the way to remove it from a build.
 
 Open/closed state is otherwise intentionally local React state, not host-synced (see the
-app's `CLAUDE.md` §2): beyond the deep link above, a reviewer toggling this overlay
-doesn't need it persisted.
+app's `CLAUDE.md` §2): a reviewer toggling this overlay doesn't need it persisted.

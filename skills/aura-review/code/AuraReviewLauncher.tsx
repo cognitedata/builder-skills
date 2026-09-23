@@ -7,7 +7,7 @@ import {
   BannerTitle,
 } from '@cognite/aura/components/banner';
 import { IconChartBar } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { AuraReviewPage } from './AuraReviewPage';
 
@@ -26,55 +26,22 @@ import { AuraReviewPage } from './AuraReviewPage';
 // review.json's contents are readable in the bundle either way.
 const ENABLED = /^(true|1)$/i.test(import.meta.env.VITE_AURA_REVIEW_TOGGLE ?? '');
 
-// Deep links, without depending on the host app's router. Every reviewed app is
-// generated fresh — it might use react-router, TanStack Router, or no router at all —
-// so instead of registering a route we read window.location ourselves and render the
-// overlay above whatever the app does with that URL.
-//
-// Both forms work, and they fail in different situations, which is why both exist:
-//   /aura-review   needs the host to serve index.html for unknown paths (the standard
-//                  SPA fallback, which App Hosting does). Breaks if the app's own
-//                  router redirects unmatched paths back to /.
-//   #aura-review   needs nothing from the server and survives router redirects, but
-//                  collides with an app using HashRouter (uncommon in generated apps).
-// The banner links to the hash form for that reason.
-const DEEP_LINK_PATH = '/aura-review';
-const DEEP_LINK_HASH = '#aura-review';
-
-function isDeepLinked(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.location.pathname === DEEP_LINK_PATH || window.location.hash === DEEP_LINK_HASH;
-}
-
+// Deliberately no deep link (no /aura-review path, no #aura-review hash). This app is
+// rendered inside a Fusion-managed iframe: Fusion computes that iframe's own src from
+// its own state (cluster/workspace/customAppVersion), so a fragment or path appended to
+// the *outer* Fusion URL never reaches this component on a cold load — only a click
+// already inside the loaded app changes this window's own location. A prior version of
+// this file relied on window.location for exactly that entry point and it silently never
+// worked from outside. The correct fix — routing this through
+// connectToHostApp/syncInternalState, Fusion's actual mechanism for reloadable/shareable
+// state — doesn't fit a drop-in bundle either: syncInternalState takes one opaque string
+// for the *whole* app, with no merge semantics, so a sibling component calling it
+// independently of whatever state the host app already syncs would overwrite it. Open
+// the report through the banner's button, which needs none of this.
 export function AuraReviewLauncher() {
-  const [open, setOpen] = useState(isDeepLinked);
-
-  // Keep up with navigation the app does after mount — the banner's own link, or a
-  // back/forward step onto the URL, should open the report the same way a fresh load
-  // does.
-  useEffect(() => {
-    if (!ENABLED) return;
-    const sync = () => setOpen(isDeepLinked());
-    window.addEventListener('hashchange', sync);
-    window.addEventListener('popstate', sync);
-    return () => {
-      window.removeEventListener('hashchange', sync);
-      window.removeEventListener('popstate', sync);
-    };
-  }, []);
+  const [open, setOpen] = useState(false);
 
   if (!ENABLED) return null;
-
-  // Closing has to clear the deep link too, or the overlay reopens on the next render.
-  const close = () => {
-    setOpen(false);
-    if (typeof window === 'undefined') return;
-    if (window.location.hash === DEEP_LINK_HASH) {
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    } else if (window.location.pathname === DEEP_LINK_PATH) {
-      window.history.replaceState(null, '', '/');
-    }
-  };
 
   return (
     <>
@@ -95,9 +62,7 @@ export function AuraReviewLauncher() {
           </span>
         </BannerTitle>
         <BannerActions>
-          {/* A real anchor via Base UI's render prop, not a button with an onClick —
-              so the report URL can be copied, opened in a new tab, and shared. */}
-          <BannerAction render={<a href={DEEP_LINK_HASH} />}>View report</BannerAction>
+          <BannerAction onClick={() => setOpen(true)}>View report</BannerAction>
           {/* BannerClose ships no default content — it's a BannerAction wired to hide
               the banner, so it needs its own label. Dismissing only lasts the session;
               the env var is what removes it from the build. */}
@@ -107,7 +72,7 @@ export function AuraReviewLauncher() {
 
       {open && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-          <AuraReviewPage onClose={close} />
+          <AuraReviewPage onClose={() => setOpen(false)} />
         </div>
       )}
     </>
