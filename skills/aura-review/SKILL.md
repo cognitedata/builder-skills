@@ -286,12 +286,17 @@ source tree.
 
 When the flag is present: copy `skills/aura-review/code/` into the app (e.g.
 `src/features/aura-review/`), fix `report.ts`'s relative import path so it reaches that
-app's own `aura-review/review.json`, render `<AuraReviewLauncher />` once near the
-app's root (e.g. alongside `<App />` in `main.tsx`), and add
+app's own `aura-review/review.json`, render `<AuraReviewLauncher />` once **immediately
+before `<App />`** at the app's root (e.g. in `main.tsx`), and add
 `VITE_AURA_REVIEW_TOGGLE=TRUE` to the app's `.env` (creating it if needed). See
 `code/README.md` for the exact files and a diff of what that render call looks like.
 
-This is a fixed floating button plus `window.location`-based deep links
+It renders an Aura `Banner` (info variant) at the very top of the app — announcing that
+this build carries a review, linking to the report, and naming the env var that hides
+it. Rendering it before `<App />` keeps it in normal flow above the app's own chrome
+instead of covering any of it.
+
+Entry to the report is that banner link plus `window.location`-based deep links
 (`/aura-review`, `#aura-review`) — not a registered route or nav entry. It doesn't
 require reading or modifying the app's own navigation/routing, which matters because
 every reviewed app is generated fresh and its structure can't be predicted ahead of

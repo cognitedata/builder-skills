@@ -1,6 +1,6 @@
 # Aura Review — in-app report page
 
-A self-contained, Aura-styled floating button that renders `aura-review/review.json`
+A self-contained, Aura-styled banner and report page that render `aura-review/review.json`
 inside the app itself, so the report ships with the deployed app instead of only living
 in the repo/CI log. The skill only wires this in when invoked with `--wire-in-app` (see
 SKILL.md's Step 6) — off by default, since a one-off audit of someone's existing app has
@@ -16,9 +16,10 @@ wants every nightly-generated app to ship with its own review page.
 - `useAuraReviewViewModel.ts` — derives display labels (percent formatting) from the report.
 - `AuraReviewPage.tsx` — the report content: headline stats, a non-compliance findings
   table, and the excluded (third-party) usages list.
-- `AuraReviewLauncher.tsx` — a fixed floating button (bottom-right) that opens
-  `AuraReviewPage` as a full-screen overlay on click. This is the only piece that needs
-  to be rendered by the app — it doesn't touch the app's own nav/routing at all.
+- `AuraReviewLauncher.tsx` — an Aura `Banner` (info variant) pinned at the top of the
+  app, with a "View report" link that opens `AuraReviewPage` as a full-screen overlay.
+  This is the only piece that needs to be rendered by the app — it doesn't touch the
+  app's own nav/routing at all.
 
 ## Copying into an app
 
@@ -39,15 +40,16 @@ wants every nightly-generated app to ship with its own review page.
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
-          <App />
    +      <AuraReviewLauncher />
+          <App />
         </QueryClientProvider>
       </React.StrictMode>
     );
    ```
 
-   That's the entire integration — no route, tab, or nav entry needs to exist in the app
-   itself.
+   Render it **before** `<App />`, so the banner sits at the very top of the page in
+   normal flow rather than overlapping the app's own chrome. That's the entire
+   integration — no route, tab, or nav entry needs to exist in the app itself.
 
 5. Add the toggle to the app's `.env`:
 
@@ -58,14 +60,14 @@ wants every nightly-generated app to ship with its own review page.
 ## The toggle
 
 Nothing renders unless the app is **built** with `VITE_AURA_REVIEW_TOGGLE` set to `TRUE`
-(or `1`; case-insensitive). Without it `AuraReviewLauncher` returns `null` — no button,
+(or `1`; case-insensitive). Without it `AuraReviewLauncher` returns `null` — no banner,
 no overlay.
 
 Two things about this are easy to get wrong:
 
 - **The `VITE_` prefix is required.** Vite only exposes prefixed variables to client
   code, so a plain `AURA_REVIEW_TOGGLE=TRUE` in `.env` is invisible to the browser
-  bundle and the button silently never appears.
+  bundle and the banner silently never appears.
 - **It's read at build time, not at boot.** Vite substitutes the literal into the bundle
   during `vite build`, so the variable has to be set in the build environment, and
   flipping it later needs a rebuild — you can't toggle a deployed app by editing its
@@ -82,7 +84,8 @@ secret.
 
 Three ways in, once the toggle is on:
 
-- The floating button, bottom-right.
+- The banner's "View report" link (a real anchor, so it can be copied or opened in a
+  new tab).
 - `/aura-review` — works wherever the host serves `index.html` for unknown paths (the
   standard SPA fallback, which App Hosting does). If the app's own router redirects
   unmatched paths back to `/`, this one won't stick.
@@ -94,6 +97,9 @@ independent of whatever router (or no router) the app happens to use — the ove
 renders on top. The launcher listens for `hashchange`/`popstate` so in-app navigation to
 those URLs opens it too, and closing clears the deep link so it doesn't immediately
 reopen.
+
+The banner's own "Dismiss" hides it for the session only — `Banner` keeps that in React
+state, so it comes back on reload. The env var is the way to remove it from a build.
 
 Open/closed state is otherwise intentionally local React state, not host-synced (see the
 app's `CLAUDE.md` §2): beyond the deep link above, a reviewer toggling this overlay
