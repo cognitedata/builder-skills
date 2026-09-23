@@ -41,7 +41,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **call-cognite-function** | Invokes a deployed CDF Function by ID or external ID — session nonce, call, poll until complete, return typed result |
 | **code-quality** | Reviews Flows apps for code quality, maintainability, and clean code issues |
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
-| **connect-atlas-mcp** | Fusion Custom apps Start building — add Industrial / Atlas MCP (`cognite`) next to template `cognite-docs`, IDE browser OAuth, then explore this project's data models |
+| **connect-atlas-mcp** | Fusion Start building — run the injected MCP URL(s) and login command, finish IDE OAuth, explore this project's data models |
 | **dm-graph-traversal** | CDF Data Modeling graph traversal patterns — query-vs-list decisions, traversal payload guardrails, failure debugging, and payload-shape test requirements |
 | **dm-limits-and-best-practices** | DMS concurrency, pagination, batching; LLM-over-rows cap (5 / max 50) |
 | **integrate-file-viewer** | Integrates CogniteFileViewer to preview CDF files (PDFs, images, text) |
