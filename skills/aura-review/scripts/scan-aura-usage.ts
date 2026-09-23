@@ -97,12 +97,13 @@ interface ComponentCatalogEntry {
 }
 
 // Non-component subpaths Aura's package.json also exports: the barrel itself,
-// docs/asset files, and utility/config entry points that don't render JSX. Every
-// other export (`./components/*` and top-level ones like `./chart`, `./data-grid`)
-// is a real, importable component surface and belongs in the catalog — missing
-// one here means the coverage/could-have-been-Aura math judges an app against an
-// incomplete picture of what Aura actually ships (see `./chart`, which used to be
-// invisible to this catalog because it isn't nested under `./components/`).
+// docs/asset files, and utility/config entry points that don't render JSX.
+//
+// Everything else is a real, importable component surface and belongs in the
+// catalog — including top-level exports like `./chart` and `./data-grid`, which is
+// why this is a denylist rather than a `./components/` prefix match. Any component
+// export missing from the catalog counts as non-Aura wherever an app uses it, so
+// the coverage and could-have-been-Aura numbers understate reality.
 const NON_COMPONENT_EXPORT_DENYLIST = new Set([
   './components', // barrel re-export, not a distinct component
   './DESIGN.md',

@@ -233,8 +233,8 @@ or "Behavior" line the usage contradicts.
   up.
 
 This step is deliberately the most expensive per-finding — it's also the one
-guarding against the exact failure mode called out in review: don't grade
-an app against knowledge the model has but the docs don't.
+guarding against this skill's worst failure mode: grading an app against
+knowledge the model has but the docs don't.
 
 ## Step 5 — write `review.json` (the one structured source of truth)
 
@@ -273,9 +273,8 @@ it's not in `review.json`, it isn't reusable.
 }
 ```
 
-`stats` keeps the same field names `stats.json` used to have at the top
-level — a future upload-to-CDF step (or any other existing consumer) can
-still read them, just nested one level under `stats` now.
+Keep these `stats` field names stable — downstream consumers index them by
+name, so renaming one silently breaks whatever tracks it across runs.
 
 ## Step 6 (only if `--wire-in-app` was passed) — wire the review into the app itself
 
