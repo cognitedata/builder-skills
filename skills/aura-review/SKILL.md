@@ -287,15 +287,25 @@ source tree.
 
 When the flag is present: copy `skills/aura-review/code/` into the app (e.g.
 `src/features/aura-review/`), fix `report.ts`'s relative import path so it reaches that
-app's own `aura-review/review.json`, and render `<AuraReviewLauncher />` once near the
-app's root (e.g. alongside `<App />` in `main.tsx`). See `code/README.md` for the exact
-files and a diff of what that render call looks like.
+app's own `aura-review/review.json`, render `<AuraReviewLauncher />` once near the
+app's root (e.g. alongside `<App />` in `main.tsx`), and add
+`VITE_AURA_REVIEW_TOGGLE=TRUE` to the app's `.env` (creating it if needed). See
+`code/README.md` for the exact files and a diff of what that render call looks like.
 
-This is a fixed floating button, not a route or nav entry — it doesn't require reading
-or modifying the app's own navigation/routing, which matters because every reviewed app
-is generated fresh and its structure can't be predicted ahead of time. Ensure the app's
-`tsconfig.json` has `"resolveJsonModule": true` first — required to import `review.json`
-as a typed module — adding it if it's missing.
+This is a fixed floating button plus `window.location`-based deep links
+(`/aura-review`, `#aura-review`) — not a registered route or nav entry. It doesn't
+require reading or modifying the app's own navigation/routing, which matters because
+every reviewed app is generated fresh and its structure can't be predicted ahead of
+time. Ensure the app's `tsconfig.json` has `"resolveJsonModule": true` first — required
+to import `review.json` as a typed module — adding it if it's missing.
+
+Two things to get right about the toggle, both silent failures otherwise:
+
+- The `VITE_` prefix is mandatory. Vite only exposes prefixed vars to client code, so a
+  plain `AURA_REVIEW_TOGGLE=TRUE` leaves the button permanently hidden.
+- It's substituted at build time, so it must be set before `vite build` runs. Use `.env`
+  (tracked, non-secret) rather than `.env.local`, and never give a secret a `VITE_`
+  prefix — prefixed values are baked into publicly readable client JS.
 
 ## Step 7 — print a one-line summary
 

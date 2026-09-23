@@ -47,7 +47,54 @@ wants every nightly-generated app to ship with its own review page.
    ```
 
    That's the entire integration — no route, tab, or nav entry needs to exist in the app
-   itself. The launcher's own `useState` for open/closed is intentionally local, not
-   host-synced (see the app's `CLAUDE.md` §2): a reviewer opening this overlay doesn't
-   need it to survive a reload or show up in a shared link, so plain React state is the
-   correct choice here, not an exception to that rule.
+   itself.
+
+5. Add the toggle to the app's `.env`:
+
+   ```dotenv
+   VITE_AURA_REVIEW_TOGGLE=TRUE
+   ```
+
+## The toggle
+
+Nothing renders unless the app is **built** with `VITE_AURA_REVIEW_TOGGLE` set to `TRUE`
+(or `1`; case-insensitive). Without it `AuraReviewLauncher` returns `null` — no button,
+no overlay.
+
+Two things about this are easy to get wrong:
+
+- **The `VITE_` prefix is required.** Vite only exposes prefixed variables to client
+  code, so a plain `AURA_REVIEW_TOGGLE=TRUE` in `.env` is invisible to the browser
+  bundle and the button silently never appears.
+- **It's read at build time, not at boot.** Vite substitutes the literal into the bundle
+  during `vite build`, so the variable has to be set in the build environment, and
+  flipping it later needs a rebuild — you can't toggle a deployed app by editing its
+  env. Vite reads it from `.env`/`.env.local` *and* from the process environment (the
+  latter wins), so CI can just export `VITE_AURA_REVIEW_TOGGLE=TRUE` rather than writing
+  a file.
+
+Put it in `.env`, not `.env.local` — it's a non-secret build flag, and `.env.local` is
+conventionally the untracked secrets file. Worth remembering that *any* `VITE_`-prefixed
+value in either file gets baked into publicly readable client JS, so never prefix a
+secret.
+
+## Reaching the report
+
+Three ways in, once the toggle is on:
+
+- The floating button, bottom-right.
+- `/aura-review` — works wherever the host serves `index.html` for unknown paths (the
+  standard SPA fallback, which App Hosting does). If the app's own router redirects
+  unmatched paths back to `/`, this one won't stick.
+- `#aura-review` — needs nothing from the server and survives router redirects, so it's
+  the reliable one to share. Only conflicts if the app uses `HashRouter`.
+
+Both URL forms are handled by reading `window.location` directly, so this bundle stays
+independent of whatever router (or no router) the app happens to use — the overlay just
+renders on top. The launcher listens for `hashchange`/`popstate` so in-app navigation to
+those URLs opens it too, and closing clears the deep link so it doesn't immediately
+reopen.
+
+Open/closed state is otherwise intentionally local React state, not host-synced (see the
+app's `CLAUDE.md` §2): beyond the deep link above, a reviewer toggling this overlay
+doesn't need it persisted.
