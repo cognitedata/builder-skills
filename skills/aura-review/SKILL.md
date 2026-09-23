@@ -300,8 +300,13 @@ Entry to the report is that banner link plus `window.location`-based deep links
 (`/aura-review`, `#aura-review`) — not a registered route or nav entry. It doesn't
 require reading or modifying the app's own navigation/routing, which matters because
 every reviewed app is generated fresh and its structure can't be predicted ahead of
-time. Ensure the app's `tsconfig.json` has `"resolveJsonModule": true` first — required
-to import `review.json` as a typed module — adding it if it's missing.
+time.
+
+Two `tsconfig.json` settings are needed first, both adding them if missing:
+`"resolveJsonModule": true`, so `review.json` imports as a typed module; and — only if
+`compilerOptions.types` is set explicitly, as the `@cognite/cli` scaffold does —
+`"vite/client"` in that array, since listing `types` suppresses TypeScript's automatic
+inclusion and `import.meta.env` then fails to typecheck with `TS2339`.
 
 Two things to get right about the toggle, both silent failures otherwise:
 

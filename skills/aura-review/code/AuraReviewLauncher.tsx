@@ -18,8 +18,12 @@ import { AuraReviewPage } from './AuraReviewPage';
 // (see its resolveEnvPrefix), so a plain AURA_REVIEW_TOGGLE in .env is invisible here
 // and the toggle would silently never fire. It's also substituted at *build* time, not
 // read at boot — the value has to be present when `vite build` runs, and changing it
-// afterwards means rebuilding. That's the tradeoff for the review page adding zero
-// bytes to an app built without it.
+// afterwards means rebuilding.
+//
+// This suppresses rendering, not bundling: the regex below isn't statically foldable,
+// so a build with the toggle off still ships this component and the report page, they
+// just never render. Treat the toggle as "nobody sees it", not "nobody can find it" —
+// review.json's contents are readable in the bundle either way.
 const ENABLED = /^(true|1)$/i.test(import.meta.env.VITE_AURA_REVIEW_TOGGLE ?? '');
 
 // Deep links, without depending on the host app's router. Every reviewed app is

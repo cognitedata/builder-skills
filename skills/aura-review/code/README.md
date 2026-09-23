@@ -32,7 +32,10 @@ wants every nightly-generated app to ship with its own review page.
 2. Fix up `report.ts`'s import path so it resolves to that app's own
    `aura-review/review.json` relative to wherever you placed the folder.
 3. Ensure the app's `tsconfig.json` has `"resolveJsonModule": true` — required to import
-   `review.json` as a typed module.
+   `review.json` as a typed module. If it also sets `compilerOptions.types` explicitly,
+   add `"vite/client"` to that array: listing `types` at all suppresses TypeScript's
+   automatic inclusion, and without it `import.meta.env` fails to typecheck
+   (`TS2339`). The `@cognite/cli` scaffold does set `types`, so this usually applies.
 4. Render `<AuraReviewLauncher />` once, near the app's root — e.g. alongside `<App />`
    in `main.tsx`:
 
@@ -62,6 +65,11 @@ wants every nightly-generated app to ship with its own review page.
 Nothing renders unless the app is **built** with `VITE_AURA_REVIEW_TOGGLE` set to `TRUE`
 (or `1`; case-insensitive). Without it `AuraReviewLauncher` returns `null` — no banner,
 no overlay.
+
+It suppresses *rendering*, not bundling. The check isn't statically foldable, so a build
+with the toggle off still contains this component and the report page; they just never
+render. The toggle means "nobody sees it", not "nobody can find it" — `review.json`'s
+contents sit in the bundle either way.
 
 Two things about this are easy to get wrong:
 
