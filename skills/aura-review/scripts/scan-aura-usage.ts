@@ -306,16 +306,17 @@ function scan(appDir: string): {
           } else {
             const importInfo = importsByIdentifier.get(identifier) ?? null;
             const moduleSpecifier = importInfo?.moduleSpecifier ?? null;
-            const slug = moduleSpecifier?.startsWith('@cognite/aura')
-              ? (identifierToSlug.get(importInfo!.originalName) ?? null)
-              : null;
+            const slug =
+              importInfo && moduleSpecifier?.startsWith('@cognite/aura')
+                ? identifierToSlug.get(importInfo.originalName) ?? null
+                : null;
 
-            if (slug) {
+            if (slug && importInfo) {
               const classNameRegion = classNameRegionFor(node.attributes);
               auraElementUsages.push({
                 identifier,
                 slug,
-                isRootComponent: rootIdentifiers.has(importInfo!.originalName),
+                isRootComponent: rootIdentifiers.has(importInfo.originalName),
                 file: relativeFile,
                 line,
                 classNameRegion,
