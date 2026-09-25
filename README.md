@@ -16,11 +16,13 @@ Pull a specific skill:
 npx @cognite/cli@latest apps skills pull --skill integrate-fusion-agent
 ```
 
+If they started from Fusion Custom apps, **start-flows-app** gets `https://localhost` running first. Write App-Brief after the SME conversation — do not dump an empty template as the opening move.
+
 ## Certification flow
 
 Four skills drive the Flows app certification flow end to end. Run them in order:
 
-1. **flows-app-brief** — Right after `npx @cognite/cli apps create`. Coaches you through the App Brief and writes `App-Brief.md`.
+1. **flows-app-brief** — After localhost is up. Coaches you through the App Brief and writes `App-Brief.md`.
 2. **flows-code-review** — Technical review. Writes `reviews/code-review/feedback-round-<N>/`. Re-run until 0 Must Fix.
 3. **flows-design-review** — Manual design quality assessment (10 questions). Writes `reviews/design-review/feedback-round-<N>/`. Target average ≥ 3.8.
 4. **flows-external-app-submit** — Verifies the prior three artifacts and runs `npx @cognite/cli apps submit`.
@@ -29,6 +31,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 
 | Skill | Description |
 |-------|-------------|
+| **start-flows-app** | Flows custom app ceremony after Fusion Start building / `apps create`: local HTTPS, `token/inspect` + `appHostingAcl`, data-model curiosity (MCP connect via `connect-atlas-mcp`); then App-Brief / deploy / sign / submit |
 | **flows-app-brief** | Certification coach (step 1) — captures app details, persona, problem, and success criteria, writes `App-Brief.md` |
 | **flows-review-checks** | Shared technical-review bar (hunts, coverage scope, public criteria). Loaded by `flows-code-review` and by external review skills — do not copy |
 | **flows-code-review** | Local technical review runner (step 3) — loads `flows-review-checks`, writes `reviews/code-review/feedback-round-<N>/` |
