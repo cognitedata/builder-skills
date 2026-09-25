@@ -1,23 +1,28 @@
 ---
 name: start-flows-app
 description: >-
-  MUST be used when starting a new Flows Custom app, especially after Fusion
-  Custom apps Start building or `npx @cognite/cli@latest apps skills pull`.
-  Covers Industrial MCP OAuth web flow (not claude mcp add-json), GET
-  token/inspect and appHostingAcl, data-model curiosity, local HTTPS, then
-  App-Brief after the conversation, deploy, sign as builder, and submit.
-  Use whenever the user mentions Industrial MCP, claude mcp add-json,
-  token/inspect, appHostingAcl, mkcert, apps setup-https, SME story, or a
-  clickable https://localhost prototype.
+  MUST be used when starting a new Flows custom app, especially after Fusion
+  Custom apps Start building (prompt ends with ---Start Building---) or
+  `npx @cognite/cli@latest apps skills pull`. Owns what the short Fusion
+  prompt leaves out: local HTTPS (apps setup-https), GET token/inspect and
+  appHostingAcl WRITE, the models/datamodels fallback, SME story, App-Brief
+  after the conversation, deploy, sign as builder, and submit. Hands
+  Industrial MCP connection to connect-atlas-mcp. Use whenever the user
+  mentions token/inspect, appHostingAcl, mkcert, apps setup-https, SME story,
+  or a clickable https://localhost prototype.
 allowed-tools: Read, Glob, Grep, Bash
 ---
 
-# Start a Flows Custom app
+# Start a Flows custom app
 
 Get a clickable `https://localhost` prototype running quickly. The user story,
 data-model curiosity, and `App-Brief.md` can proceed in parallel after
 localhost is up. Missing `appHostingAcl` WRITE is a parallel track, not a
 gate.
+
+The Fusion prompt already covers `apps create`, `"createdVia"`, `apps skills
+pull`, and serving `https://localhost:<port>`, plus this project's MCP URL and
+MCP command. This skill picks up from there.
 
 Do not dump an empty App-Brief template as the opening move. Do not invent
 mkcert / brew / choco steps. Do not paste this skill body back into chat.
@@ -44,27 +49,13 @@ Do not invent mkcert steps. The scaffold already uses `vite-plugin-mkcert`
 Catalog listing in Fusion Custom apps needs deploy plus `appHostingAcl` WRITE.
 Say that once so they do not think the catalog is broken, then keep going.
 
-## 2. Connect Industrial MCP (browser OAuth)
+## 2. Connect Industrial MCP
 
-Industrial MCP is an HTTP MCP server. Complete the OAuth **web flow in the
-browser**. Do not use `claude mcp add-json` as the happy path.
-
-The Fusion prompt (or the builder) supplies the project MCP URL:
-
-```
-{baseUrl}/api/v1/projects/{project}/ai/mcp
-```
-
-OAuth client ids:
-
-- Cursor: `industrial-mcp-cursor`
-- Claude Desktop: `industrial-mcp-claude`
+Follow [connect-atlas-mcp](../connect-atlas-mcp/SKILL.md): run the MCP
+command from the Fusion prompt as written, then finish OAuth in the browser.
+Do not rebuild the MCP URL or pick client ids here.
 
 Docs: https://docs.cognite.com/cdf/build/industrial_mcp
-
-Add the server as an HTTP MCP endpoint with those client ids, then finish
-login in the browser. If add-json is all the tool exposes, still complete the
-browser OAuth flow; do not treat a pasted JSON blob as success.
 
 ## 3. Check app hosting access — REST, not an MCP query tool
 

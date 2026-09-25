@@ -31,7 +31,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 
 | Skill | Description |
 |-------|-------------|
-| **start-flows-app** | After Fusion Custom apps / `apps create`: Industrial MCP OAuth web flow, `token/inspect` + `appHostingAcl`, data-model curiosity, local HTTPS; then App-Brief / deploy / sign / submit |
+| **start-flows-app** | Flows custom app ceremony after Fusion Start building / `apps create`: local HTTPS, `token/inspect` + `appHostingAcl`, data-model curiosity (MCP connect via `connect-atlas-mcp`); then App-Brief / deploy / sign / submit |
 | **flows-app-brief** | Certification coach (step 1) — captures app details, persona, problem, and success criteria, writes `App-Brief.md` |
 | **flows-review-checks** | Shared technical-review bar (hunts, coverage scope, public criteria). Loaded by `flows-code-review` and by external review skills — do not copy |
 | **flows-code-review** | Local technical review runner (step 3) — loads `flows-review-checks`, writes `reviews/code-review/feedback-round-<N>/` |
