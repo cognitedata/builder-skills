@@ -21,7 +21,7 @@ Do **not** use the deprecated app-local "copy the bundle" approach — that patt
 
 ## Prerequisites
 
-- The app uses React + TypeScript and is wrapped in `@cognite/app-sdk`'s `CogniteSdkProvider` (Flows auth), which supplies the `CogniteClient` (`sdk`) via `useCogniteSdk()` from `@cognite/app-sdk/react`. `@cognite/dune` is the CLI used to scaffold/deploy the app, not the runtime auth library — apps created with `npx @cognite/dune apps create` depend on `@cognite/app-sdk` for this, not `@cognite/dune` itself (the `useDune()`/`@cognite/dune/auth` hook only exists for legacy `--classic` scaffolds).
+- The app uses React + TypeScript and is wrapped in `@cognite/app-sdk`'s `CogniteSdkProvider` (Flows auth), which supplies the `CogniteClient` (`sdk`) via `useCogniteSdk()` from `@cognite/app-sdk/react`. `@cognite/cli` is the CLI used to scaffold/deploy the app, not the runtime auth library — apps created with `npx @cognite/cli apps create` depend on `@cognite/app-sdk` for this, not `@cognite/cli` itself (the `useDune()`/`@cognite/dune/auth` hook only exists for legacy `--classic` scaffolds).
 - The CDF project has 3D models, or the user has supplied direct model/revision IDs or a CDM (`externalId`/`space`) model reference.
 - For DM-linked 3D, the instance/model must be identifiable via a CDM `externalId`/`space` pair or a classic `modelId`/`revisionId`; instance highlighting works once a model is loaded and the instance is contextualized (mapped) to it.
 - Determine whether the project's 3D content lives in the **Core Data Model** or the classic 3D API before setting `viewerOptions.useCoreDm` — don't default it to `true`. There's no single flag for this; [csp-and-fixes.md](references/csp-and-fixes.md) gives the exact SDK calls to check directly.
