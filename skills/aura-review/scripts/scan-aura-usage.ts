@@ -96,6 +96,24 @@ interface ComponentCatalogEntry {
   rootIdentifiers: string[];
 }
 
+// Non-component subpaths Aura's package.json also exports: the barrel itself,
+// docs/asset files, and utility/config entry points that don't render JSX.
+//
+// Everything else is a real, importable component surface and belongs in the
+// catalog — including top-level exports like `./chart` and `./data-grid`, which is
+// why this is a denylist rather than a `./components/` prefix match. Any component
+// export missing from the catalog counts as non-Aura wherever an app uses it, so
+// the coverage and could-have-been-Aura numbers understate reality.
+const NON_COMPONENT_EXPORT_DENYLIST = new Set([
+  './components', // barrel re-export, not a distinct component
+  './DESIGN.md',
+  './colors.css',
+  './styles.css',
+  './styles.source.css',
+  './eslint',
+  './utils',
+]);
+
 function loadComponentCatalog(appDir: string): ComponentCatalogEntry[] {
   const auraDir = path.join(appDir, 'node_modules/@cognite/aura');
   const packageJsonPath = path.join(auraDir, 'package.json');
@@ -109,9 +127,14 @@ function loadComponentCatalog(appDir: string): ComponentCatalogEntry[] {
     fs.readFileSync(packageJsonPath, 'utf-8')
   ) as { exports: Record<string, { types?: string } | undefined> };
   return Object.entries(packageJson.exports)
-    .filter(([key]) => key.startsWith('./components/'))
+    .filter(
+      ([key]) =>
+        !NON_COMPONENT_EXPORT_DENYLIST.has(key) && !key.endsWith('.css') && !key.endsWith('.md')
+    )
     .map(([key, value]) => {
-      const slug = key.slice('./components/'.length);
+      const slug = key.startsWith('./components/')
+        ? key.slice('./components/'.length)
+        : key.slice('./'.length);
       const typesPath = value?.types ? path.join(auraDir, value.types) : null;
       const identifiers = typesPath ? extractExportedIdentifiers(typesPath) : [];
       return { slug, identifiers, rootIdentifiers: pickRootIdentifiers(identifiers) };
@@ -131,8 +154,18 @@ const STRUCTURAL_IDENTIFIER_DENYLIST = new Set([
   'NavLink',
 ]);
 
-function collectImports(source: ts.SourceFile): Map<string, string> {
-  const importsByIdentifier = new Map<string, string>();
+interface ImportInfo {
+  moduleSpecifier: string;
+  // The name as actually exported by the module — differs from the map's key
+  // (the local binding name) whenever the import is aliased, e.g.
+  // `import { Alert as AlertBanner } from '@cognite/aura/components/alert'`.
+  // Catalog lookups must use this, not the local name, or an aliased Aura
+  // import gets silently misclassified as a non-Aura component.
+  originalName: string;
+}
+
+function collectImports(source: ts.SourceFile): Map<string, ImportInfo> {
+  const importsByIdentifier = new Map<string, ImportInfo>();
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement)) continue;
     const moduleSpecifier = (statement.moduleSpecifier as ts.StringLiteral)
@@ -142,7 +175,8 @@ function collectImports(source: ts.SourceFile): Map<string, string> {
       continue;
     for (const element of clause.namedBindings.elements) {
       const localName = element.name.text;
-      importsByIdentifier.set(localName, moduleSpecifier);
+      const originalName = element.propertyName?.text ?? localName;
+      importsByIdentifier.set(localName, { moduleSpecifier, originalName });
     }
   }
   return importsByIdentifier;
@@ -270,18 +304,19 @@ function scan(appDir: string): {
               reason: 'structural-denylist',
             });
           } else {
-            const moduleSpecifier =
-              importsByIdentifier.get(identifier) ?? null;
-            const slug = moduleSpecifier?.startsWith('@cognite/aura')
-              ? (identifierToSlug.get(identifier) ?? null)
-              : null;
+            const importInfo = importsByIdentifier.get(identifier) ?? null;
+            const moduleSpecifier = importInfo?.moduleSpecifier ?? null;
+            const slug =
+              importInfo && moduleSpecifier?.startsWith('@cognite/aura')
+                ? identifierToSlug.get(importInfo.originalName) ?? null
+                : null;
 
-            if (slug) {
+            if (slug && importInfo) {
               const classNameRegion = classNameRegionFor(node.attributes);
               auraElementUsages.push({
                 identifier,
                 slug,
-                isRootComponent: rootIdentifiers.has(identifier),
+                isRootComponent: rootIdentifiers.has(importInfo.originalName),
                 file: relativeFile,
                 line,
                 classNameRegion,
