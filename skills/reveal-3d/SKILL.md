@@ -35,7 +35,7 @@ Follow these steps in order. Adapt paths to the target app's conventions instead
 3. **Configure Vite.** Read [vite-config.md](references/vite-config.md) and add the `three`/`@cognite/reveal` dedupe entry. No process/util/assert polyfills are needed — the package ships browser-ready.
 4. **Configure `manifest.json`'s CSP allowances** for whatever the scene/model actually contains (scene ground-plane/skybox textures, 360° image collections). Read [csp-and-fixes.md](references/csp-and-fixes.md) — it also covers the app-side fix point clouds need (`manifest.json` can't grant it directly) and a StrictMode gotcha, so read it even if the app has no scenes/360 content yet.
 5. **Add a controller class** that wraps `RevealWidgetController` and drives it imperatively (load resources, style/highlight instances, control the camera) from your own event handlers — not from `useEffect` reacting to prop changes. See [implementation.md](references/implementation.md).
-6. **Mount `RevealWidget`** with `viewerOptions={{ sdk, useCoreDm }}` (set `useCoreDm` per the project, not hardcoded — see [csp-and-fixes.md](references/csp-and-fixes.md)) and `setControllerRef` inside a container with an explicit height. `RevealWidget` manages its own internal Reveal context — do not wrap it in another provider from this package.
+6. **Mount `RevealWidget`** with `viewerOptions={{ sdk, useCoreDm }}` (set `useCoreDm` per the project, not hardcoded — see [csp-and-fixes.md](references/csp-and-fixes.md)), `setControllerRef`, and the required `appIdentifier` (a string identifying the host app) inside a container with an explicit height. `RevealWidget` manages its own internal Reveal context — do not wrap it in another provider from this package.
 7. **Choose the resource pattern.** Use the model-browser pattern (`sdk.models3D.list()` + classic `modelId`/`revisionId`) as the default unless the user has already supplied a CDM `externalId`/`space` model reference. Full examples in [implementation.md](references/implementation.md).
 8. **Clean up.** Call `.remove()` on any `Reveal3DResourceHandle` returned by `addResource` when it's no longer needed (selection change, unmount).
 9. **Run typecheck and build** (`tsc --noEmit`, `pnpm build`, etc.) and fix any dependency/peer-version issues.
@@ -94,6 +94,7 @@ export function ViewerPage({
       <RevealWidget
         viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
         setControllerRef={handleWidgetController}
+        appIdentifier="my-flows-app"
       />
     </div>
   );
@@ -106,7 +107,7 @@ Suggested versions are starting points. If the target app already pins compatibl
 
 | Package | Suggested version | Purpose |
 |---------|-------------------|---------|
-| `@cognite/reveal-widget` | `^0.2.0` | The `RevealWidget` component and its types |
+| `@cognite/reveal-widget` | `^0.3.0` | The `RevealWidget` component and its types |
 | `react` / `react-dom` | `^18.3.1` (peer) | UI framework — peer dependency, must match the app |
 | `@cognite/reveal` | `4.36.0` | Reveal viewer runtime — exact match required. Pin to `4.36.0`, not the `4.35.3` in `@cognite/reveal-widget`'s own declared peer range — see note below. |
 | `@cognite/sdk` | `^10.14.0` (peer) | CDF API client — peer dependency |
@@ -119,7 +120,7 @@ Example install (pnpm; adapt to the app's package manager):
 pnpm add @cognite/reveal-widget @cognite/reveal@4.36.0 @cognite/sdk react react-dom
 ```
 
-`@cognite/reveal-widget@0.2.0`'s own peer range still says `@cognite/reveal@4.35.3`, but its dependency `@cognite/reveal-components` hardcodes `@cognite/reveal@4.36.0` internally. Pin the app to `4.36.0` and confirm the lockfile resolves a single `@cognite/reveal` version — the peer range is stale, and a real version split here (unlike a `resolve.dedupe` gap) breaks Reveal's shared viewer state silently.
+`@cognite/reveal-widget@0.3.0`'s own peer range still says `@cognite/reveal@4.35.3`, but its dependency `@cognite/reveal-components` hardcodes `@cognite/reveal@4.36.0` internally. Pin the app to `4.36.0` and confirm the lockfile resolves a single `@cognite/reveal` version — the peer range is stale, and a real version split here (unlike a `resolve.dedupe` gap) breaks Reveal's shared viewer state silently.
 
 Do **not** copy any source bundle into the app and do **not** install `process`, `util`, `assert`, `ajv`, or `vite-plugin-node-polyfills` for this package — none of that is needed.
 
@@ -133,6 +134,7 @@ Do **not** copy any source bundle into the app and do **not** install `process`,
 - `RevealWidget`'s container must have an explicit height — it fills its parent.
 - Lazy-load canvas-heavy viewer content with `React.lazy` + `Suspense` when adding a route/page.
 - `useCoreDm` must match the project, not default to `true` — wrong 401s and silent 360-collection failures otherwise. Don't wrap the app in `React.StrictMode` — it tears down `RevealWidget`'s viewer mid-load in dev and produces errors that don't occur in production. Point clouds need an app-side same-origin fix, since `manifest.json` can't grant the `data:` CSP allowance they'd otherwise need. All three: see [csp-and-fixes.md](references/csp-and-fixes.md).
+- `appIdentifier` (a string naming the host app) is a **required** prop as of `@cognite/reveal-widget@0.3.0` — mounting `RevealWidget` without it is a type error. By default the widget reports anonymous usage metrics (which features are used, e.g. adding a resource, moving the camera) to a dedicated `mixpanel-browser` instance. Pass the optional `tracking` prop to change this: `tracking={{ disabled: true }}` to opt out entirely, or `tracking={{ mixpanelToken }}` to report to a different Mixpanel project instead.
 
 ## Advanced Reference
 
@@ -149,7 +151,7 @@ For CSP/`manifest.json` allowances, the `useCoreDm`/StrictMode gotchas, the poin
 - [ ] No source bundle was copied into the app; all imports come from `@cognite/reveal-widget`, and no app code imports from `@cognite/reveal-components` directly.
 - [ ] `vite.config.ts` includes `resolve.dedupe: ['three', '@cognite/reveal']` (plus the app's existing dedupe entries).
 - [ ] No `process`/`util`/`assert` polyfills or `vite-plugin-node-polyfills` were added for this package.
-- [ ] `RevealWidget` is mounted once, is not nested in another Reveal provider, and its container has an explicit height.
+- [ ] `RevealWidget` is mounted once, is not nested in another Reveal provider, its container has an explicit height, and it is given a required `appIdentifier` string prop.
 - [ ] `viewerOptions.useCoreDm` matches whether the target project is actually Core-Data-Model-based.
 - [ ] The app does not wrap itself in `React.StrictMode`.
 - [ ] `manifest.json` grants `img-src` for `https://*.cognitedata.com` if the app loads scenes with ground planes/skybox, and `connect-src` for the actual signed-URL host observed from a CSP violation if it loads 360° image collections. If the app needs point cloud support, the same-origin `Blob`-patch fix has been applied and verified.
