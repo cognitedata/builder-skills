@@ -8,12 +8,13 @@ description: >-
   Runs fully automatically by scanning the app's source and checking it
   against Aura's docs — no back-and-forth, so it also works unattended in CI.
   Writes a machine-readable aura-review/review.json (headline stats plus every
-  finding, structured — the source of truth for any downstream consumer: an
-  in-app report page, a CDF upload, a metrics pipeline). Use when asked to run
-  an Aura audit, check Aura compliance, or score how compliant an app is with
-  the Aura design system, on an app that already exists. Do not use this
-  while generating, scaffolding, or implementing an app — it is a downstream
-  audit of finished work, not a build-time check.
+  finding, structured — the source of truth for any downstream consumer: a
+  CDF upload, a metrics pipeline, a dashboard) plus a human-readable report at
+  reviews/aura-review/feedback-round-<N>/aura-review-report.md. Use when asked
+  to run an Aura audit, check Aura compliance, or score how compliant an app
+  is with the Aura design system, on an app that already exists. Do not use
+  this while generating, scaffolding, or implementing an app — it is a
+  downstream audit of finished work, not a build-time check.
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch
 ---
 
@@ -25,7 +26,7 @@ reach for correctly?**
 
 This skill never asks the user anything. It is designed to run unattended —
 inside a CI job on a nightly schedule, or by hand — and to always finish with
-a machine-readable `review.json`.
+a machine-readable `review.json` plus a human-readable markdown report.
 
 ## Never run this against an app that's still being built
 
@@ -79,11 +80,9 @@ Confirm `<app-dir>/node_modules/@cognite/aura/package.json` and
 report that `npm`/`pnpm install` needs to run first (this skill never installs
 dependencies itself).
 
-`$ARGUMENTS` may also contain `--wire-in-app`. It defaults to **off** — a
-plain invocation (e.g. someone auditing their own app by hand) only ever reads
-the app and writes `review.json`; it never edits the app's files or sends data
-anywhere. See Step 6 for what the flag enables and why it's opt-in rather than
-part of the default run.
+This skill only ever reads the app and writes `review.json` plus the markdown
+report described in Step 6 — it never edits the app's own files or sends data
+anywhere.
 
 This skill never publishes results anywhere. Getting `review.json` into a
 tracking store (CDF, a spreadsheet, a dashboard) is the caller's job, not the
@@ -240,9 +239,9 @@ knowledge the model has but the docs don't.
 
 Everything computed in Steps 1–4 goes into a single `aura-review/review.json`
 — headline stats *and* every finding, structured. This is deliberate: this
-file is what any downstream consumer reads — an in-app report page bundled
-into the deployed app, a CDF upload, a spreadsheet row, anything else. None
-of those consumers live in this skill; they all just read this file.
+file is what any downstream consumer reads — a CDF upload, a dashboard, a
+spreadsheet row, anything else. None of those consumers live in this skill;
+they all just read this file.
 Do not let any of that content exist only as prose in your own output; if
 it's not in `review.json`, it isn't reusable.
 
@@ -276,45 +275,56 @@ it's not in `review.json`, it isn't reusable.
 Keep these `stats` field names stable — downstream consumers index them by
 name, so renaming one silently breaks whatever tracks it across runs.
 
-## Step 6 (only if `--wire-in-app` was passed) — wire the review into the app itself
+## Step 6 — write the markdown report
 
-Skip this step entirely if `--wire-in-app` wasn't in `$ARGUMENTS` — the default run
-never edits the app, only reads it and writes `review.json`. This exists for the CI eval
-pipeline (`aura-eval-daily.yml`), which wants every generated app to ship with its own
-review page; a one-off audit of someone's existing app has no reason to modify their
-source tree.
+Alongside `review.json`, always write a human-readable report, using the same method
+and location convention `flows-design-review` uses for `design-review-report.md`:
 
-When the flag is present: copy `skills/aura-review/code/` into the app (e.g.
-`src/features/aura-review/`), fix `report.ts`'s relative import path so it reaches that
-app's own `aura-review/review.json`, render `<AuraReviewLauncher />` once **immediately
-before `<App />`** at the app's root (e.g. in `main.tsx`), and add
-`VITE_AURA_REVIEW_TOGGLE=TRUE` to the app's `.env` (creating it if needed). See
-`code/README.md` for the exact files and a diff of what that render call looks like.
+Choose the feedback round exactly like `flows-code-review` and `flows-design-review` do:
+look at `<app-dir>/reviews/aura-review/`. If it doesn't exist, this is round 1. Otherwise
+increment to the next missing `feedback-round-<N>/` directory.
 
-It renders an Aura `Banner` (info variant) at the very top of the app — announcing that
-this build carries a review, with a button that opens the report, and naming the env var
-that hides it. Rendering it before `<App />` keeps it in normal flow above the app's own
-chrome instead of covering any of it.
+Write `<app-dir>/reviews/aura-review/feedback-round-<N>/aura-review-report.md` with this
+structure:
 
-The button is the only way into the report — deliberately no route or deep-linkable URL,
-which matters because every reviewed app is generated fresh and its structure can't be
-predicted ahead of time. See `code/README.md` for why `window.location`-based deep links
-don't work here (this app runs inside a Fusion-managed iframe) and why Fusion's actual
-mechanism for that, `syncInternalState`, doesn't fit a drop-in bundle either.
+```markdown
+# Aura Review — <appDir> — round <N>
 
-Two `tsconfig.json` settings are needed first, both adding them if missing:
-`"resolveJsonModule": true`, so `review.json` imports as a typed module; and — only if
-`compilerOptions.types` is set explicitly, as the `@cognite/cli` scaffold does —
-`"vite/client"` in that array, since listing `types` suppresses TypeScript's automatic
-inclusion and `import.meta.env` then fails to typecheck with `TS2339`.
+## Headline
 
-Two things to get right about the toggle, both silent failures otherwise:
+| Metric | Value |
+| --- | --- |
+| Aura coverage | <auraCoveragePct>% (<auraUsages>/<auraUsages + nonAuraUsages> distinct component types) |
+| Could have been Aura | <couldHaveBeenAuraPct>% (<couldHaveBeenAuraCount>/<couldHaveBeenAuraConsideredCount>) |
+| Usage-quality findings | <usageQualityFindingsCount> |
 
-- The `VITE_` prefix is mandatory. Vite only exposes prefixed vars to client code, so a
-  plain `AURA_REVIEW_TOGGLE=TRUE` leaves the button permanently hidden.
-- It's substituted at build time, so it must be set before `vite build` runs. Use `.env`
-  (tracked, non-secret) rather than `.env.local`, and never give a secret a `VITE_`
-  prefix — prefixed values are baked into publicly readable client JS.
+## Non-compliance findings
+
+| Component | Usages | Could have been | Evidence |
+| --- | --- | --- | --- |
+| ... | ... | ... | ... |
+
+(If empty: "No non-compliance findings.")
+
+## Usage-quality findings
+
+| Component | Location | Violates | Quoted rule |
+| --- | --- | --- | --- |
+| ... | ... | ... | ... |
+
+(If empty: "No usage-quality findings.")
+
+## Excluded from judgment
+
+Third-party components — not a design-system concern.
+
+- <identifier> (<usages> usages, from `<packageName>`)
+```
+
+Populate every table straight from `review.json`'s `stats`, `nonComplianceFindings`,
+`usageQualityFindings`, and `thirdPartyUsages` — don't re-derive or re-judge anything
+here, this is the same data restated as prose/tables for a human reader instead of a
+machine consumer.
 
 ## Step 7 — print a one-line summary
 
@@ -324,5 +334,6 @@ Print to stdout, so a CI log shows the result without opening any file:
 aura-review: coverage=<auraCoveragePct>% could-have-been-aura=<couldHaveBeenAuraPct>% (<n>/<total>) usage-quality-findings=<count>
 ```
 
-Then stop. Publishing `review.json` anywhere — CDF, a spreadsheet, a dashboard — is
-the caller's job; this skill's output is the file and the summary line.
+Then stop. Publishing `review.json` or the markdown report anywhere — CDF, a
+spreadsheet, a dashboard — is the caller's job; this skill's output is the two files and
+the summary line.
