@@ -36,12 +36,11 @@ callback ports, or switch `add-json` to `claude mcp add`.
 
 If `---Start Building---` is missing, or the MCP URL or command is missing,
 the prompt was truncated. Ask the builder to Copy from Fusion and paste, then
-continue. For Copilot this is expected: the `vscode://` link only carries a
-pointer to the clipboard, so the command appears once the builder pastes the
-full prompt.
+continue.
 
-Do not paste tokens. Do not scrape the CLI keychain. `npx @cognite/cli auth
-login` is not the MCP credential.
+Do not paste tokens. Do not scrape the CLI keychain. The prompt's `npx
+@cognite/cli@latest auth login` signs in the CLI; it is not the MCP
+credential.
 
 ## 1. Run Fusion's command as written
 
