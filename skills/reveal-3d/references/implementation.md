@@ -50,6 +50,7 @@ export function ViewerHost({ sdk }: { sdk: CogniteClient }) {
       <RevealWidget
         viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
         setControllerRef={handleControllerRef}
+        appIdentifier="my-flows-app"
       />
     </div>
   );
@@ -231,6 +232,7 @@ export function ViewerPage() {
         <RevealWidget
           viewerOptions={{ sdk, useCoreDm }} // set per the project — see csp-and-fixes.md
           setControllerRef={handleControllerRef}
+          appIdentifier="my-flows-app"
         />
       </div>
     </div>

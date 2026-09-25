@@ -66,6 +66,10 @@
         {
           "text": "sdk passed to viewerOptions is memoized with useMemo keyed on sdk.project",
           "type": "content"
+        },
+        {
+          "text": "RevealWidget is given an appIdentifier string prop",
+          "type": "content"
         }
       ]
     },
@@ -106,6 +110,10 @@
         {
           "text": "vite.config.ts resolve.dedupe includes 'three' and '@cognite/reveal', and no process/util/assert polyfill setup was added",
           "type": "content"
+        },
+        {
+          "text": "RevealWidget is given an appIdentifier string prop",
+          "type": "content"
         }
       ]
     },
@@ -141,6 +149,10 @@
         },
         {
           "text": "vite.config.ts resolve.dedupe includes 'three' and '@cognite/reveal'",
+          "type": "content"
+        },
+        {
+          "text": "RevealWidget is given an appIdentifier string prop",
           "type": "content"
         }
       ]
