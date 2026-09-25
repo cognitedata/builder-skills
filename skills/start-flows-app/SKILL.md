@@ -20,9 +20,12 @@ data-model curiosity, and `App-Brief.md` can proceed in parallel after
 localhost is up. Missing `appHostingAcl` WRITE is a parallel track, not a
 gate.
 
-The Fusion prompt already covers `apps create`, `"createdVia"`, `apps skills
-pull`, and serving `https://localhost:<port>`, plus this project's MCP URL and
-MCP command. This skill picks up from there.
+The Fusion prompt already covers the folder check, `apps create` and `auth
+login` with CDF flags filled in, `"createdVia"`, `apps skills pull`, serving
+`https://localhost:<port>`, and this project's MCP command. Run those
+commands as given; do not re-ask org, project, cluster, or base URL. If
+browser login stalls, loops, or never persists a session, stop and ask the
+builder. This skill picks up from there.
 
 Do not dump an empty App-Brief template as the opening move. Do not invent
 mkcert / brew / choco steps. Do not paste this skill body back into chat.
