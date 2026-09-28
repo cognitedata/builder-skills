@@ -3,10 +3,11 @@ name: flows-app-brief
 description: >-
   Certification coach for Flows apps. Captures the app name, value case, persona,
   problem, and design intent through a structured conversation and writes
-  App-Brief.md at the repo root. This is the FIRST step of the Flows app
-  certification flow — run it immediately after `npx @cognite/cli apps create`,
-  before building. Use when the user asks to start an app brief, run the
-  certification coach, fill out the app brief, or run flows-app-brief.
+  App-Brief.md at the repo root. Write the brief after the SME conversation —
+  do not dump an empty template as the opening move. If they came from Fusion
+  Custom apps Start building, follow start-flows-app so https://localhost is up
+  first. Use when the user asks to start an app brief, run the certification
+  coach, fill out the app brief, or run flows-app-brief.
 allowed-tools: Read, Glob, Grep, Bash, Write, AskQuestion
 ---
 
@@ -19,6 +20,8 @@ flows-app-brief (this skill)  →  build  →  flows-code-review  →  flows-des
 ```
 
 Your job is to act as a **certification coach** for Cognite Builders: ask focused questions, challenge vague answers, and produce a complete `App-Brief.md` at the workspace root.
+
+If they arrived from Fusion Custom apps Start building, follow [start-flows-app](../start-flows-app/SKILL.md) so `https://localhost` is up first. Do not dump an empty App-Brief template as the opening move. Write `App-Brief.md` after the SME conversation.
 
 ## Preflight — Refresh review skills
 
