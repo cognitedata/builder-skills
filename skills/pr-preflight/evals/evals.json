@@ -1,0 +1,38 @@
+{
+  "skill_name": "pr-preflight",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm about to raise a PR for my dune app at /Users/rachit.yadav@cognitedata.com/Desktop/genai/dune-OOTB-apps/work-order-classifier. The branch is test/work-order-classifier-coverage. Run the full pre-PR preflight checklist and tell me if the branch is ready to open a PR.",
+      "expected_output": "A structured report running all priority gates (type-check, tests, test file coverage, any-casts, SDK types, dead code, validation guards, useCallback), producing a summary table with PASS/FAIL/WARN per gate, and a clear final verdict on whether the PR can be opened.",
+      "files": [],
+      "expectations": [
+        "The report runs gate 1a (type-check) and reports its result",
+        "The report runs gate 1b (pnpm test --run) and reports its result",
+        "The report runs gate 1c (test file coverage) and reports which files lack tests",
+        "The report runs gate 1d (: any in tests) and reports its result",
+        "The report runs gate 1e (cdf-design-system-alpha): zero tolerance — any occurrence in src/, package.json, or pnpm-lock.yaml is a blocking FAIL; the skill states there are no exceptions",
+        "At least one Priority 2 gate is checked (SDK types, dead code, validation, useCallback)",
+        "The report produces a summary table with PASS/FAIL/WARN per gate",
+        "The report gives a clear final verdict: safe to open PR or must fix first",
+        "The report identifies the setTimeout anti-pattern in AgentBootstrap.test.tsx",
+        "The report identifies unwrapped const handleX handlers (handleConfirmDelete, handleAddToEvalSet, or similar) as a WARN or finding — not silently ignored",
+        "Priority 3 findings (setTimeout, useCallback) are classified as WARN (non-blocking) while Priority 1 failures are classified as FAIL (blocking) — the severity distinction is explicit in the report"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Check if my branch is ready to push. I just built a new React hook at /Users/rachit.yadav@cognitedata.com/Desktop/genai/dune-OOTB-apps/work-order-classifier/src/hooks/useConfig.ts and added a new component AgentBootstrapContext. I haven't written tests yet. Run the preflight.",
+      "expected_output": "The skill should catch the missing test files for useConfig and AgentBootstrapContext, flag this as a Priority 1 blocker, and produce a report that prevents the PR from being opened until tests exist.",
+      "files": [],
+      "expectations": [
+        "The report runs the test file coverage check (gate 1c)",
+        "The report flags useConfig as missing a test file",
+        "The report flags AgentBootstrapContext as missing a test file",
+        "Missing test files are correctly marked as a FAIL (blocking), not a WARN",
+        "The final verdict says the PR cannot be opened until tests are added",
+        "The report runs gate 1a (type-check) regardless of the missing tests"
+      ]
+    }
+  ]
+}
