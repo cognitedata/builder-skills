@@ -24,11 +24,15 @@
     {
       "id": 2,
       "prompt": "COGNITE_ALPHA_ENABLE_TYGEN=true is already set for this app. Generate types for the data model production:EquipmentModel:v3 using the default output location.",
-      "expected_output": "Run cognite tygen generate with the versioned --data-model value and explain that the default output directory is src/generated_types/EquipmentModel/.",
+      "expected_output": "Run cognite tygen generate with the versioned --data-model value and explain that the default output directory is src/generated_types/EquipmentModel/. The explicit generation request is sufficient confirmation.",
       "files": [],
       "assertions": [
         {
           "text": "Response uses cognite tygen generate rather than apps sdk types.",
+          "type": "content"
+        },
+        {
+          "text": "Response accepts the explicit generation request as confirmation and does not ask for redundant permission.",
           "type": "content"
         },
         {
@@ -43,7 +47,7 @@
     },
     {
       "id": 3,
-      "prompt": "The TyGen alpha flag is enabled. What files will generation create, and can I use generated queryTyped helpers instead of the CDF SDK?",
+      "prompt": "The TyGen alpha flag is enabled. What files will generation create, and can I use generated queryTyped helpers instead of the CDF SDK? Show a short instances.list example using a generated view reference.",
       "expected_output": "State that TyGen creates types.ts and views.ts. Explain that it supplies TypeScript property types and view references, while runtime reads remain on the native @cognite/sdk and TyGen does not provide queryTyped helpers.",
       "files": [],
       "assertions": [
@@ -56,6 +60,10 @@
           "type": "content"
         },
         {
+          "text": "An instances.list example nests the generated view reference inside sources: [{ source: ViewReference }] and looks up returned properties by space and externalId/version.",
+          "type": "content"
+        },
+        {
           "text": "Response rejects generated queryTyped helpers as part of TyGen output.",
           "type": "content"
         }
@@ -64,7 +72,7 @@
     {
       "id": 4,
       "prompt": "We changed a CDF data model after TyGen generation. Should I edit src/generated_types/EquipmentModel/types.ts to add the new field?",
-      "expected_output": "Regenerate from the versioned data model, inspect the generated diff, and run typecheck and relevant tests. Do not hand-edit generated files.",
+      "expected_output": "Regenerate from the versioned data model, inspect the generated diff, run typecheck and relevant tests, and commit the generated output with the app source. Do not hand-edit generated files.",
       "files": [],
       "assertions": [
         {
@@ -77,6 +85,26 @@
         },
         {
           "text": "Response requires typecheck and relevant tests.",
+          "type": "content"
+        },
+        {
+          "text": "Response says to commit the generated output with the app source.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The TyGen alpha flag is enabled. I want to generate types but do not know the data model reference. I can use an interactive terminal and browser login. How should I run TyGen?",
+      "expected_output": "Run tygen generate without --data-model in an interactive terminal so the model picker selects a versioned model. Use --interactive for browser authentication and explain that it is independent of the model picker.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response omits --data-model to use the interactive model picker.",
+          "type": "content"
+        },
+        {
+          "text": "Response uses --interactive for browser authentication and distinguishes it from the model picker.",
           "type": "content"
         }
       ]
