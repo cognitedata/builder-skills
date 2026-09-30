@@ -44,7 +44,7 @@ Target overall average: **3.8 or higher** to be launch-ready.
 | `App-Brief.md` frontmatter | Pre-fill primary user (`userRole`), tasks (`oneSentenceStory`), success criteria |
 | `package.json` | Confirm `@cognite/aura` is installed and surface its version (informs Q1) |
 | Latest `reviews/code-review/feedback-round-<N>/code-review-report.md` | Pull design-adjacent findings (accessibility, error handling, UX copy) and present them as evidence under Q4/Q10 |
-| `src/**/*.{ts,tsx,css}` | Q1 probe — grep for hard-coded hex/rgb colors and raw `px`/`rem` values outside Aura tokens |
+| `src/**/*.{ts,tsx,css}` | Q1 probe — grep for hard-coded hex/rgb colors, raw `px`/`rem` values outside Aura tokens, and Aura color tokens listed as deprecated in `node_modules/@cognite/aura/dist/colors.deprecated.css` |
 | `src/**/*.{ts,tsx}` | Q5 probe — `onClick` on non-button elements without `role`/`tabIndex` |
 | `src/**/*.{ts,tsx}` | Q10 probe — icon buttons missing `aria-label`, `<img>` without `alt`, missing focus styles |
 
@@ -111,9 +111,18 @@ Each question's probe list is the *first* thing the agent should run before aski
 - `grep -rlE "from '@cognite/aura'" --include='*.ts' --include='*.tsx' src | wc -l` — count files importing Aura
 - `grep -rlE '#[0-9a-fA-F]{3,8}' --include='*.css' --include='*.tsx' --include='*.ts' src` — files with hard-coded hex colors
 - `grep -rlE '\b(rgb|rgba|hsl|hsla)\(' --include='*.tsx' --include='*.css' src` — files with raw rgb/hsl values
+- If `node_modules/@cognite/aura/dist/colors.deprecated.css` exists, extract every CSS custom property declared there and search `src/**/*.{ts,tsx,css}` for exact usage:
+  ```bash
+  awk -F: '/^[[:space:]]*--[[:alnum:]_-]+[[:space:]]*:/{token=$1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", token); print token}' node_modules/@cognite/aura/dist/colors.deprecated.css |
+    sort -u |
+    while IFS= read -r token; do
+      grep -RFn --include='*.ts' --include='*.tsx' --include='*.css' -- "$token" src
+    done
+  ```
+  Report each match as deprecated Aura token usage, including its token, file, and line. If the file is absent, report that the probe could not run (usually because dependencies are not installed); do not treat that as zero matches.
 - `npx eslint . --ext .ts,.tsx --rule '{"aura/no-overriding-styles":"error"}' --no-eslintrc --quiet 2>&1 | tail -5` or read the existing lint output for `aura/no-overriding-styles` warning counts
 
-**Translate to draft score:** 0 hard-coded colors + 0 `aura/no-overriding-styles` warnings → 5. Few warnings (1–5) → 4. Many warnings (>15) or no Aura imports → 2–3.
+**Translate to draft score:** 0 hard-coded colors + 0 deprecated Aura color tokens + 0 `aura/no-overriding-styles` warnings → 5. Any deprecated token usage prevents a 5 and should include replacement as an improvement note. Few total warnings/matches (1–5) → 4. Many warnings/matches (>15) or no Aura imports → 2–3.
 
 - **5 Excellent:** All Aura tokens applied correctly, no hard-coded values. Proper responsive sizing and page layouts. Aura components used without style overrides. Best practices followed.
 - **4 Good:** Mostly Aura tokens and components with 1–2 minor exceptions. Layout spacing mostly consistent. Minimal style overrides.
