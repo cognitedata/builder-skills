@@ -19,7 +19,7 @@ If you introduce TyGen as an option, confirm the user wants to use it before run
 Generate against one versioned data model:
 
 ```bash
-cognite tygen generate \
+npx @cognite/cli@latest tygen generate \
   --data-model mySpace:myModel:v1
 ```
 
