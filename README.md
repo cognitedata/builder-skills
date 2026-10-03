@@ -46,7 +46,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **correctness-and-error-handling** | Reviews for bugs, missing error states, unhandled rejections, and edge cases |
 | **dm-graph-traversal** | CDF Data Modeling graph traversal patterns — query-vs-list decisions, traversal payload guardrails, failure debugging, and payload-shape test requirements |
 | **dm-limits-and-best-practices** | DMS concurrency, pagination, batching; LLM-over-rows cap (5 / max 50) |
-| **tygen** | Opt-in alpha TypeScript types and view references for one CDF data model via `cognite tygen generate` |
+| **tygen** | Opt-in alpha TypeScript types, view references and a type-checked `instances.query` (`initTygen`) for one CDF data model via `cognite tygen generate` |
 | **integrate-file-viewer** | Integrates CogniteFileViewer to preview CDF files (PDFs, images, text) |
 | **performance** | Optimizes Flows apps for speed, render counts, and bundle size |
 | **pull-changes-resolve-conflicts** | Merge or rebase workflow — list conflicts, analyze ours/theirs, get user approval before resolving |

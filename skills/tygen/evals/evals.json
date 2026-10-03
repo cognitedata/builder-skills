@@ -47,24 +47,24 @@
     },
     {
       "id": 3,
-      "prompt": "The TyGen alpha flag is enabled. What files will generation create, and can I use generated queryTyped helpers instead of the CDF SDK? Show a short instances.list example using a generated view reference.",
-      "expected_output": "State that TyGen creates types.ts and views.ts. Explain that it supplies TypeScript property types and view references, while runtime reads remain on the native @cognite/sdk and TyGen does not provide queryTyped helpers.",
+      "prompt": "The TyGen alpha flag is enabled and the app uses the typed query build of the CLI. What files will generation create, and how do I read a work order's name with a type-checked query instead of untyped instances.query?",
+      "expected_output": "State that generation creates types.ts, views.ts and query.ts. Explain that query.ts exports initTygen, that tygen.query takes a native instances.query request written inline, and that the selected properties are typed in the result. search, aggregate and list stay on the native @cognite/sdk.",
       "files": [],
       "assertions": [
         {
-          "text": "Response names both types.ts and views.ts.",
+          "text": "Response names types.ts, views.ts and query.ts.",
           "type": "content"
         },
         {
-          "text": "Response keeps runtime reads on @cognite/sdk.",
+          "text": "Response binds the client once with initTygen and calls tygen.query with the request.",
           "type": "content"
         },
         {
-          "text": "An instances.list example nests the generated view reference inside sources: [{ source: ViewReference }] and looks up returned properties by space and externalId/version.",
+          "text": "The query nests the generated view reference inside sources: [{ source: ..., properties: [...] }] and reads the result by space and externalId/version.",
           "type": "content"
         },
         {
-          "text": "Response rejects generated queryTyped helpers as part of TyGen output.",
+          "text": "Response keeps instances.search, aggregate and list on the native @cognite/sdk.",
           "type": "content"
         }
       ]
@@ -105,6 +105,70 @@
         },
         {
           "text": "Response uses --interactive for browser authentication and distinguishes it from the model picker.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "TyGen alpha is enabled. Write a typed query for the Equipment view in the generated PlantModel types: only equipment whose status is 'RUNNING', sorted by name ascending, 25 at a time.",
+      "expected_output": "Use tygen.query with the request written inline. The filter and sort paths use [space, 'Equipment/version', property] and the select lists the properties that are read. The limit is 25.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response uses initTygen and tygen.query rather than untyped instances.query.",
+          "type": "content"
+        },
+        {
+          "text": "Filter and sort property paths have the form [space, 'View/version', property] with literal strings.",
+          "type": "content"
+        },
+        {
+          "text": "The request is written inline or kept in a variable with as const satisfies QueryInput.",
+          "type": "content"
+        },
+        {
+          "text": "Response sets limit: 25 and a sort on name.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "TyGen alpha is enabled. I build the status filter in a helper function that takes a status string and returns the filter, and sometimes I add it to the query conditionally. The typed query now rejects it. What do I do?",
+      "expected_output": "Explain that a property path only keeps its literal type when it is written inside the request, so the helper should return QueryFilter (or use as const), and the conditional part can be spread into the and array.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response gives the helper a QueryFilter return type or as const.",
+          "type": "content"
+        },
+        {
+          "text": "Response explains that the literal type is lost when the path is built outside the request.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not suggest casting the path to string[] or any.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "TyGen alpha is enabled. Add a 'load more' button to a typed query by passing the cursor from the previous response, when there is one.",
+      "expected_output": "Spread the cursor into the request only when it is set: ...(cursor ? { cursors: { equipment: cursor } } : {}). Do not write cursors: cursor ? {...} : {}, which loses the result types, or : undefined, which fails with exactOptionalPropertyTypes. Read the next cursor from result.nextCursor.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response spreads the cursor into the request with a conditional spread.",
+          "type": "content"
+        },
+        {
+          "text": "Response reads the next cursor from nextCursor of the previous result.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not assign a conditional object or undefined directly to cursors.",
           "type": "content"
         }
       ]
