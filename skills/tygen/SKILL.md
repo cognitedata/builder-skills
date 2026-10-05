@@ -10,20 +10,20 @@ Use a TyGen-enabled `cognite` CLI to add generated model types and typed view re
 
 ## Availability
 
-TyGen is experimental and is not part of the normal app workflow. Before suggesting, running, or editing code that depends on generated output, verify that `COGNITE_ALPHA_ENABLE_TYGEN` is explicitly set to `true` for the command environment. If it is not enabled, explain that TyGen is an opt-in alpha capability and continue with the native `@cognite/sdk` types and APIs already used by the app.
+TyGen is experimental and is not part of the normal app workflow. Before suggesting, running, or editing code that depends on generated output, verify that `COGNITE_ALPHA_ENABLE_TYGEN` is explicitly set to `true` for the command environment. If it is not enabled, explain that TyGen is an opt-in alpha capability and continue with the native `@cognite/sdk` types and APIs already used by the app. Do not offer commands that enable the flag or solicit opt-in unless the user explicitly asks how to enable TyGen. A request to generate types is not permission to enable the flag.
 
 If you introduce TyGen as an option, confirm the user wants to use it before running it. An explicit request to generate types is sufficient confirmation. Do not enable the flag, add it to a repository, or change deployment configuration without the user's explicit approval.
 
 ## Generate
 
-Generate against one versioned data model:
+Use the CLI installed by the app or a local build that exposes `tygen generate --help`. Preserve a working CLI invocation supplied by the user. Code on main may not yet be in the published `@cognite/cli@latest` package.
+
+For an app with the CLI installed through pnpm, generate against one versioned data model:
 
 ```bash
-npx @cognite/cli@latest tygen generate \
+pnpm exec cognite tygen generate \
   --data-model mySpace:myModel:v1
 ```
-
-Use the CLI installed by the app or a local build that exposes `tygen generate --help`. Code on main may not yet be in the published `@cognite/cli@latest` package.
 
 In an interactive terminal, omit `--data-model` to pick a model from the target project. The picker selects a versioned model. The `--interactive` flag controls browser authentication, independently of the model picker.
 
@@ -35,7 +35,7 @@ The default output location is `src/generated_types/<externalId>/`. Each run wri
 
 ## Consume
 
-Import model property types from `types.ts` and view references from `views.ts`. Pass view references inside a `source` object to the native `@cognite/sdk`. Its response groups properties first by space, then by `externalId/version`. Validate the fields you use before narrowing runtime data to a generated type:
+Import model property types from `types.ts` and view references from `views.ts`. A view's space and version come from that view's schema, not from the data model's identity. Pass view references inside a `source` object to the native `@cognite/sdk`. Its response groups properties first by space, then by `externalId/version`. Validate the fields you use before narrowing runtime data to a generated type:
 
 ```ts
 import type { Equipment } from './generated_types/PlantModel/types';
