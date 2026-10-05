@@ -306,6 +306,8 @@ async function highlightAsset(
 
 There is no built-in hook in `@cognite/reveal-widget` (yet) that discovers "the CAD model linked to this DM instance" — that's a broader Reveal React Components capability not exposed here. If the app needs that discovery step, resolve the model identifier first (e.g. via the app's own DM query against `CogniteVisualizable.object3D`), then load it with `addResource` and highlight the instance as shown above.
 
+**Important:** the identifier you resolve via `object3D` is only used to *find/load the model* — don't reuse it for highlighting. `styleByInstance`/`focusInstances` must receive the **asset's own** `InstanceId` (its classic asset ID, or its own `{ externalId, space }`), as in the example above, not the `object3D` target reference.
+
 ---
 
 ## Other resource types
