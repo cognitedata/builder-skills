@@ -18,13 +18,21 @@
         {
           "text": "Response recommends the native @cognite/sdk as the fallback.",
           "type": "content"
+        },
+        {
+          "text": "Response does not provide an alpha-enabling command or ask to enable the flag. It stays with the native SDK fallback until the user explicitly requests opt-in.",
+          "type": "content"
+        },
+        {
+          "text": "Response corrects the request for generated client helpers: TyGen produces types and view references, not runtime helpers.",
+          "type": "content"
         }
       ]
     },
     {
       "id": 2,
-      "prompt": "COGNITE_ALPHA_ENABLE_TYGEN=true is already set for this app. Generate types for the data model production:EquipmentModel:v3 using the default output location.",
-      "expected_output": "Run cognite tygen generate with the versioned --data-model value and explain that the default output directory is src/generated_types/EquipmentModel/. The explicit generation request is sufficient confirmation.",
+      "prompt": "COGNITE_ALPHA_ENABLE_TYGEN=true is already set for this app. Our installed local build exposes pnpm exec cognite tygen generate --help. Show the command to generate types for production:EquipmentModel:v3 using the default output location and what to check afterward.",
+      "expected_output": "Use the available local CLI with the versioned --data-model value and default src/generated_types/EquipmentModel/ output. Do not assume the model space or version determines its views' spaces or versions.",
       "files": [],
       "assertions": [
         {
@@ -41,6 +49,14 @@
         },
         {
           "text": "Response identifies src/generated_types/EquipmentModel as the default output directory.",
+          "type": "content"
+        },
+        {
+          "text": "Response uses the supplied pnpm exec cognite local CLI rather than replacing it with a download of @cognite/cli@latest.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not assume generated view references must have the data model's space production or version v3. View identities come from the views in the schema.",
           "type": "content"
         }
       ]
@@ -71,7 +87,7 @@
     },
     {
       "id": 4,
-      "prompt": "We changed a CDF data model after TyGen generation. Should I edit src/generated_types/EquipmentModel/types.ts to add the new field?",
+      "prompt": "COGNITE_ALPHA_ENABLE_TYGEN=true is already set. We changed a CDF data model after TyGen generation. Should I edit src/generated_types/EquipmentModel/types.ts to add the new field?",
       "expected_output": "Regenerate from the versioned data model, inspect the generated diff, run typecheck and relevant tests, and commit the generated output with the app source. Do not hand-edit generated files.",
       "files": [],
       "assertions": [
@@ -107,6 +123,18 @@
           "text": "Response uses --interactive for browser authentication and distinguishes it from the model picker.",
           "type": "content"
         }
+      ]
+    },
+    {
+      "id": 6,
+      "format": "typescript",
+      "prompt": "The TyGen alpha flag is explicitly true. Using the supplied generated files, return only a complete TypeScript consumer module. Import CogniteClient as a type from @cognite/sdk. Export async function listEquipmentNames(sdk: Pick<CogniteClient, 'instances'>): Promise<string[]>. Make one instances.list call for CogniteEquipment nodes using the generated view reference. Return string names from that view's properties, skipping missing properties and non-string names. Do not implement pagination. Import generated references from ./generated/views and types from ./generated/types if needed. Do not invent generated runtime helpers, use any, or use a type assertion to bypass runtime field validation.",
+      "expected_output": "A consumer that compiles against the supplied generated output and native SDK, calls instances.list with the generated source, and safely reads only matching view properties.",
+      "files": [],
+      "assertions": [
+        { "text": "Consumer compiles under strict TypeScript against the actual generated files and native SDK.", "type": "compile" },
+        { "text": "Consumer makes one correct instances.list request and returns only string names from the matching view, safely skipping malformed and unrelated properties.", "type": "behavior" },
+        { "text": "Consumer validates runtime fields without any or unsafe type assertions and does not invent generated runtime helpers.", "type": "content" }
       ]
     }
   ]
