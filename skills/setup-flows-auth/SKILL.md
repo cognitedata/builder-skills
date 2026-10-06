@@ -179,6 +179,8 @@ function App() {
 
 `useCogniteSdk()` throws if called outside `CogniteSdkProvider` — always nest it inside.
 
+`useCogniteSdk()` returns the host client. Call it in the composition root. When the app observes CDF calls or validates a write, wrap that client once and pass the wrapped client to hooks through `useCdfClient()`. Do not call `useCogniteSdk()` again in each query hook. A typed query hook still calls the SDK method on the client it receives. Do not add a service class for a single `list()`.
+
 ## Step 5 — Clean up superseded code
 
 Remove only what's now redundant:

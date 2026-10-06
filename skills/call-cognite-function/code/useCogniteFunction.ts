@@ -8,7 +8,8 @@
  * reset, which removes the hand-rolled state and AbortController plumbing.
  *
  * Requires a <QueryClientProvider> above in the tree.
- * Adjust the useCdfClient import to your project's SDK context.
+ * Adjust the client import to the session client. Use the wrapped client
+ * when the app has one. Do not construct a second CogniteClient.
  *
  * Usage:
  *   const Output = z.object({ success: z.boolean(), report: z.string() });
