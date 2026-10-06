@@ -46,6 +46,8 @@ npx @cognite/cli@latest apps setup-https
 
 Docs: https://docs.cognite.com/cdf/flows/guides/local-https
 
+The host client comes from [setup-flows-auth](../setup-flows-auth/SKILL.md). Call `useCogniteSdk()` once, at the composition root. When the app observes CDF calls or enforces a save rule, wrap that client once and let hooks use the wrapped client. A typed query hook calls the SDK on that client. Do not add a service class for a single `list()`. Feature folders and a flat `components/` tree are both valid.
+
 Do not invent mkcert steps. The scaffold already uses `vite-plugin-mkcert`
 (see [setup-flows-auth](../setup-flows-auth/SKILL.md)).
 

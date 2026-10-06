@@ -369,7 +369,7 @@ Rules:
 
 ## Step 9 — Verify file and export structure
 
-Every feature area should follow a consistent structure. Check that the app's layout matches this pattern:
+Every feature area should follow one consistent structure. Accept a flat layout, feature folders, or a layered client layout. Do not fail an app for choosing one of these:
 
 ```
 src/
@@ -383,6 +383,16 @@ src/
 ├── pages/ or views/    # Route-level components
 └── types/              # Shared TypeScript types
 ```
+
+```
+src/features/<feature>/{ui,hooks,schema,store}
+```
+
+```
+src/{platform,data,modules,app}
+```
+
+`platform` does not import product modules. The composition root is the only place that calls `useCogniteSdk()`. Other code uses the wrapped session client.
 
 Flag:
 - Business logic sitting directly in page components (should be in hooks)

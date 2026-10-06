@@ -89,7 +89,7 @@ const { call, isLoading, error, result, reset } = useCogniteFunction<
 await call({ reportId: "abc", language: "en" });
 ```
 
-Adjust the `useCdfClient` import to however your project exposes the SDK.
+Adjust the client import to the session client. Pass the wrapped client from `useCdfClient()` when the app has one. Otherwise pass the host client from `useCogniteSdk()`. Do not construct a second `CogniteClient`.
 
 Note on generics: TypeScript has no partial inference, so specify **both** type params or **neither**. `useCogniteFunction<MyInput>` alone silently makes `result` `unknown` even with an `outputSchema` — if you don't care about typing the input, omit the generics entirely and let `outputSchema` drive the result type.
 
