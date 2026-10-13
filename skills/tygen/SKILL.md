@@ -43,7 +43,7 @@ The default output location is `src/generated_types/<externalId>/`. Each run wri
 
 ## Query
 
-The generated `index.ts` exports `initTygen`, `Tygen`, the types and the view references. Bind the client once and call `tygen.query` with a native `instances.query` request. The request and response are passed through unchanged; only the TypeScript types change. The result type follows the request, so only the selected properties are typed, and a typo in a view, property or filter path is a compile error.
+The generated `index.ts` exports `initTygen`, `Tygen`, the request helper types (`QueryInput`, `QueryFilter`, `QueryProperty`, `SearchInput`, `AggregateInput`), the model types and the view references. Import them from the generated directory, not from `@cognite/sdk`. Bind the client once and call `tygen.query` with a native `instances.query` request. The request and response are passed through unchanged; only the TypeScript types change. The result type follows the request, so only the selected properties are typed, and a typo in a view, property or filter path is a compile error.
 
 ```ts
 import { EquipmentView, initTygen } from './generated_types/PlantModel';
@@ -64,6 +64,8 @@ Rules:
 - **Property paths** in filters and sorts are `[space, 'View/version', 'property']`, or `['node', 'externalId']` for a property every instance has. A typo, a view or version that is not in the model, or a property of another view is an error on that part of the path. Container paths `[space, containerExternalId, property]` are rejected: use the view path.
 - **Dynamic filters.** A path only keeps its literal type when it is written inside the request, so a function that builds a filter returns `QueryFilter` (or uses `as const`):
   ```ts
+  import type { QueryFilter } from './generated_types/PlantModel';
+
   const hasStatus = (status: string): QueryFilter => ({
     equals: { property: ['plant', 'Equipment/1', 'status'], value: status },
   });
@@ -88,7 +90,7 @@ counts.items[0]?.group?.status; // 'active' | 'retired' | undefined
 
 - `instances.list` and writes stay on the native `@cognite/sdk`. Use generated view references with them (`sources: [{ source: EquipmentView }]`) and look up returned properties by space, then `externalId/version`.
 - Filter values, `through.direction`, `targetUnits`, and the cost or index use of a query are not checked.
-- The API rejects `in` on an enum property (`Unknown space referenced`): use `equals`, or an `or` of `equals`.
+- The query API rejects `in` on an enum property (`Unknown space referenced`): use `equals`, or an `or` of `equals`. `search` accepts `in` on the same property.
 - The API cannot traverse a list of direct relations inwards (`Cannot traverse lists of direct relations inwards`): filter the list property instead, for example `containsAny` on a `path`, which can be slow on large data, or traverse a single-valued relation.
 - Reverse relations and edge connections are not properties of a view and are not in the generated types.
 
