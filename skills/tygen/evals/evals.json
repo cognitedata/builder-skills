@@ -48,11 +48,11 @@
     {
       "id": 3,
       "prompt": "The TyGen alpha flag is enabled and the app uses the typed query build of the CLI. What files will generation create, and how do I read a work order's name with a type-checked query instead of untyped instances.query?",
-      "expected_output": "State that generation creates types.ts, views.ts and query.ts. Explain that query.ts exports initTygen, that tygen.query takes a native instances.query request written inline, and that the selected properties are typed in the result. search, aggregate and list stay on the native @cognite/sdk.",
+      "expected_output": "State that generation creates index.ts, types.ts and views.ts (plus methods/ and internal/). Explain that index.ts exports initTygen, that tygen.query takes a native instances.query request written inline, and that the selected properties are typed in the result. tygen.search and tygen.aggregate are typed too; list stays on the native @cognite/sdk.",
       "files": [],
       "assertions": [
         {
-          "text": "Response names types.ts, views.ts and query.ts.",
+          "text": "Response names index.ts, types.ts and views.ts.",
           "type": "content"
         },
         {
