@@ -68,7 +68,7 @@
           "type": "content"
         },
         {
-          "text": "Response keeps instances.search, aggregate and list on the native @cognite/sdk.",
+          "text": "Response keeps instances.list and writes on the native @cognite/sdk.",
           "type": "content"
         }
       ]
@@ -173,6 +173,26 @@
         },
         {
           "text": "Response does not assign a conditional object or undefined directly to cursors.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "TyGen alpha is enabled. Find Equipment whose name matches 'pump', and count all Equipment by status. I want the results typed.",
+      "expected_output": "Use tygen.search with view: EquipmentView and query: 'pump', and tygen.aggregate with view: EquipmentView, groupBy: ['status'] and a count aggregate. The group values are typed from the model.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response uses tygen.search with the generated view reference as view.",
+          "type": "content"
+        },
+        {
+          "text": "Response uses tygen.aggregate with groupBy: ['status'] and a count aggregate.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not fall back to untyped instances.search or instances.aggregate.",
           "type": "content"
         }
       ]

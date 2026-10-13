@@ -1,12 +1,12 @@
 ---
 name: tygen
-description: Generate TypeScript types and a typed instances query for one CDF data model in a Dune or Flows app. Use only when the TyGen alpha flag is explicitly enabled.
+description: Generate TypeScript types and typed instance query, search and aggregate for one CDF data model in a Dune or Flows app. Use only when the TyGen alpha flag is explicitly enabled.
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 # TyGen
 
-Use a TyGen-enabled `cognite` CLI to add generated model types, typed view references and a type-checked `instances.query` to a Dune or Flows app. This is the typed query alpha: it needs the CLI built from the dune branch `eliasb/alpha-tygen`, not the published `@cognite/cli@latest`.
+Use a TyGen-enabled `cognite` CLI to add generated model types, typed view references and type-checked `query`, `search` and `aggregate` to a Dune or Flows app.
 
 ## Availability
 
