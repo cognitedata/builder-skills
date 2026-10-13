@@ -24,11 +24,11 @@
     {
       "id": 2,
       "prompt": "COGNITE_ALPHA_ENABLE_TYGEN=true is already set for this app. Generate types for the data model production:EquipmentModel:v3 using the default output location.",
-      "expected_output": "Run cognite tygen generate with the versioned --data-model value and explain that the default output directory is src/generated_types/EquipmentModel/. The explicit generation request is sufficient confirmation.",
+      "expected_output": "Run tygen generate from the CLI built from the dune branch eliasb/alpha-tygen with the versioned --data-model value, without setting COGNITE_ALPHA_ENABLE_TYGEN in the command, and explain that the default output directory is src/generated_types/EquipmentModel/. The explicit generation request is sufficient confirmation.",
       "files": [],
       "assertions": [
         {
-          "text": "Response uses cognite tygen generate rather than apps sdk types.",
+          "text": "Response runs tygen generate from the CLI built from the eliasb/alpha-tygen branch rather than apps sdk types or @cognite/cli@latest.",
           "type": "content"
         },
         {
@@ -41,6 +41,10 @@
         },
         {
           "text": "Response identifies src/generated_types/EquipmentModel as the default output directory.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not set COGNITE_ALPHA_ENABLE_TYGEN in the command it runs.",
           "type": "content"
         }
       ]

@@ -16,21 +16,28 @@ If you introduce TyGen as an option, confirm the user wants to use it before run
 
 ## Generate
 
-Typed `search`, `query` and `aggregate` need a local build of the dune repository on branch `eliasb/alpha-tygen`; the published `@cognite/cli@latest` does not have them all yet.
+This alpha needs a CLI built from the dune branch `eliasb/alpha-tygen`. The published `@cognite/cli@latest` does not generate `initTygen`, `query`, `search` or `aggregate`.
+
+Ask the user for the path to their dune checkout before building. Do not switch branches in it; build in a separate worktree:
 
 ```bash
-cd <dune checkout> && git checkout eliasb/alpha-tygen
-pnpm install && pnpm --filter @cognite/cli build
+git -C <dune checkout> fetch origin eliasb/alpha-tygen
+git -C <dune checkout> worktree add <dune checkout>-alpha-tygen origin/eliasb/alpha-tygen
+cd <dune checkout>-alpha-tygen && pnpm install && pnpm --filter @cognite/cli build
 ```
 
-Then, from the app directory (it needs an `app.json`):
+Then, from the app directory (it needs an `app.json`), with `COGNITE_ALPHA_ENABLE_TYGEN=true` already set in the environment:
 
 ```bash
-COGNITE_ALPHA_ENABLE_TYGEN=true node <dune checkout>/packages/cli/dist/cli/cli.js tygen generate \
+node <dune checkout>-alpha-tygen/packages/cli/dist/cli/cli.js tygen generate \
   --data-model mySpace:myModel:v1
 ```
 
-In an interactive terminal, omit `--data-model` to pick a versioned model from the target project. The `--interactive` flag controls browser authentication, independently of the model picker; `--auth-method session` reuses a saved login. Use `--base-url` and `--project` with `--interactive` when generating outside an app directory, and `-o <directory>` only when the default output location is unsuitable. When the data-model reference is unknown, `cognite api datamodels list` lists available models; it requires the separate `COGNITE_ALPHA_ENABLE_API=true` flag, so check that it is already enabled before running it.
+In an interactive terminal, omit `--data-model` to pick a versioned model from the target project.
+
+The command authenticates using the app configuration and environment in the current directory. The `--interactive` flag controls browser authentication, independently of the model picker, and `--auth-method session` reuses a saved login. Use `--base-url` and `--project` with `--interactive` when generating outside an app directory. Use `-o <directory>` only when the default output location is unsuitable.
+
+When the data-model reference is unknown, `cognite api datamodels list` lists available models. This command requires the separate `COGNITE_ALPHA_ENABLE_API=true` flag. Check that it is already enabled before running it.
 
 The default output location is `src/generated_types/<externalId>/`. Each run writes `index.ts` (the entry point), `types.ts`, `views.ts`, `tygen-interface.ts`, `methods/` and `internal/`, so application code must not be written into the generated directory. Commit the generated output with the app source. Regenerate after a data-model change, inspect the diff, and run the app's typecheck and relevant tests. Do not edit generated files by hand.
 
