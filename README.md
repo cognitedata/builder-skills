@@ -56,6 +56,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 | **hide-show-shell** | Hides/reveals the Fusion sidebar + topbar for full-screen app-only mode via `api.setHideShell()`, with best practices for always giving users a way back |
 | **handle-startup-state** | Reads `initialState` from `connectToHostApp()` on mount — deep links, shareable URLs, and host-provided startup arguments — with safe parsing, defaults merging, and optional `syncInternalState` write-back |
 | **design** | Aura UI — components and tokens, layouts, UX copy, forms/async feedback, accessibility (`skills/design/`) |
+| **flows-troubleshooting** | Diagnose and fix common Flows app issues: certificate errors, app not loading in CDF, Node.js version problems, port conflicts, deployment failures, and code-signing errors |
 
 ## Contributing
 
