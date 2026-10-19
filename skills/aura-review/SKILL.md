@@ -15,6 +15,8 @@ description: >-
   is with the Aura design system, on an app that already exists. Do not use
   this while generating, scaffolding, or implementing an app — it is a
   downstream audit of finished work, not a build-time check.
+metadata:
+  internal: true
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch
 ---
 

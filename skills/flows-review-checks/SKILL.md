@@ -7,6 +7,8 @@ description: >-
   checks into another skill. Do not use this skill to fix code. Use when an
   orchestrator says to load flows-review-checks, or when aligning two review
   flows on the same bar.
+metadata:
+  internal: true
 allowed-tools: Read, Glob, Grep, Bash, Write
 ---
 

@@ -72,4 +72,6 @@ allowed-tools: Read, Glob, Grep, Edit, Write
 
 Consolidated Aura guidance uses the **`design`** skill (`skills/design/SKILL.md`). Older per-topic `design-*` skills were merged into that folder.
 
+**Review-only skills**: mark skills that audit finished work (`flows-code-review`, `flows-design-review`, `flows-review-checks`, `aura-review`) with `metadata.internal: true`. They are hidden from interactive listings and `apps create` does not pull them by default; pull one explicitly with `apps skills pull --skill <name>`. Never commit pulled skills into an app repo; the app template ignores `.claude/skills` and `.agents/skills`.
+
 **Authoring style**: Use `## Section` markdown headings for structural sections like Role, When to use, and Setup. XML tags (e.g., `<rubric>`, `<example>`) are acceptable where they serve a machine-parsing purpose.

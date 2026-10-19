@@ -13,6 +13,8 @@ description: >-
   Flows design review, run the design quality assessment, or run
   flows-design-review. Must be run AFTER flows-code-review reaches 0 Must Fix
   and BEFORE flows-external-app-submit.
+metadata:
+  internal: true
 allowed-tools: Read, Glob, Grep, Bash, Write, AskQuestion
 ---
 

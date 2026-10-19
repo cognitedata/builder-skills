@@ -7,6 +7,8 @@ description: >-
   Flows code review, technical review, pre-submit review, app certification
   code review, or "run flows-code-review". Re-run until 0 open Must Fix items
   remain before moving on to flows-design-review.
+metadata:
+  internal: true
 allowed-tools: Read, Glob, Grep, Bash, Write
 ---
 
