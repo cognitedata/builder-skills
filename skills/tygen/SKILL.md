@@ -94,6 +94,10 @@ const rows = page.items.map((item) => ({
 
 - `select` lists the properties to return. Without it, all of them are returned.
 - `nested.scope` and the keys of `include` are direct relations of the view, to another view of the model. Their `filter` and `select` use the property names of the target view. A related instance may have no data in the target view, so its `properties` may be `undefined`.
+- An `include` entry may be `undefined`, such as `include: { mainAsset: showAsset ? {} : undefined }`. Then `related.mainAsset` is optional.
+- `include` returns at most 10,000 related instances per relation, across all items. With more, the query throws. Lower `limit`.
+- `include` also reads the target view. Without read access to it or its space, the whole query is likely to fail with a 403, not return fewer related instances. A query that works without `include` and fails with it points to this, or to the 10,000 limit.
+- Items that point to the same instance share one related object. Copy it before changing it.
 - It returns 100 items by default and has no cursor. To page, or to follow inward relations or edges, use `tygen.query`.
 
 ### Raw typed query
