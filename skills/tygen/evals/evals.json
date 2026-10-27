@@ -51,24 +51,24 @@
     },
     {
       "id": 3,
-      "prompt": "The TyGen alpha flag is enabled and the app uses the typed query build of the CLI. What files will generation create, and how do I read a work order's name with a type-checked query instead of untyped instances.query?",
-      "expected_output": "State that generation creates index.ts, types.ts and views.ts (plus methods/ and internal/). Explain that index.ts exports initTygen, that tygen.query takes a native instances.query request written inline, and that the selected properties are typed in the result. tygen.search and tygen.aggregate are typed too; list stays on the native @cognite/sdk.",
+      "prompt": "The TyGen alpha flag is enabled and types are generated for PlantModel in src/generated_types/PlantModel. Show how to list the names of active Equipment in a React component.",
+      "expected_output": "Import initTygen from the generated index.ts, bind it to the client from useCogniteSdk(), and call tygen.equipment.query (or search) with a short-name filter on status and select ['name']. Read item.properties.name directly, without space and View/version nesting.",
       "files": [],
       "assertions": [
         {
-          "text": "Response names index.ts, types.ts and views.ts.",
+          "text": "Response imports initTygen from the generated directory, not from @cognite/sdk.",
           "type": "content"
         },
         {
-          "text": "Response binds the client once with initTygen and calls tygen.query with the request.",
+          "text": "Response calls a per-view method such as tygen.equipment.query or tygen.equipment.search.",
           "type": "content"
         },
         {
-          "text": "The query nests the generated view reference inside sources: [{ source: ..., properties: [...] }] and reads the result by space and externalId/version.",
+          "text": "The filter uses the short property name 'status', not a full [space, 'View/version', 'status'] path.",
           "type": "content"
         },
         {
-          "text": "Response keeps instances.list and writes on the native @cognite/sdk.",
+          "text": "Response reads item.properties.name directly, without properties[space]['Equipment/1'] nesting.",
           "type": "content"
         }
       ]
@@ -115,84 +115,60 @@
     },
     {
       "id": 6,
-      "prompt": "TyGen alpha is enabled. Write a typed query for the Equipment view in the generated PlantModel types: only equipment whose status is 'active', sorted by name ascending, 25 at a time.",
-      "expected_output": "Use tygen.query with the request written inline. The filter and sort paths use [space, 'Equipment/version', property] and the select lists the properties that are read. The limit is 25.",
+      "prompt": "TyGen alpha is enabled. For each WorkOrder, show its name and the name of its mainAsset, which is a direct relation to FunctionalLocation in the same model.",
+      "expected_output": "Use tygen.workOrder.query with select ['name'] and include { mainAsset: { select: ['name'] } }, and read item.related.mainAsset?.properties?.name. No second request per work order.",
       "files": [],
       "assertions": [
         {
-          "text": "Response uses initTygen and tygen.query rather than untyped instances.query.",
+          "text": "Response uses include with the mainAsset relation in one tygen.workOrder.query call.",
           "type": "content"
         },
         {
-          "text": "Filter and sort property paths have the form [space, 'View/version', property] with literal strings.",
+          "text": "Response reads the related name from item.related.mainAsset, handling undefined.",
           "type": "content"
         },
         {
-          "text": "The request is written inline or kept in a variable with as const satisfies QueryInput.",
-          "type": "content"
-        },
-        {
-          "text": "Response sets limit: 25 and a sort on name.",
+          "text": "Response does not fetch each related instance in a separate request.",
           "type": "content"
         }
       ]
     },
     {
       "id": 7,
-      "prompt": "TyGen alpha is enabled. I build the status filter in a helper function that takes a status string and returns the filter, and sometimes I add it to the query conditionally. The typed query now rejects it. What do I do?",
-      "expected_output": "Explain that a property path only keeps its literal type when it is written inside the request, so the helper should return QueryFilter (or use as const), and the conditional part can be spread into the and array.",
+      "prompt": "TyGen alpha is enabled. The work order list has optional filters for type and location. Build the filter from whichever are set and pass it to tygen.workOrder.query.",
+      "expected_output": "Spread in the conditions that are set, each ending in as const, and pass { and: conditions }. An empty and is fine.",
       "files": [],
       "assertions": [
         {
-          "text": "Response gives the helper a QueryFilter return type or as const.",
+          "text": "Response spreads in the conditions that are set and ends each one in as const.",
           "type": "content"
         },
         {
-          "text": "Response explains that the literal type is lost when the path is built outside the request.",
+          "text": "Response explains that without as const the property names widen to string and the call fails to typecheck.",
           "type": "content"
         },
         {
-          "text": "Response does not suggest casting the path to string[] or any.",
+          "text": "Response does not cast the request to any or unknown.",
           "type": "content"
         }
       ]
     },
     {
       "id": 8,
-      "prompt": "TyGen alpha is enabled. Add a 'load more' button to a typed query by passing the cursor from the previous response, when there is one.",
-      "expected_output": "Spread the cursor into the request only when it is set: ...(cursor ? { cursors: { equipment: cursor } } : {}). Do not write cursors: cursor ? {...} : {}, which loses the result types, or : undefined, which fails with exactOptionalPropertyTypes. Read the next cursor from result.nextCursor.",
+      "prompt": "TyGen alpha is enabled. Count WorkOrders by workOrderType, which is an enum property, with tygen.workOrder.aggregate.",
+      "expected_output": "Explain that the API cannot group by an enum property, so groupBy rejects it. Count each enum value with its own aggregate: a count with an equals filter on that value.",
       "files": [],
       "assertions": [
         {
-          "text": "Response spreads the cursor into the request with a conditional spread.",
+          "text": "Response says enum properties cannot be used in groupBy.",
           "type": "content"
         },
         {
-          "text": "Response reads the next cursor from nextCursor of the previous result.",
+          "text": "Response counts each enum value with a filtered count, one aggregate per value.",
           "type": "content"
         },
         {
-          "text": "Response does not assign a conditional object or undefined directly to cursors.",
-          "type": "content"
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "prompt": "TyGen alpha is enabled. Find Equipment whose name matches 'pump', and count all Equipment by status. I want the results typed.",
-      "expected_output": "Use tygen.search with view: EquipmentView and query: 'pump', and tygen.aggregate with view: EquipmentView, groupBy: ['status'] and a count aggregate. The group values are typed from the model.",
-      "files": [],
-      "assertions": [
-        {
-          "text": "Response uses tygen.search with the generated view reference as view.",
-          "type": "content"
-        },
-        {
-          "text": "Response uses tygen.aggregate with groupBy: ['status'] and a count aggregate.",
-          "type": "content"
-        },
-        {
-          "text": "Response does not fall back to untyped instances.search or instances.aggregate.",
+          "text": "Response does not cast groupBy to bypass the type error.",
           "type": "content"
         }
       ]
