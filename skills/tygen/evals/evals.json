@@ -136,7 +136,7 @@
     {
       "id": 7,
       "prompt": "TyGen alpha is enabled. The work order list has optional filters for type and location. Build the filter from whichever are set and pass it to tygen.workOrder.query.",
-      "expected_output": "Spread in the conditions that are set, each ending in as const, and pass { and: conditions }. An empty and is fine.",
+      "expected_output": "Spread in the conditions that are set, each ending in as const, and pass { and: conditions }, leaving the filter out when no condition is set, since the API rejects an empty and.",
       "files": [],
       "assertions": [
         {
@@ -148,6 +148,10 @@
           "type": "content"
         },
         {
+          "text": "Response leaves the filter out when no condition is set instead of sending an empty and.",
+          "type": "content"
+        },
+        {
           "text": "Response does not cast the request to any or unknown.",
           "type": "content"
         }
@@ -156,7 +160,7 @@
     {
       "id": 8,
       "prompt": "TyGen alpha is enabled. Count WorkOrders by workOrderType, which is an enum property, with tygen.workOrder.aggregate.",
-      "expected_output": "Explain that the API cannot group by an enum property, so groupBy rejects it. Count each enum value with its own aggregate: a count with an equals filter on that value.",
+      "expected_output": "Explain that the API cannot group by an enum property, so such a groupBy fails when it runs, even though it compiles. Count each enum value with its own aggregate: a count with an equals filter on that value.",
       "files": [],
       "assertions": [
         {
@@ -168,7 +172,7 @@
           "type": "content"
         },
         {
-          "text": "Response does not cast groupBy to bypass the type error.",
+          "text": "Response does not group by the enum property.",
           "type": "content"
         }
       ]

@@ -82,7 +82,7 @@ for (const item of counts.items) {
 }
 ```
 
-`groupBy` only accepts text, number, boolean and direct-relation properties, lists of text or direct relations, and `externalId`, `space` and `version`. The API rejects enum, timestamp, date, JSON, file, time series and sequence properties, lists of numbers or booleans, and `createdTime`/`lastUpdatedTime`, so the types do too. To count by an enum, run one `aggregate` per value, with a `count` and an `equals` filter on that value.
+`groupBy` only accepts text, number, boolean and direct-relation properties, lists of text or direct relations, and `externalId`, `space` and `version`. The API rejects enum, timestamp, date, JSON, file, time series and sequence properties, lists of numbers or booleans, and `createdTime`/`lastUpdatedTime`. The types do not check this yet, so such a `groupBy` compiles and fails when it runs. To count by an enum, run one `aggregate` per value, with a `count` and an `equals` filter on that value.
 
 ### Query
 
@@ -123,10 +123,10 @@ const rows = page.items.map((item) => ({
     ...(type ? [{ equals: { property: 'workOrderType', value: type } } as const] : []),
     ...(location ? [{ nested: { scope: 'mainAsset', filter: { equals: { property: 'name', value: location } } } } as const] : []),
   ];
-  await tygen.workOrder.query({ filter: { and: conditions }, select: ['name'] });
+  await tygen.workOrder.query({ ...(conditions.length > 0 ? { filter: { and: conditions } } : {}), select: ['name'] });
   ```
-  The generated SDK exports no per-view filter type to annotate the array with. Without `as const`, the property names widen to `string`, and the call fails with a long `StrictKeys` error. A misspelled property is still a compile error. When no condition is set, `conditions` is empty, which is fine, see below.
-- **An empty `and`** is treated as no filter, and an empty `or` returns no items without a request.
+  The generated SDK exports no per-view filter type to annotate the array with. Without `as const`, the property names widen to `string`, and the call fails with a long `StrictKeys` error. A misspelled property is still a compile error. When no condition is set, leave the filter out, see below.
+- **Never send an empty `and` or `or`.** The filter is sent as it is, and the API rejects an empty `and`. Leave the filter out instead.
 - **Requests kept in a variable** need `as const`, or `as const satisfies QueryInput` for `tygen.query`.
 - **Optional parts of a request**, such as a cursor, are spread in: `...(cursor ? { cursors: { orders: cursor } } : {})`.
 - **Relations to views outside the model**, such as `CogniteSourceSystem` from a model that does not include it, have no short `scope` or `include` name. Use `tygen.query` with full paths.
