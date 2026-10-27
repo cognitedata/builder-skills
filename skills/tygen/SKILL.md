@@ -43,7 +43,7 @@ import { initTygen } from './generated_types/PlantModel';
 const tygen = initTygen(client); // client from useCogniteSdk()
 ```
 
-Each view of the model is a property of `tygen`, such as `tygen.equipment`, with `search`, `aggregate` and `query`. In `filter`, `sort`, `select` and `groupBy`, a property is just its name, such as `'status'`, or an instance field such as `'externalId'`. A typo is a compile error.
+Each view of the model is a property of `tygen`, such as `tygen.equipment`, with `search`, `aggregate` and `query`. A view that only edges use has no `query`. In `filter`, `sort`, `select` and `groupBy`, a property is just its name, such as `'status'`. `filter` and `sort` also take an instance field such as `'externalId'`; `select` only takes the view's properties. A typo is a compile error.
 
 ### Search
 
