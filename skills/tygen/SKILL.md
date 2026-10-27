@@ -71,7 +71,7 @@ for (const item of counts.items) {
 }
 ```
 
-`groupBy` only accepts text, number, boolean and direct-relation properties. The API rejects enum, timestamp, date and JSON properties, so the types do too. To count by an enum, group by a text property or count each value with a filter.
+`groupBy` only accepts text, number, boolean and direct-relation properties, plus `externalId` and `space`. The API rejects enum, timestamp, date and JSON properties, and `createdTime`/`lastUpdatedTime`, so the types do too. To count by an enum, group by a text property or count each value with a filter.
 
 ### Query
 
@@ -102,17 +102,16 @@ const rows = page.items.map((item) => ({
 
 ## Patterns
 
-- **Build a filter conditionally** with the view's filter type, so each condition keeps its property names:
+- **Build a filter in steps** with the view's filter type, so each condition keeps its property names:
   ```ts
-  import type { ViewFilterOf } from './generated_types/PlantModel';
+  import type { TygenViewFilter } from './generated_types/PlantModel';
 
-  const conditions: ViewFilterOf<'workOrder'>[] = [
-    ...(type ? [{ equals: { property: 'workOrderType', value: type } }] : []),
-    ...(location ? [{ nested: { scope: 'mainAsset', filter: { equals: { property: 'name', value: location } } } }] : []),
-  ];
+  const conditions: TygenViewFilter<'workOrder'>[] = [];
+  if (type) conditions.push({ equals: { property: 'workOrderType', value: type } });
+  if (location) conditions.push({ nested: { scope: 'mainAsset', filter: { equals: { property: 'name', value: location } } } });
   await tygen.workOrder.query({ filter: { and: conditions }, select: ['name'] });
   ```
-  Without the annotation, write `as const` after each condition. Otherwise the property names widen to `string`, the call fails with a long `StrictKeys` error, and `select` and `related` lose their types.
+  `TygenViewFilter<'workOrder'>` is the `query` filter; use `TygenViewFilter<'workOrder', 'search'>` or `'aggregate'` for those methods. Use `push`, or a conditional of whole arrays (`type ? [{ ... }] : []`). Spreading conditions in, `[...(type ? [{ ... }] : [])]`, widens the property names to `string` even with the annotation, unless each condition ends in `as const`. A widened filter fails with a long `StrictKeys` error, and `select` and `related` lose their types.
 - **An empty `and`** is treated as no filter, and an empty `or` returns no items without a request.
 - **Requests kept in a variable** need `as const`, or `as const satisfies QueryInput` for `tygen.query`.
 - **Optional parts of a request**, such as a cursor, are spread in: `...(cursor ? { cursors: { orders: cursor } } : {})`.

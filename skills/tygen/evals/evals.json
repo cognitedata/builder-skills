@@ -132,11 +132,11 @@
     {
       "id": 7,
       "prompt": "TyGen alpha is enabled. The work order list has optional filters for type and location. Build the filter from whichever are set and pass it to tygen.workOrder.query.",
-      "expected_output": "Annotate the conditions array with ViewFilterOf<'workOrder'>[] (or write as const after each condition), spread in the conditions that are set, and pass { and: conditions }. An empty and is fine.",
+      "expected_output": "Annotate the conditions array with TygenViewFilter<'workOrder'>[] and push the conditions that are set (or write as const after each spread condition), and pass { and: conditions }. An empty and is fine.",
       "files": [],
       "assertions": [
         {
-          "text": "Response annotates the conditions with ViewFilterOf<'workOrder'>[] or uses as const on each condition.",
+          "text": "Response annotates the conditions with TygenViewFilter<'workOrder'>[] and adds them with push or whole-array conditionals, or uses as const on each condition.",
           "type": "content"
         },
         {
