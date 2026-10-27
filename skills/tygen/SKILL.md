@@ -64,9 +64,9 @@ Search is eventually consistent: writes made right before may not be found yet. 
 ### Aggregate
 
 ```ts
-const counts = await tygen.equipment.aggregate({ groupBy: ['status'], aggregates: [{ count: {} }] });
+const counts = await tygen.equipment.aggregate({ groupBy: ['isCritical'], aggregates: [{ count: {} }] });
 for (const item of counts.items) {
-  const status = item.group?.status; // typed from the model
+  const isCritical = item.group?.isCritical; // typed from the model
   const count = item.aggregates[0]?.aggregate === 'count' ? item.aggregates[0].value : undefined;
 }
 ```
