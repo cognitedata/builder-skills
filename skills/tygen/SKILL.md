@@ -71,7 +71,7 @@ for (const item of counts.items) {
 }
 ```
 
-`groupBy` only accepts text, number, boolean and direct-relation properties, plus `externalId` and `space`. The API rejects enum, timestamp, date and JSON properties, and `createdTime`/`lastUpdatedTime`, so the types do too. To count by an enum, group by a text property or count each value with a filter.
+`groupBy` only accepts text, number, boolean and direct-relation properties, lists of text or direct relations, and `externalId`, `space` and `version`. The API rejects enum, timestamp, date, JSON, file, time series and sequence properties, lists of numbers or booleans, and `createdTime`/`lastUpdatedTime`, so the types do too. To count by an enum, run one `aggregate` per value, with a `count` and an `equals` filter on that value.
 
 ### Query
 
