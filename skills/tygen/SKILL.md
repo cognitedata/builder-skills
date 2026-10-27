@@ -102,16 +102,15 @@ const rows = page.items.map((item) => ({
 
 ## Patterns
 
-- **Build a filter in steps** with the view's filter type, so each condition keeps its property names:
+- **Build a filter in steps** by spreading in the conditions that are set, each ending in `as const` so its property names stay literal:
   ```ts
-  import type { TygenViewFilter } from './generated_types/PlantModel';
-
-  const conditions: TygenViewFilter<'workOrder'>[] = [];
-  if (type) conditions.push({ equals: { property: 'workOrderType', value: type } });
-  if (location) conditions.push({ nested: { scope: 'mainAsset', filter: { equals: { property: 'name', value: location } } } });
+  const conditions = [
+    ...(type ? [{ equals: { property: 'workOrderType', value: type } } as const] : []),
+    ...(location ? [{ nested: { scope: 'mainAsset', filter: { equals: { property: 'name', value: location } } } } as const] : []),
+  ];
   await tygen.workOrder.query({ filter: { and: conditions }, select: ['name'] });
   ```
-  `TygenViewFilter<'workOrder'>` is the `query` filter; use `TygenViewFilter<'workOrder', 'search'>` or `'aggregate'` for those methods. Use `push`, or a conditional of whole arrays (`type ? [{ ... }] : []`). Spreading conditions in, `[...(type ? [{ ... }] : [])]`, widens the property names to `string` even with the annotation, unless each condition ends in `as const`. A widened filter fails with a long `StrictKeys` error, and `select` and `related` lose their types.
+  The generated SDK exports no per-view filter type to annotate the array with. Without `as const`, the property names widen to `string`, and the call fails with a long `StrictKeys` error. A misspelled property is still a compile error. When no condition is set, `conditions` is empty, which is fine, see below.
 - **An empty `and`** is treated as no filter, and an empty `or` returns no items without a request.
 - **Requests kept in a variable** need `as const`, or `as const satisfies QueryInput` for `tygen.query`.
 - **Optional parts of a request**, such as a cursor, are spread in: `...(cursor ? { cursors: { orders: cursor } } : {})`.
