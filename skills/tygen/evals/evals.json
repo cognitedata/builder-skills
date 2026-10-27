@@ -152,7 +152,7 @@
     {
       "id": 8,
       "prompt": "TyGen alpha is enabled. Count WorkOrders by workOrderType, which is an enum property, with tygen.workOrder.aggregate.",
-      "expected_output": "Explain that the API cannot group by an enum property, so groupBy rejects it. Count each enum value with a filter (one aggregate per value, or a count with an equals filter), or group by a text property such as status.",
+      "expected_output": "Explain that the API cannot group by an enum property, so groupBy rejects it. Count each enum value with its own aggregate: a count with an equals filter on that value.",
       "files": [],
       "assertions": [
         {
@@ -160,7 +160,7 @@
           "type": "content"
         },
         {
-          "text": "Response offers a working alternative, such as one filtered count per enum value.",
+          "text": "Response counts each enum value with a filtered count, one aggregate per value.",
           "type": "content"
         },
         {
