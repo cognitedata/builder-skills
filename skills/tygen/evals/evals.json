@@ -47,24 +47,24 @@
     },
     {
       "id": 3,
-      "prompt": "The TyGen alpha flag is enabled. What files will generation create, and can I use generated queryTyped helpers instead of the CDF SDK? Show a short instances.list example using a generated view reference.",
-      "expected_output": "State that TyGen creates types.ts and views.ts. Explain that it supplies TypeScript property types and view references, while runtime reads remain on the native @cognite/sdk and TyGen does not provide queryTyped helpers.",
+      "prompt": "The TyGen alpha flag is enabled and types are generated for PlantModel in src/generated_types/PlantModel. Show how to list the names of active Equipment in a React component.",
+      "expected_output": "Import initTygen from the generated index.ts, bind it to the client from useCogniteSdk(), and call tygen.equipment.query (or search) with a short-name filter on status and select ['name']. Read item.properties.name directly, without space and View/version nesting.",
       "files": [],
       "assertions": [
         {
-          "text": "Response names both types.ts and views.ts.",
+          "text": "Response imports initTygen from the generated directory, not from @cognite/sdk.",
           "type": "content"
         },
         {
-          "text": "Response keeps runtime reads on @cognite/sdk.",
+          "text": "Response calls a per-view method such as tygen.equipment.query or tygen.equipment.search.",
           "type": "content"
         },
         {
-          "text": "An instances.list example nests the generated view reference inside sources: [{ source: ViewReference }] and looks up returned properties by space and externalId/version.",
+          "text": "The filter uses the short property name 'status', not a full [space, 'View/version', 'status'] path.",
           "type": "content"
         },
         {
-          "text": "Response rejects generated queryTyped helpers as part of TyGen output.",
+          "text": "Response reads item.properties.name directly, without properties[space]['Equipment/1'] nesting.",
           "type": "content"
         }
       ]
@@ -105,6 +105,66 @@
         },
         {
           "text": "Response uses --interactive for browser authentication and distinguishes it from the model picker.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "TyGen alpha is enabled. For each WorkOrder, show its name and the name of its mainAsset, which is a direct relation to FunctionalLocation in the same model.",
+      "expected_output": "Use tygen.workOrder.query with select ['name'] and include { mainAsset: { select: ['name'] } }, and read item.related.mainAsset?.properties?.name. No second request per work order.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response uses include with the mainAsset relation in one tygen.workOrder.query call.",
+          "type": "content"
+        },
+        {
+          "text": "Response reads the related name from item.related.mainAsset, handling undefined.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not fetch each related instance in a separate request.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "TyGen alpha is enabled. The work order list has optional filters for type and location. Build the filter from whichever are set and pass it to tygen.workOrder.query.",
+      "expected_output": "Spread in the conditions that are set, each ending in as const, and pass { and: conditions }. An empty and is fine.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response spreads in the conditions that are set and ends each one in as const.",
+          "type": "content"
+        },
+        {
+          "text": "Response explains that without as const the property names widen to string and the call fails to typecheck.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not cast the request to any or unknown.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "TyGen alpha is enabled. Count WorkOrders by workOrderType, which is an enum property, with tygen.workOrder.aggregate.",
+      "expected_output": "Explain that the API cannot group by an enum property, so groupBy rejects it. Count each enum value with its own aggregate: a count with an equals filter on that value.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response says enum properties cannot be used in groupBy.",
+          "type": "content"
+        },
+        {
+          "text": "Response counts each enum value with a filtered count, one aggregate per value.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not cast groupBy to bypass the type error.",
           "type": "content"
         }
       ]
