@@ -105,7 +105,7 @@ const rows = page.items.map((item) => ({
 - `include` also reads the target view. Without read access to it or its space, the whole query is likely to fail with a 403, not return fewer related instances. A query that works without `include` and fails with it points to this.
 - Items that point to the same instance share one related object. Copy it before changing it.
 - It returns 100 items by default and 10,000 at most. `nextCursor` is set when there may be more: pass it as `cursor`, with the rest of the request the same, for the next page.
-- `sort` takes `nullsFirst`. Any order of a sort on one property pages correctly, see "Sorted pages".
+- `sort` takes only the orders DMS can page, see "Sorted pages". A descending sort needs `nullsFirst: true`.
 
 ### Indexes
 
@@ -133,7 +133,7 @@ for await (const item of tygen.equipment.queryAll({ filter, select: ['name'], pa
 
 ### Sorted pages
 
-DMS has a cursor for a sort on one property only ascending with nulls last, or descending with nulls first. The per-view `query` and `queryAll` read the other two orders (descending with nulls last, the default for descending, and ascending with `nullsFirst: true`) in two parts, and encode the part in `nextCursor`. Pass the cursor back unchanged. The page where the parts meet takes one more request. For a short list on a filter without an index, that doubles the time; use `searchAll` there. A sort on several properties is sent as it is, and `queryAll` throws if DMS returns no cursor for it.
+DMS returns a cursor for a sort only ascending with nulls last (the default), or descending with nulls first. The `sort` of `query` and `queryAll` takes only those orders, so `direction: 'descending'` must come with `nullsFirst: true`, and `nullsFirst: true` on an ascending sort does not compile. Write `sort: [{ property: 'startTime', direction: 'descending', nullsFirst: true }]` for newest first, also on instance fields such as `createdTime`. The items without a value then come first. To put them last, sort a short list on the client, or read the items with a value (`exists` on the property) and those without in two queries. `nextCursor` is the DMS cursor. A sort on several properties is sent as it is, and `queryAll` throws if DMS returns no cursor for it.
 
 ### Raw typed query
 
