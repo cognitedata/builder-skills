@@ -192,7 +192,7 @@
           "type": "content"
         },
         {
-          "text": "Response does not fetch the assets of each work order in a separate request or with tygen.queryPages per row.",
+          "text": "Response does not fetch the assets of each work order in a separate request per row.",
           "type": "content"
         }
       ]

@@ -113,7 +113,7 @@ The generated types know each property's index. A `query` or `queryAll` that fil
 
 - Prefer `search` or `searchAll` with the same filter. A list of direct relations, such as `assets`, rarely has an index: to find the instances that link to one, use search.
 - Set `allowUnindexed: true` only for a view you know is small.
-- `Indexed<typeof EquipmentView>` shows the indexes. `externalId` and `space` count as indexed; `createdTime` and `lastUpdatedTime` do not.
+- `externalId` and `space` count as indexed; `createdTime` and `lastUpdatedTime` do not.
 
 ### Reading every page
 
@@ -139,7 +139,7 @@ DMS returns a cursor for a sort only ascending with nulls last (the default), or
 
 `tygen.query` takes a native `instances.query` request with full property paths, `[space, 'View/version', 'property']`, and types the result from it. Use it for inward relations, edges and set operations. Its results keep the native nesting under space and `View/version`: `item.properties[space]['View/version'].name`.
 
-`tygen.queryPages(request, { follow: 'resultSetName' })` reads such a query page by page, following the cursor of `follow`, and yields one typed result per request. Use it to page through one item's relation: put the item in a `root` result set (filter on its `space` and `externalId`, `limit: 1`), follow the relation from it, and `follow` that result set. `take(pages, n)` reads only as many pages as needed. Result sets that `follow` reads from are read again for each page, and the call throws if one of them has more instances than its `limit`.
+For the next page, pass a result set's `nextCursor` back in `cursors`, with the rest of the request the same. To show the first few related instances of each item, a per-view `include` with a `limit` is simpler.
 
 ## Patterns
 
@@ -163,7 +163,7 @@ DMS returns a cursor for a sort only ascending with nulls last (the default), or
 - A `query` that filters or sorts on a property without an index can time out on a large view; the types reject it unless `allowUnindexed` is set. Search is usually safer when you do not control the indexes.
 - The query API rejects `in` on an enum property. Use `equals`, or an `or` of `equals`.
 - The API cannot traverse a list of direct relations inwards.
-- Reverse relations and edges are not in the per-view types; use `tygen.query` or `tygen.queryPages`.
+- Reverse relations and edges are not in the per-view types; use `tygen.query`.
 - `instances.list` and writes stay on the native `@cognite/sdk`. Pass generated view references to it (`sources: [{ source: EquipmentView }]`).
 
 ## Explore data from the terminal
