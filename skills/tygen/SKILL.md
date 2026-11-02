@@ -114,7 +114,6 @@ The generated types know each property's index. A `query` or `queryAll` that fil
 - Prefer `search` or `searchAll` with the same filter. A list of direct relations, such as `assets`, rarely has an index: to find the instances that link to one, use search.
 - Set `allowUnindexed: true` only for a view you know is small.
 - `Indexed<typeof EquipmentView>` shows the indexes. `externalId` and `space` count as indexed; `createdTime` and `lastUpdatedTime` do not.
-- A 408 from a per-view `query` names the properties it filters and sorts on.
 
 ### Reading every page
 
