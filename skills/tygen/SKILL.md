@@ -93,17 +93,28 @@ const page = await tygen.workOrder.query({
 const rows = page.items.map((item) => ({
   name: item.properties.name, // the selected properties, typed
   location: item.related.mainAsset?.properties?.name, // one relation: an instance or undefined
-  assets: item.related.assets.map((a) => a.properties?.name), // a list relation: its first 5
+  assets: item.related.assets.map((a) => a.properties?.name), // a list relation: up to 5
   moreAssets: (item.properties.assets?.length ?? 0) - item.related.assets.length, // all IDs come with the selected relation
+  hasMoreAssets: item.relatedCursors.assets !== undefined, // the cursor for "Load more" on this item
 }));
 ```
 
 - `select` lists the properties to return. Without it, all of them are returned.
 - `nested.scope` and the keys of `include` are direct relations of the view, to another view of the model. Their `filter` and `select` use the property names of the target view. A related instance may have no data in the target view, so its `properties` may be `undefined`.
-- `include` gives a list relation's first `limit` instances per item, 20 by default. They are read by ID in one more request per page, so a page costs 2 requests however long the lists are. To show "+ n more", select the relation itself, as above: `item.properties.assets` holds all its IDs. To page through one item's list, see "Reading every page".
+- `include` gives up to `limit` of a list relation's instances per item, 20 by default, in the order DMS returns them, not the list's. They are read by ID after the page, one result set per item and 50 per request, so a page of 100 items with one list relation costs 3 requests. To show "+ n more", select the relation itself, as above: `item.properties.assets` holds all its IDs.
+- **"Load more" on one item's list relation:** send the same request, kept in a `const request = { ... } as const`, with the item's `relatedCursors` in the relation's `include` entry. The query then returns only that item, with its next related instances and its next cursor. Don't write a query by ID or a `queryResultPages` loop for this.
+  ```ts
+  const more = await tygen.workOrder.query({
+    ...request,
+    include: { ...request.include, assets: { ...request.include.assets, cursor: item.relatedCursors.assets } },
+  });
+  const next = more.items[0]?.related.assets ?? []; // the next 5 of that item
+  const nextCursor = more.items[0]?.relatedCursors.assets; // undefined: no more
+  ```
+  The cursor carries the item, so it only continues its own item. The cursors in one request must come from one item, the request takes no `cursor` of its own, and a single relation has no cursor. `cursor: undefined` starts from the first ones.
 - An `include` entry may be `undefined`, such as `include: { mainAsset: showAsset ? {} : undefined }`. Then `related.mainAsset` is optional.
 - `include` also reads the target view. Without read access to it or its space, the whole query is likely to fail with a 403, not return fewer related instances. A query that works without `include` and fails with it points to this.
-- Items that point to the same instance share one related object. Copy it before changing it.
+- Items whose single relation points to the same instance share one related object. Copy it before changing it.
 - It returns 100 items by default and 10,000 at most. `nextCursor` is set when there may be more: pass it as `cursor`, with the rest of the request the same, for the next page.
 - `sort` takes only the orders DMS can page, see "Sorted pages". A descending sort needs `nullsFirst: true`.
 
@@ -129,7 +140,7 @@ for await (const item of tygen.equipment.queryPages({ filter, select: ['name'], 
 - Pulling more than `maxItems`, 10,000 by default, throws, so a read is never cut short without notice. To take only the first items, `break` or use `take`. Pass `maxItems: Infinity` to read everything.
 - `break` closes the iterator for good. For "Load more" on one iterator, use `take` from the generated `index.ts`, which leaves it open: `const first = await take(rows, 25); const more = await take(rows, 25);`. Fewer than asked means the end.
 - In a React UI with react-query, use `query` in `useInfiniteQuery` instead: `queryFn: ({ pageParam }) => tygen.equipment.query({ ..., limit: 50, cursor: pageParam })`, `initialPageParam: undefined as string | undefined`, `getNextPageParam: (last) => last.nextCursor`. An iterator does not survive react-query's refetch.
-- `include` works the same in `queryPages`: 2 requests per page.
+- `include` works the same in `queryPages`, and each yielded item has its `relatedCursors`.
 
 ### Sorted pages
 
@@ -141,24 +152,7 @@ DMS returns a cursor for a sort only ascending with nulls last (the default), or
 
 `tygen.queryResultPages(request, { follow: 'resultSetName' })` reads such a query page by page, following the cursor of `follow`, and yields one typed result per request. Result sets that `follow` reads from are read again for each page, and the call throws if one of them has more instances than its `limit`.
 
-To expand one item of a list and keep pulling in its related instances, wrap it in a generator with the item as `root` and pull with `take`. Each pull is one request for that item only, following the DMS cursor. It starts from the first related instance, so the ones `include` showed come back:
-
-```ts
-async function* assetsOf(activity: { space: string; externalId: string }, pageSize: number) {
-  for await (const page of tygen.queryResultPages({
-    with: {
-      root: { nodes: { filter: { and: [
-        { equals: { property: ['node', 'space'], value: activity.space } },
-        { equals: { property: ['node', 'externalId'], value: activity.externalId } },
-      ] } }, limit: 1 },
-      assets: { nodes: { from: 'root', through: { source: CogniteActivityView, identifier: 'assets' }, direction: 'outwards' }, limit: pageSize },
-    },
-    select: { root: {}, assets: { sources: [{ source: CogniteAssetView, properties: ['name'] }] } },
-  }, { follow: 'assets' })) yield* page.items.assets;
-}
-const expanded = assetsOf(activity, 20);
-const more = await take(expanded, 20); // "Load more" for this activity: one request.
-```
+To pull in more of one item's list relation, use the item's include cursor, see "Query".
 
 ## Patterns
 
