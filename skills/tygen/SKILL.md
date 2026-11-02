@@ -139,7 +139,26 @@ DMS returns a cursor for a sort only ascending with nulls last (the default), or
 
 `tygen.query` takes a native `instances.query` request with full property paths, `[space, 'View/version', 'property']`, and types the result from it. Use it for inward relations, edges and set operations. Its results keep the native nesting under space and `View/version`: `item.properties[space]['View/version'].name`.
 
-For the next page, pass a result set's `nextCursor` back in `cursors`, with the rest of the request the same. To show the first few related instances of each item, a per-view `include` with a `limit` is simpler.
+`tygen.queryResultPages(request, { follow: 'resultSetName' })` reads such a query page by page, following the cursor of `follow`, and yields one typed result per request. Result sets that `follow` reads from are read again for each page, and the call throws if one of them has more instances than its `limit`.
+
+To expand one item of a list and keep pulling in its related instances, wrap it in a generator with the item as `root` and pull with `take`. Each pull is one request for that item only, following the DMS cursor. It starts from the first related instance, so the ones `include` showed come back:
+
+```ts
+async function* assetsOf(activity: { space: string; externalId: string }, pageSize: number) {
+  for await (const page of tygen.queryResultPages({
+    with: {
+      root: { nodes: { filter: { and: [
+        { equals: { property: ['node', 'space'], value: activity.space } },
+        { equals: { property: ['node', 'externalId'], value: activity.externalId } },
+      ] } }, limit: 1 },
+      assets: { nodes: { from: 'root', through: { source: CogniteActivityView, identifier: 'assets' }, direction: 'outwards' }, limit: pageSize },
+    },
+    select: { root: {}, assets: { sources: [{ source: CogniteAssetView, properties: ['name'] }] } },
+  }, { follow: 'assets' })) yield* page.items.assets;
+}
+const expanded = assetsOf(activity, 20);
+const more = await take(expanded, 20); // "Load more" for this activity: one request.
+```
 
 ## Patterns
 
@@ -163,7 +182,7 @@ For the next page, pass a result set's `nextCursor` back in `cursors`, with the 
 - A `query` that filters or sorts on a property without an index can time out on a large view; the types reject it unless `allowUnindexed` is set. Search is usually safer when you do not control the indexes.
 - The query API rejects `in` on an enum property. Use `equals`, or an `or` of `equals`.
 - The API cannot traverse a list of direct relations inwards.
-- Reverse relations and edges are not in the per-view types; use `tygen.query`.
+- Reverse relations and edges are not in the per-view types; use `tygen.query` or `tygen.queryResultPages`.
 - `instances.list` and writes stay on the native `@cognite/sdk`. Pass generated view references to it (`sources: [{ source: EquipmentView }]`).
 
 ## Explore data from the terminal
