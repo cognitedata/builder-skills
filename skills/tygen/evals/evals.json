@@ -180,11 +180,11 @@
     {
       "id": 9,
       "prompt": "TyGen alpha is enabled. In the work order list, show each WorkOrder's name with the names of its first 3 assets (a list of direct relations to Asset in the same model), and '+ n more' when it has more.",
-      "expected_output": "Use tygen.workOrder.query (or queryAll) with select ['name', 'assets'] and include { assets: { select: ['name'], limit: 3 } }. Read item.related.assets for the names and compare item.properties.assets.length with it for '+ n more'. Two requests per page, no request per work order.",
+      "expected_output": "Use tygen.workOrder.query (or queryPages) with select ['name', 'assets'] and include { assets: { select: ['name'], limit: 3 } }. Read item.related.assets for the names and compare item.properties.assets.length with it for '+ n more'. Two requests per page, no request per work order.",
       "files": [],
       "assertions": [
         {
-          "text": "Response uses include on assets with limit: 3 in a per-view query or queryAll call.",
+          "text": "Response uses include on assets with limit: 3 in a per-view query or queryPages call.",
           "type": "content"
         },
         {

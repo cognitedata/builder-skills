@@ -48,7 +48,7 @@ import { initTygen } from './generated_types/PlantModel';
 const tygen = initTygen(client); // client from useCogniteSdk()
 ```
 
-Each view of the model is a property of `tygen`, such as `tygen.equipment`, with `search`, `searchAll`, `aggregate`, `query` and `queryAll`. A view that only edges use has no `query` or `queryAll`. The property name is the view's external ID in camelCase, such as `tygen.cogniteActivity`; check `tygen-views.ts` when unsure. In `filter`, `sort`, `select` and `groupBy`, a property is just its name, such as `'status'`. `filter` and `sort` also take an instance field such as `'externalId'`; `select` only takes the view's properties. A typo is a compile error.
+Each view of the model is a property of `tygen`, such as `tygen.equipment`, with `search`, `searchPages`, `aggregate`, `query` and `queryPages`. A view that only edges use has no `query` or `queryPages`. The property name is the view's external ID in camelCase, such as `tygen.cogniteActivity`; check `tygen-views.ts` when unsure. In `filter`, `sort`, `select` and `groupBy`, a property is just its name, such as `'status'`. `filter` and `sort` also take an instance field such as `'externalId'`; `select` only takes the view's properties. A typo is a compile error.
 
 ### Search
 
@@ -109,31 +109,31 @@ const rows = page.items.map((item) => ({
 
 ### Indexes
 
-The generated types know each property's index. A `query` or `queryAll` that filters on a property without an index, or sorts on one without a cursorable btree index, does not compile: `'status' has no index. Use search(), or set allowUnindexed: true`. DMS would scan the whole view for it, which can time out (408) on a large view.
+The generated types know each property's index. A `query` or `queryPages` that filters on a property without an index, or sorts on one without a cursorable btree index, does not compile: `'status' has no index. Use search(), or set allowUnindexed: true`. DMS would scan the whole view for it, which can time out (408) on a large view.
 
-- Prefer `search` or `searchAll` with the same filter. A list of direct relations, such as `assets`, rarely has an index: to find the instances that link to one, use search.
+- Prefer `search` or `searchPages` with the same filter. A list of direct relations, such as `assets`, rarely has an index: to find the instances that link to one, use search.
 - Set `allowUnindexed: true` only for a view you know is small.
 - `externalId` and `space` count as indexed; `createdTime` and `lastUpdatedTime` do not.
 
 ### Reading every page
 
-`queryAll` and `searchAll` take the request of `query` and `search`, with `pageSize` and `maxItems` instead of `limit` and `cursor`. They return an async iterator that follows the cursors itself, and fetch the next page only when the loop needs it.
+`queryPages` and `searchPages` take the request of `query` and `search`, with `pageSize` and `maxItems` instead of `limit` and `cursor`. They return an async iterator that follows the cursors itself, and fetch the next page only when the loop needs it.
 
 ```ts
-for await (const item of tygen.equipment.queryAll({ filter, select: ['name'], pageSize: 500 })) {
+for await (const item of tygen.equipment.queryPages({ filter, select: ['name'], pageSize: 500 })) {
   if (item.properties.name === 'P-101') break; // No further requests go out.
 }
 ```
 
-- `pageSize` is 1,000 by default: at most 10,000 for `queryAll` and 1,000 for `searchAll`.
+- `pageSize` is 1,000 by default: at most 10,000 for `queryPages` and 1,000 for `searchPages`.
 - Pulling more than `maxItems`, 10,000 by default, throws, so a read is never cut short without notice. To take only the first items, `break` or use `take`. Pass `maxItems: Infinity` to read everything.
 - `break` closes the iterator for good. For "Load more" on one iterator, use `take` from the generated `index.ts`, which leaves it open: `const first = await take(rows, 25); const more = await take(rows, 25);`. Fewer than asked means the end.
 - In a React UI with react-query, use `query` in `useInfiniteQuery` instead: `queryFn: ({ pageParam }) => tygen.equipment.query({ ..., limit: 50, cursor: pageParam })`, `initialPageParam: undefined as string | undefined`, `getNextPageParam: (last) => last.nextCursor`. An iterator does not survive react-query's refetch.
-- `include` works the same in `queryAll`: 2 requests per page.
+- `include` works the same in `queryPages`: 2 requests per page.
 
 ### Sorted pages
 
-DMS returns a cursor for a sort only ascending with nulls last (the default), or descending with nulls first. The `sort` of `query` and `queryAll` takes only those orders, so `direction: 'descending'` must come with `nullsFirst: true`, and `nullsFirst: true` on an ascending sort does not compile. Write `sort: [{ property: 'startTime', direction: 'descending', nullsFirst: true }]` for newest first. Sort on the view's properties: a query can't sort on `createdTime` or `lastUpdatedTime` (DMS returns 400), and gets no cursor for `externalId`. To sort by time, use a time property of the view. The items without a value then come first. To put them last, sort a short list on the client, or read the items with a value (`exists` on the property) and those without in two queries. `nextCursor` is the DMS cursor. A sort on several properties is sent as it is, and `queryAll` throws if DMS returns no cursor for it.
+DMS returns a cursor for a sort only ascending with nulls last (the default), or descending with nulls first. The `sort` of `query` and `queryPages` takes only those orders, so `direction: 'descending'` must come with `nullsFirst: true`, and `nullsFirst: true` on an ascending sort does not compile. Write `sort: [{ property: 'startTime', direction: 'descending', nullsFirst: true }]` for newest first. Sort on the view's properties: a query can't sort on `createdTime` or `lastUpdatedTime` (DMS returns 400), and gets no cursor for `externalId`. To sort by time, use a time property of the view. The items without a value then come first. To put them last, sort a short list on the client, or read the items with a value (`exists` on the property) and those without in two queries. `nextCursor` is the DMS cursor. A sort on several properties is sent as it is, and `queryPages` throws if DMS returns no cursor for it.
 
 ### Raw typed query
 
