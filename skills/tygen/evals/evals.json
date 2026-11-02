@@ -24,11 +24,11 @@
     {
       "id": 2,
       "prompt": "COGNITE_ALPHA_ENABLE_TYGEN=true is already set for this app. Generate types for the data model production:EquipmentModel:v3 using the default output location.",
-      "expected_output": "Run tygen generate from the CLI built from the dune branch eliasb/alpha-tygen with the versioned --data-model value, without setting COGNITE_ALPHA_ENABLE_TYGEN in the command, and explain that the default output directory is src/generated_types/EquipmentModel/. The explicit generation request is sufficient confirmation.",
+      "expected_output": "Run tygen generate with the alpha CLI, npx @cognite/cli@1.15.0-alpha.tygen-paging.1, with the versioned --data-model value, without setting COGNITE_ALPHA_ENABLE_TYGEN in the command, and explain that the default output directory is src/generated_types/EquipmentModel/. The explicit generation request is sufficient confirmation.",
       "files": [],
       "assertions": [
         {
-          "text": "Response runs tygen generate from the CLI built from the eliasb/alpha-tygen branch rather than apps sdk types or @cognite/cli@latest.",
+          "text": "Response runs tygen generate with the alpha CLI (@cognite/cli@1.15.0-alpha.tygen-paging.1, or one built from eliasb/alpha-tygen-paging) rather than apps sdk types or @cognite/cli@latest.",
           "type": "content"
         },
         {
@@ -173,6 +173,26 @@
         },
         {
           "text": "Response does not group by the enum property.",
+          "type": "content"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "TyGen alpha is enabled. In the work order list, show each WorkOrder's name with the names of its first 3 assets (a list of direct relations to Asset in the same model), and '+ n more' when it has more.",
+      "expected_output": "Use tygen.workOrder.query (or queryAll) with select ['name', 'assets'] and include { assets: { select: ['name'], limit: 3 } }. Read item.related.assets for the names and compare item.properties.assets.length with it for '+ n more'. Two requests per page, no request per work order.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Response uses include on assets with limit: 3 in a per-view query or queryAll call.",
+          "type": "content"
+        },
+        {
+          "text": "Response selects the assets relation itself to count all of a work order's assets.",
+          "type": "content"
+        },
+        {
+          "text": "Response does not fetch the assets of each work order in a separate request or with tygen.queryPages per row.",
           "type": "content"
         }
       ]
