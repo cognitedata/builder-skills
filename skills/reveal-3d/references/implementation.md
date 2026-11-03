@@ -310,6 +310,108 @@ There is no built-in hook in `@cognite/reveal-widget` (yet) that discovers "the 
 
 ---
 
+## HTML overlays (markers, labels, notifications)
+
+`controller.htmlOverlays` pins an HTML element to a 3D position. The element follows the position as the camera moves and is hidden while the position is out of view. This is how to show a notification badge, a label, or a status marker on an asset. Do not use `HtmlOverlayTool` from `@cognite/reveal` — it needs a `Cognite3DViewer`, and the widget doesn't expose its own.
+
+```ts
+controller.htmlOverlays.add(element: HTMLElement, position: { x: number; y: number; z: number }): HtmlOverlayHandle
+controller.htmlOverlays.setVisible(visible: boolean): void   // hide/show all, including ones added later
+controller.htmlOverlays.clear(): void                        // remove all
+handle.remove(): void                                        // remove one; safe to call twice or right after add
+```
+
+Rules that come from the API:
+
+- `position` is in **CDF coordinates** — the space CDF 3D models and their assets are given in. It is not three.js world space and not screen pixels.
+- Adding the **same element again moves it** to the new position; it does not create a second overlay. Use one element per marker.
+- The widget sets `position: absolute` on the element. Everything else is yours: `transform: translate(-50%, -50%)` to center the element on the point, and `pointer-events: none` if it shouldn't block orbiting/picking (leave it enabled if the marker is clickable).
+- Overlays are removed automatically when the widget unmounts or the controller is replaced, but remove them yourself when the data behind them changes.
+
+Add an overlay method to the controller class and track handles, mirroring how model handles are tracked:
+
+```tsx
+import type {
+  HtmlOverlayHandle,
+  HtmlOverlayPosition,
+  RevealWidgetController,
+} from '@cognite/reveal-widget';
+
+class ThreeDViewerController {
+  private overlays = new Map<string, HtmlOverlayHandle>();
+
+  constructor(private readonly widgetController: RevealWidgetController) {}
+
+  /** Pin (or move/replace) a notification marker identified by `key`. */
+  showNotification(key: string, text: string, position: HtmlOverlayPosition): void {
+    this.overlays.get(key)?.remove();
+
+    const element = document.createElement('div');
+    element.textContent = text;
+    element.style.transform = 'translate(-50%, -50%)';
+    element.style.padding = '2px 8px';
+    element.style.borderRadius = '12px';
+    element.style.background = '#d92d20';
+    element.style.color = '#fff';
+    element.style.pointerEvents = 'none'; // don't interfere with camera navigation
+
+    this.overlays.set(key, this.widgetController.htmlOverlays.add(element, position));
+  }
+
+  hideNotification(key: string): void {
+    this.overlays.get(key)?.remove();
+    this.overlays.delete(key);
+  }
+
+  setNotificationsVisible(visible: boolean): void {
+    this.widgetController.htmlOverlays.setVisible(visible);
+  }
+
+  dispose(): void {
+    this.overlays.forEach((o) => o.remove());
+    this.overlays.clear();
+    // ...also remove tracked model handles, as in the controller pattern above
+  }
+}
+```
+
+### Rendering React content inside an overlay
+
+The overlay takes a plain `HTMLElement`, so to render a React component into it, create a root on that element and unmount it when the overlay is removed:
+
+```tsx
+import { createRoot } from 'react-dom/client';
+
+function addReactOverlay(
+  widgetController: RevealWidgetController,
+  node: React.ReactNode,
+  position: HtmlOverlayPosition
+): { remove(): void } {
+  const element = document.createElement('div');
+  element.style.transform = 'translate(-50%, -50%)';
+  const root = createRoot(element);
+  root.render(node);
+  const overlay = widgetController.htmlOverlays.add(element, position);
+
+  return {
+    remove() {
+      overlay.remove();
+      // Unmount after the current render pass; unmounting synchronously during
+      // a React render/commit logs a warning.
+      queueMicrotask(() => root.unmount());
+    },
+  };
+}
+```
+
+### Where does the position come from?
+
+`@cognite/reveal-widget` has no API that returns an asset's position — `styleByInstance`/`focusInstances` take an instance ID but don't expose where it is. The app must supply the CDF-coordinate `{ x, y, z }` itself, e.g. coordinates stored on the asset/data-model instance, or a point derived from the asset's 3D node bounding box from the CDF 3D API. Whatever the source, confirm it is in CDF coordinates (not the model's local/Three.js space) before relying on it — a position in the wrong space shows the marker in the wrong place or never in view. Ask the user where their positions come from if it isn't obvious; do not invent a lookup.
+
+To mark a set of assets, combine this with `controller.assets.searchMappedAssets(...)` for the instance IDs and the app's own position source, then call `showNotification` per asset.
+
+---
+
 ## Other resource types
 
 `addResource` also accepts point clouds, 360° image collections, and CDF scenes:
