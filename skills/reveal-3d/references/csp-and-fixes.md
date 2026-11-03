@@ -180,3 +180,19 @@ silently before its own (logged) load step runs. Check that the edge has both:
 
 This is a data-completeness issue in how the scene was authored, not something fixable from app
 code.
+
+## Troubleshooting: HTML overlays that don't show up or look wrong
+
+Overlays (`controller.htmlOverlays.add`) need no `manifest.json` allowance of their own — they're
+plain DOM elements. When one misbehaves, check in this order:
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Overlay never appears | `position` isn't in CDF coordinates (e.g. a Three.js/model-local point), so it's off-screen or outside the camera's view | Use coordinates in the same space as the CDF 3D model/assets. Hidden while out of view is by design. |
+| Overlay never appears, `setVisible(false)` was called earlier | `setVisible` is global and also applies to overlays added later | Call `controller.htmlOverlays.setVisible(true)` |
+| Marker sits off-center from its point | Widget only sets `position: absolute`; the element's top-left is anchored to the point | `element.style.transform = 'translate(-50%, -50%)'` (or an offset that suits the design) |
+| Orbit/pan stutters or gets stuck when the cursor is over a marker | The element captures pointer events | `pointer-events: none` if the marker isn't interactive; keep it enabled (and only on the clickable part) if it is |
+| Two overlays collapse into one / one disappears | Same element passed to `add` twice — that moves it, it doesn't clone it | Create one element per marker |
+| Markers linger after the data changes | Handles weren't removed | `.remove()` each `HtmlOverlayHandle` (or `htmlOverlays.clear()`) when the underlying data changes |
+| Styles set via a `style="…"` attribute or `innerHTML` are ignored and the console shows a CSP `style-src` violation | The app's CSP, generated from `manifest.json`, may not allow inline style attributes | Style through the CSSOM (`element.style.x = …`) or a CSS class from the app's own stylesheet instead of markup strings |
+| `HtmlOverlayTool` / `Cognite3DViewer` can't be reached | The widget doesn't expose its viewer | Use `controller.htmlOverlays`; don't create a second viewer |

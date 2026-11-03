@@ -156,6 +156,42 @@
           "type": "content"
         }
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "In my existing Flows app that already has a RevealWidget showing a CAD model, add a red notification badge that says \"Pump 01 needs attention\" pinned at the 3D position x=10, y=20, z=5, and let me toggle all badges on and off with a button.",
+      "expected_output": "Uses controller.htmlOverlays.add(element, {x:10,y:20,z:5}) from the existing RevealWidgetController (via the controller class), styled with a centering transform, tracks the returned handle, removes it on cleanup, and toggles via htmlOverlays.setVisible. Does not import HtmlOverlayTool or create a second viewer.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "controller.htmlOverlays.add is called with an HTMLElement and a position object { x: 10, y: 20, z: 5 }",
+          "type": "content"
+        },
+        {
+          "text": "HtmlOverlayTool or Cognite3DViewer from @cognite/reveal is NOT imported or instantiated, and no second Reveal viewer/canvas is created",
+          "type": "content"
+        },
+        {
+          "text": "The overlay is created from the controller class / setControllerRef-driven code, not from a useEffect reacting to prop changes",
+          "type": "content"
+        },
+        {
+          "text": "The element is styled with a centering transform (e.g. translate(-50%, -50%)) and sets pointer-events appropriately, without relying on markup style attributes",
+          "type": "content"
+        },
+        {
+          "text": "The returned HtmlOverlayHandle is tracked and .remove() (or htmlOverlays.clear()) is called in the controller's dispose()",
+          "type": "content"
+        },
+        {
+          "text": "The toggle button calls controller.htmlOverlays.setVisible(boolean)",
+          "type": "content"
+        },
+        {
+          "text": "The position is treated as CDF coordinates; the response does not invent a widget API for looking up an asset's position",
+          "type": "content"
+        }
+      ]
     }
   ]
 }
