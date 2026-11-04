@@ -179,6 +179,8 @@ function App() {
 
 `useCogniteSdk()` throws if called outside `CogniteSdkProvider` — always nest it inside.
 
+The provider also turns on the SDK's Data Modeling request concurrency limiter when Fusion enables it for the host (feature flag `FLOWS_CLIENT_CONCURRENCY`). Do not add your own `concurrency` option or wrap Data Modeling calls in a task runner for this; see `dm-limits-and-best-practices`.
+
 ## Step 5 — Clean up superseded code
 
 Remove only what's now redundant:
