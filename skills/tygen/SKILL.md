@@ -129,6 +129,8 @@ const rows = page.items.map((item) => ({
 - Reverse relations and edges are not in the per-view types; use `tygen.query`.
 - `instances.list` and writes stay on the native `@cognite/sdk`. Pass generated view references to it (`sources: [{ source: EquipmentView }]`).
 
+- **Concurrency:** generated clients use the `CogniteClient` you give them. Create it with the SDK `concurrency` option (`concurrency: {}` for defaults) to cap in-flight Data Modeling requests. Flows apps get this from `@cognite/app-sdk` when Fusion enables it. See `dm-limits-and-best-practices`.
+
 ## Explore data from the terminal
 
 With `COGNITE_ALPHA_ENABLE_API=true`, `cognite api instances search|aggregate|query --view space:externalId/version` runs the same requests with short property names and prints a table, or JSON with `--json`. Without `--view`, an interactive terminal lets you pick the data model and view. Use it to check property names and values before writing app code.
