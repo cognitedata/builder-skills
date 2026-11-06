@@ -85,13 +85,19 @@ Parse the YAML frontmatter (the block between the first `---` and the next `---`
 - `customer`
 - `tier`
 - `owner`
+- `maintainer` (must be a YAML list containing at least one valid email address)
+- `supportPath` (must be exactly one of: `Cognite Support`, `Partner maintains`, `Customer self-maintains`, `Not going to production`)
 - `userRole`
 - `currentProblem`
 - `oneSentenceStory`
 - `successCriteria`
 - `userEvidence`
 
-If any are missing or empty → fail with the list of missing fields and: *"Re-run `flows-app-brief` to complete the brief."*
+Validation details for support fields:
+- `maintainer`: must be a list (not a plain string) of at least one valid email address. Reject placeholder domains (e.g. `example.com`), blanks, or generic non-emails.
+- `supportPath`: must match one of the four allowed options exactly.
+
+If any are missing, empty, or invalid → fail with the list of missing or invalid fields and: *"Re-run `flows-app-brief` to complete the brief."*
 
 Optional (not blocking): `userCount`, `businessValue`, `milestones`, `repoUrl`.
 
