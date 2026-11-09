@@ -47,7 +47,7 @@ On **Skip**: continue immediately.
 - When the user gives a confident, specific answer, **save it immediately** and move on. Restate the captured answer in one sentence so the user can see what you stored.
 - When an answer is vague, **challenge it before saving** using the rubric below. Re-ask until specific.
 - Never invent answers on the user's behalf. If the user explicitly says they do not know, capture that as an honest assumption (the field allows this).
-- If `App-Brief.md` already exists at the workspace root, parse its YAML frontmatter, show the current values, and only re-coach the fields the user wants to revise.
+- If `App-Brief.md` already exists at the workspace root, parse its YAML frontmatter and show the current values. If it lacks `maintainer` or `supportPath`, treat them as missing and collect only those two. If an existing `maintainer` is a plain string instead of a list, show it and ask the user to convert it to email addresses. Otherwise, only re-coach or re-prompt the fields the user wants to revise.
 
 ## Step 0 — Pre-scan the repo before prompting
 
@@ -62,14 +62,14 @@ Read these files when present (silently skip any that are missing):
 | `README.md` | First H1 → `appName`; intro paragraph → seed for `currentProblem` / `oneSentenceStory` |
 | `specs/<NNN>-<feature>/spec.md` (any spec-kit directory) | **Highest-value pre-scan source.** A populated spec typically gives you near-final drafts for four coached fields — see "Spec-kit mapping" below. |
 | `git config --get remote.origin.url` | `repoUrl` |
-| `git config user.name` / `user.email` | `owner` |
+| `git config user.name` / `user.email` | `owner` (never pre-fill `maintainer` from git config or `owner`) |
 | Existing `App-Brief.md` | Parse YAML frontmatter and use **all** of it as the current state |
 
 **Rules for what to do with pre-scanned values:**
 1. **Present, do not save.** Open with a single message that lists every field you have a draft for, sourced from where, so the user can see what you found.
 2. **Always confirm with the user before saving any field.** A `spec.md` user story is a starting point; the coach must still apply the rubric below and challenge vague answers before saving.
 3. **Never invent.** If a source is missing, leave the draft blank and ask normally.
-4. **Re-run mode.** If `App-Brief.md` already exists, show the current frontmatter values and only re-coach fields the user explicitly wants to revise.
+4. **Re-run mode.** If `App-Brief.md` already exists, show the current frontmatter values. If `maintainer` or `supportPath` are missing from the existing brief, treat them as missing and collect only those two. If an existing `maintainer` is a plain string instead of a list, show it and ask the user to convert it to emails. Otherwise, only re-coach fields the user explicitly wants to revise.
 
 ### Spec-kit mapping
 
@@ -108,7 +108,7 @@ Collect these in one or two batched `AskQuestion` calls. They are simple facts �
 - `milestones` *(optional)* — UAT and other key dates (e.g. "UAT June 2026, demo May 15")
 - `repoUrl` *(optional)* — GitHub repo URL; can be added later if the repo does not exist yet
 
-Open this step with a single message that lists all required fields up front (so the user knows what is needed to pass `flows-external-app-submit`) and tells them the rest are optional. Then ask for the required ones first, optional ones after.
+Open this step with a single message that lists all required fields up front (`appName`, `customer`, `tier`, `owner`, `maintainer`, `supportPath`, and the coached human-centered fields) so the user knows what is needed to pass `flows-external-app-submit`, and tells them the rest are optional. Explain that `maintainer` and `supportPath` will be collected in Step 4 (Support readiness). Then ask for the Step 2 required ones first, optional ones after.
 
 ## Step 3 — Coach the human-centered fields (one at a time)
 
@@ -159,11 +159,51 @@ Save **any honest answer** — direct user contact OR an explicit assumption. An
 Challenge only if completely absent:
 > "Have you talked to a real user about this, or is this an assumption? An honest assumption is fine — just say so."
 
-## Step 4 — Write App-Brief.md
+## Step 4 — Support readiness
+
+These fields capture operational ownership and support decisions. Do not coach these like the Step 3 fields. They are decisions, not rubric answers.
+
+Explain the difference once: **Owner** is the app's purpose, usage and lifecycle. **Maintainers** are the people who fix bugs, patches and re-certify changes.
+
+### `maintainer` (required)
+
+Ask for one or more email addresses, comma or newline separated.
+- Trim, lowercase, and deduplicate entries.
+- Validate basic email format.
+- Reject blank, TBD, unknown, N/A, and obvious placeholders (such as `example.com`, `test@`, etc.).
+- Never pre-fill from git config or the `owner` field.
+- If exactly one email is given, warn once: "One person is a single point of failure. A group alias or a second contact is safer." Accept it if the user confirms. Do not block.
+- Do not try to verify that the addresses exist.
+- Store as a YAML list of one or more email addresses:
+  ```yaml
+  maintainer:
+    - "name@company.com"
+  ```
+  Must contain at least one valid email.
+
+### `supportPath` (required)
+
+Single `AskQuestion` with exactly these four options:
+- `Cognite Support`
+- `Partner maintains`
+- `Customer self-maintains`
+- `Not going to production`
+
+After `supportPath` is chosen, print the matching reminder:
+- **Cognite Support**: only valid with a support contract and a Support Handover ticket. Handover starts at project kickoff, not end of build. The PM raises a Zendesk ticket at support.cognite.com with the support contract attached. SPEC, Data Model and this App Brief must be attached. Certification alone does not mean Cognite Support covers the app. Maintainer emails should be the contacts who will own the app until handover completes.
+- **Partner maintains**: the partner organization is the Maintainer. Cognite Support is involved only where a support contract or Business Application Support agreement exists.
+- **Customer self-maintains**: needs a named customer team with active certified builders.
+- **Not going to production**: the brief still needs Maintainer emails. A support path is required if the app later reaches a customer production project.
+
+### Re-run mode for support fields
+
+If an existing `App-Brief.md` lacks `maintainer` or `supportPath`, treat them as missing and prompt only for those two. If an existing `maintainer` is a plain string instead of a list, show it and ask the user to convert it to emails.
+
+## Step 5 — Write App-Brief.md
 
 Write `App-Brief.md` at the workspace root with this exact structure. The YAML frontmatter is required and must contain every field below.
 
-**Required fields** must be non-empty before writing the file: `appName`, `customer`, `tier`, `owner`, `userRole`, `currentProblem`, `oneSentenceStory`, `successCriteria`, `userEvidence`. If any required field is still empty, do not write the file — return to coaching that field.
+**Required fields** must be non-empty before writing the file: `appName`, `customer`, `tier`, `owner`, `maintainer` (at least one valid email in a list), `supportPath`, `userRole`, `currentProblem`, `oneSentenceStory`, `successCriteria`, `userEvidence`. If any required field is still empty, do not write the file; return to collecting or coaching that field.
 
 **Optional fields** may be the empty string `""`: `userCount`, `businessValue`, `milestones`, `repoUrl`.
 
@@ -177,6 +217,10 @@ infra: "<from app.json>"
 customer: "<customer>"
 tier: "<tier>"
 owner: "<name <email>>"
+maintainer:
+  - "<email1>"
+  - "<email2>"
+supportPath: "<Cognite Support | Partner maintains | Customer self-maintains | Not going to production>"
 userCount: "<estimate>"
 businessValue: "<value statement>"
 milestones: "<UAT and key dates>"
@@ -191,6 +235,7 @@ reviewedSections:
   - who
   - problem
   - tasksAndSuccess
+  - support
 ---
 
 # App Brief — <appName>
@@ -222,8 +267,15 @@ reviewedSections:
 **Success criteria.** <successCriteria>
 
 **User evidence.** <userEvidence>
+
+## Support
+
+- **Maintainer:**
+  - <email1>
+  - <email2>
+- **Support path:** <supportPath>
 ```
 
-## Step 5 — Confirm completion
+## Step 6 — Confirm completion
 
-After writing the file, print a short summary listing each field and its value, and tell the user: *"Your app brief is saved at `App-Brief.md`. You're ready to build the app. When you're done building, run `flows-code-review`."*
+After writing the file, print a short summary listing each field and its value (including `maintainer` and `supportPath`), and tell the user: *"Your app brief is saved at `App-Brief.md`. You're ready to build the app. When you're done building, run `flows-code-review`."*
