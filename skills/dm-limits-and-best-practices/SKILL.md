@@ -1,6 +1,6 @@
 ---
 name: dm-limits-and-best-practices
-description: "CDF Data Modeling limits: concurrency (429s), pagination, batching, search vs filter, QueuedTaskRunner, and the cap on LLM calls over query results (5 default, 50 max, cached). Triggers: DMS limits, 429, pagination, nextCursor, cdfTaskRunner, instances.query, chat completions over query results."
+description: "CDF Data Modeling limits: concurrency (429s), SDK concurrency limiter, pagination, batching, search vs filter, QueuedTaskRunner, and the cap on LLM calls over query results (5 default, 50 max, cached). Triggers: DMS limits, 429, pagination, nextCursor, cdfTaskRunner, instances.query, chat completions over query results."
 allowed-tools: Read, Glob, Grep, Edit, Write
 metadata:
   argument-hint: ""
@@ -28,6 +28,42 @@ Key things to be aware of:
 - `instances.query` table expressions each have their own item limit
 - `instances.upsert` accepts up to 1000 items per call
 - `in` filters accept at most 1000 values per expression; larger sets must be split into batches
+
+---
+
+## SDK Concurrency Limiter (Preferred)
+
+`@cognite/sdk` (>= 10.18) can cap the number of Data Modeling requests in flight per client, so fan-out code does not trigger 429s. It is a semaphore per operation category, applied to `/models` endpoints, Data Modeling GraphQL routes, and raw `client.post` calls to them. It is **opt-in** and **experimental** (`@alpha`: the option can change in any release).
+
+```typescript
+const client = new CogniteClient({
+  appId,
+  project,
+  baseUrl,
+  oidcTokenProvider,
+  concurrency: {}, // enable the defaults
+});
+```
+
+| Category | Default | Operations |
+| --- | --- | --- |
+| `read` | 1 | Instance list, retrieve, query, sync, inspect, GraphQL queries and mutations |
+| `search` | 2 | Instance search and aggregate |
+| `write` | 1 | Instance upsert |
+| `delete` | 1 | Instance deletes |
+| `readSchema` | 2 | Reads of spaces, containers, views, data models |
+| `writeSchema` | 1 | Schema upserts and deletes |
+
+Override per category with `concurrency: { dataModeling: { read: 2, search: 3 } }`. Omitted categories keep the defaults.
+
+Things to know:
+
+- **Flows apps:** do not create the client yourself. `CogniteSdkProvider` / `useCogniteSdkInitialization` from `@cognite/app-sdk` enables the limiter when Fusion turns on the `FLOWS_CLIENT_CONCURRENCY` flag for the app's host. Nothing to configure in the app; when the flag is off, requests are not limited.
+- If you create your own client (scripts, Dune apps, tests), pass `concurrency` yourself.
+- Limits are per client and per category, not per second. Excess calls queue in FIFO order; completion order is **not** guaranteed, so still `await` dependent mutations.
+- There is no request timeout. A request that never settles holds its slot; `Promise.race` does not release it.
+- It only covers Data Modeling. Calls to other APIs (Files, Time Series, Functions) are not limited, so they still need your own cap.
+- Raise limits cautiously: CDF is shared, and more concurrency is not always more throughput.
 
 ---
 
@@ -145,7 +181,9 @@ async function listByExternalIds(
 
 ## QueuedTaskRunner (Semaphore)
 
-**Always use the global `cdfTaskRunner`** to wrap CDF API calls. It limits concurrent requests and prevents 429 errors and deadlocks.
+> **Prefer the SDK limiter.** For Data Modeling calls, enable the SDK `concurrency` option (see "SDK Concurrency Limiter" above) instead of wrapping each call. Use `cdfTaskRunner` below only for calls the SDK limiter does not cover, or when the client is created by code you cannot change and the limiter is off. Do not stack both on the same Data Modeling calls: a task runner slot held while waiting for an SDK slot can deadlock nested calls.
+
+Use the global `cdfTaskRunner` to wrap CDF API calls the SDK limiter does not cover. It limits concurrent requests and prevents 429 errors and deadlocks.
 
 ### Source Code
 
@@ -610,7 +648,8 @@ Each table expression in `instances.query` has its own `limit`. If your traversa
 
 ## Summary Checklist
 
-- [ ] Wrap all CDF API calls with `cdfTaskRunner.schedule()`
+- [ ] Data Modeling calls are limited by the SDK `concurrency` option (or `cdfTaskRunner.schedule()` where the limiter is off or not applicable)
+- [ ] Other CDF API calls (Files, Time Series, Functions) are wrapped with `cdfTaskRunner.schedule()`
 - [ ] Paginate `instances.list` calls using `cursor` / `nextCursor`
 - [ ] Paginate `instances.query` calls using `cursors` / `nextCursor` when data may exceed limits
 - [ ] Chunk write operations to 1000 items per `instances.upsert` call

@@ -389,11 +389,11 @@ export function useMyHook() {
 
 ### 2.5 Throttling and 429 responses — backoff with jitter
 
-**Check:** `cdfTaskRunner` / `QueuedTaskRunner` (or equivalent concurrency cap) around CDF calls; on 429, exponential backoff with jitter; respect `Retry-After`; bounded retries.
+**Check:** a concurrency cap around CDF calls: the SDK `concurrency` option (Data Modeling only; Flows apps get it from `@cognite/app-sdk` when Fusion enables the flag, so absence in app code is not a finding), or `cdfTaskRunner` / `QueuedTaskRunner` for other APIs; on 429, exponential backoff with jitter; respect `Retry-After`; bounded retries.
 
 **Fail this criterion (1–2) if:** many parallel CDF calls with **neither** a concurrency cap **nor** 429 handling.
 
-Missing `QueuedTaskRunner` but TanStack Query (or similar) retries with backoff: score 3, not a pass.
+Missing `QueuedTaskRunner` on non-Data-Modeling fan-out, but TanStack Query (or similar) retries with backoff: score 3, not a pass.
 
 | Score | Why |
 | ----- | --- |
