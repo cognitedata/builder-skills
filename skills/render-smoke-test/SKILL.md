@@ -38,7 +38,7 @@ node skills/render-smoke-test/check.mjs [bundle.zip|dir]
 
 Needs Playwright with Chromium. If missing: `npx playwright install chromium` and `npm i -D @playwright/test` (devDependency, patch/minor, does not trigger Step 1).
 
-The script unpacks the bundle (default: newest `.cognite-bundles/*.zip`), serves it under `/api/v1/projects/p/apphosting/apps/a/versions/1.0.0/assets/` (the App Hosting shape, so a wrong `base` or doubled `assets/assets` 404s), opens it in headless Chromium, waits for `load` plus 3 s, and fails when:
+The script unpacks the bundle (default: newest `.cognite-bundles/*.zip`), serves it under `/api/v1/projects/p/apphosting/apps/a/versions/1.0.0/assets/` (the App Hosting shape, so a wrong `base` or doubled `assets/assets` 404s), opens it in headless Chromium **inside a cross-origin iframe** (as Fusion does; `@cognite/app-sdk` throws "Custom app is not running in an iframe" when the bundle is opened bare), waits for `load` plus 3 s, and fails when:
 
 | Check | Result |
 | ----- | ------ |
@@ -49,7 +49,7 @@ The script unpacks the bundle (default: newest `.cognite-bundles/*.zip`), serves
 
 It writes `render-proof/screenshot.png` and `render-proof/result.json` and exits non-zero on failure.
 
-**Host handshake.** Apps that wait for the host (`READY_FOR_HANDSHAKE`) may legitimately show only their own "waiting for host" UI. That UI is a child of `#root`, so it passes. A truly empty `#root` fails.
+**Host handshake.** The host page does not answer `READY_FOR_HANDSHAKE`, so a healthy app shows its own "Loading project…" UI. That is a child of `#root`, so it passes. A truly empty `#root` fails. An app stuck on that loading state forever also passes (not covered).
 
 **Not covered.** Environment network failures such as `ERR_HTTP2_PROTOCOL_ERROR` on a chunk. Those are the host's missing-handshake timeout, not an app check.
 
@@ -75,3 +75,22 @@ When `RISKY=no`, the screenshot from Step 2 is enough.
 - Dev-shell `index.html`, empty `#root`, or a failing bundle check: **Must Fix** (1.1 scores 1–2)
 - `RISKY=yes` and no passing bundle check, or no recording: **Must Fix**
 - `RISKY=no` and the bundle check was never run: **Should Fix**
+
+## Test instructions (reproduce pass and fail on a fresh app)
+
+```bash
+npx @cognite/cli@latest apps create demo --display-name Demo --description Demo \
+  --org cog-atlas --project atlas-greenfield --cluster greenfield \
+  --base-url https://greenfield.cognitedata.com --no-spec-kit
+cd demo && npm install && npm i -D playwright && npx playwright install chromium
+cp <builder-skills>/skills/render-smoke-test/check.mjs . && npm run build
+```
+
+| # | Setup | Command | Expected |
+| - | ----- | ------- | -------- |
+| 1 | good build | `node check.mjs dist` | PASS, screenshot shows "Loading project…" |
+| 2 | dev shell | `mkdir dev && cp index.html dev/ && node check.mjs dev` | FAIL: dev shell, `/src/main.tsx` 404, white page |
+| 3 | wrong base | `npx vite build --base=/ --outDir dist-base && node check.mjs dist-base` | FAIL: `/assets/*.js` and `.css` 404, white page |
+| 4 | bad bump | `npm i react@19 --force && npx vite build --outDir dist-bump && node check.mjs dist-bump` | FAIL: boot error `ReactCurrentBatchConfig`, white page (only `react` bumped, `react-dom` stays 18) |
+
+Restore `package.json` and the lockfile after case 4.

@@ -51,6 +51,14 @@ const server = createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
+// Fusion embeds apps in a cross-origin iframe; @cognite/app-sdk throws when opened bare.
+// Host page on a different origin (localhost vs 127.0.0.1) embeds the bundle the same way.
+const host = createServer((_req, res) => {
+  res.writeHead(200, { 'content-type': 'text/html' }).end(`<!doctype html><iframe id="app" src="${origin}${PREFIX}" style="width:100vw;height:100vh;border:0"></iframe>`);
+});
+await new Promise((r) => host.listen(0, '127.0.0.1', r));
+const hostOrigin = `http://localhost:${host.address().port}`;
+
 const { chromium } = await import('playwright').catch(() => import('@playwright/test'));
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -58,9 +66,13 @@ page.on('pageerror', (e) => failures.push(`boot error: ${e.message}`));
 page.on('response', (r) => { if (r.url().startsWith(origin) && r.status() >= 400) failures.push(`${r.status()} ${r.url().replace(origin, '')}`); });
 page.on('requestfailed', (r) => { if (r.url().startsWith(origin)) failures.push(`request failed ${r.url().replace(origin, '')}: ${r.failure()?.errorText}`); });
 
-await page.goto(origin + PREFIX, { waitUntil: 'load' });
+await page.goto(hostOrigin, { waitUntil: 'load' });
 await page.waitForTimeout(WAIT_MS);
-const children = await page.evaluate(() => (document.querySelector('#root') ?? document.querySelector('#app'))?.childElementCount ?? -1);
+const appFrame = page.frames().find((f) => f.url().startsWith(origin));
+if (!appFrame) failures.push('white page: app frame never loaded');
+const children = appFrame
+  ? await appFrame.evaluate(() => (document.querySelector('#root') ?? document.querySelector('#app'))?.childElementCount ?? -1)
+  : -1;
 if (children < 1) failures.push(children === -1 ? 'white page: no #root/#app element' : 'white page: #root has no children after load');
 
 mkdirSync('render-proof', { recursive: true });
@@ -68,6 +80,7 @@ await page.screenshot({ path: 'render-proof/screenshot.png' });
 writeFileSync('render-proof/result.json', JSON.stringify({ bundle: arg, ok: failures.length === 0, failures }, null, 2));
 await browser.close();
 server.close();
+host.close();
 
 if (failures.length) { console.error('FAIL\n- ' + failures.join('\n- ')); process.exit(1); }
 console.log('PASS: bundle rendered (screenshot: render-proof/screenshot.png)');
