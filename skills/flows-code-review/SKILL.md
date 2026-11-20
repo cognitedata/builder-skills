@@ -78,6 +78,11 @@ This review found **[N] must-fix item(s)** that block approval. Once the must-fi
 
 ### Reviewed commit
 `<full SHA>`
+
+### Render proof
+- Risky bump: yes | no
+- Bundle check: PASS | FAIL
+- Screen recording: <path> | not required | MISSING
 ```
 
 End `code-review-report.md` with this block (required by `flows-external-app-submit`):

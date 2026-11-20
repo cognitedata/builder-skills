@@ -81,6 +81,18 @@ grep -rn --include="*.tsx" -E "useQuery|useMutation|isLoading|isPending|isError"
 
 Flag: no ErrorBoundary; fetch UI with no loading / error / empty state; `useEffect` with timers, listeners, or async work and no cleanup; TODOs on critical paths.
 
+### 1.2b Render proof (criterion 1.1) — does the shipped bundle boot?
+
+Load `skills/render-smoke-test/SKILL.md` from **this same repo** (`cognitedata/builder-skills`). It defines the risky-bump trigger and the bundle check. Do not copy it here.
+
+```bash
+git diff <last reviewed SHA or origin/main> -- package.json vite.config.*
+ls .cognite-bundles/*.zip 2>/dev/null
+node skills/render-smoke-test/check.mjs   # reviewers: run it, do not fix the app
+```
+
+Record: risky bump yes/no, bundle check PASS/FAIL, screenshot path, and (if risky) the screen recording path. A bundle older than HEAD is not a pass: ask for a fresh `apps deploy`.
+
 ### 1.3 CDF Raw (criterion 2.6)
 
 ```bash
@@ -161,7 +173,7 @@ Per `code-quality`: **lint errors and production `any` are blocking** (Must Fix)
 | ----- | ------------------------ |
 | ErrorBoundary | |
 | coverage/test exclude | |
-| CDF Raw | |
+| Render proof (risky bump / bundle check / recording) | |
 | instances.list/query/search | |
 | QueuedTaskRunner / 429 | |
 | any / vi.mock | |
@@ -437,8 +449,8 @@ A score of 3 does not block approval. Missing `aria-label` / unlabeled inputs �
 
 ## Step 5 — Categorize findings
 
-- **Must fix** (score 1–2): high/critical CVEs, broken core flows, unbounded API calls, coverage < 80% **or coverage/test exclude lists hiding code or tests**, unreachable pages or significant dead code, **lint errors**, **production `any`**, no DI path, unbounded or primary-store CDF Raw.
-- **Should fix** (score 3): missing ErrorBoundary, missing loading/error/empty on some screens, missing `QueuedTaskRunner` when some retry exists, missing tests for non-trivial modules, client-side filtering of large datasets, missing backoff, a11y gaps, `vi.mock` overuse, oversized components that mix fetch and UI, naming / folder-structure misses from `code-quality`.
+- **Must fix** (score 1–2): **dev-shell `index.html`, empty `#root` or failing bundle check, risky bump with no passing bundle check or no screen recording**, high/critical CVEs, broken core flows, unbounded API calls, coverage < 80% **or coverage/test exclude lists hiding code or tests**, unreachable pages or significant dead code, **lint errors**, **production `any`**, no DI path, unbounded or primary-store CDF Raw.
+- **Should fix** (score 3): bundle check never run on a non-risky change, missing ErrorBoundary, missing loading/error/empty on some screens, missing `QueuedTaskRunner` when some retry exists, missing tests for non-trivial modules, client-side filtering of large datasets, missing backoff, a11y gaps, `vi.mock` overuse, oversized components that mix fetch and UI, naming / folder-structure misses from `code-quality`.
 - **Nice to fix** (score 4 gaps): minor Aura inconsistencies, small cleanup, non-critical package updates, minor dead exports.
 
 Each Must Fix item needs `_Impact:_` (one sentence on user/customer consequence).
@@ -472,3 +484,4 @@ The caller may add extra verify steps (artifact paths, no GitHub curl, Codespace
 4. Every scored criterion (1.1, 1.3–1.6, 2.1–2.6, 3.1) has a score or **N/A** (2.6 only).
 5. Every Must Fix has `_Impact:_`.
 6. Open must/should/nice counts match the lists.
+7. The Render proof hunt (1.2b) has a result: bundle check PASS/FAIL and risky-bump yes/no. Blank is not a pass.
