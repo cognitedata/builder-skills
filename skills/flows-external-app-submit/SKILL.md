@@ -30,6 +30,7 @@ Before doing anything, print this checklist so the user knows exactly what is be
 3. The latest `reviews/design-review/feedback-round-<N>/design-review-report.md` is **committed to git** and reports **`Average score: X.X`** with **X.X ≥ 3.8**.
 4. Certification artifacts are committed — `apps submit` uses `git archive HEAD` and silently excludes uncommitted files.
 5. A deploy bundle exists in `.cognite-bundles/` and is not older than HEAD.
+6. The latest code review's `### Render proof` shows `Bundle check: PASS`, and a screen recording is in `dist/submit/` when it says `Risky bump: yes`.
 
 ## Step 0 — Air-hatch preflight (offer stubs if reviews are missing)
 
@@ -190,6 +191,20 @@ If the bundle is older than HEAD → **WARN** (do not block):
 
 > "The deploy bundle in `.cognite-bundles/` is older than the current HEAD commit. The certification reviewer compares the deployed bundle against the submitted source — if you committed changes after your last deploy, they won't match. Re-run `npx @cognite/cli apps deploy` before submitting. (`npm run build` alone does not refresh the bundle — only `apps deploy` does.)"
 
+## Step 5b — Verify render proof
+
+Read the `### Render proof` block in the latest committed `code-review-report.md`. If the code review row is `SKIPPED` (Step 0 stub), mark this row `SKIPPED` too.
+
+- Missing block or `Bundle check: FAIL` → **FAIL**: *"The shipped bundle did not pass the render check. Fix it and re-run `flows-code-review` (see `render-smoke-test`)."*
+- `Risky bump: yes` → require a non-empty `.mp4`, `.mov` or `.webm` in `dist/submit/`:
+
+```bash
+find dist/submit -maxdepth 1 -type f \( -name '*.mp4' -o -name '*.mov' -o -name '*.webm' \) -size +0 | head -1
+```
+
+  None found → **FAIL**: *"Dependencies or the build toolchain changed since the last review. Record a 30–60 s screen recording of the built bundle loading and the main journey, and save it in `dist/submit/`."*
+- `Risky bump: no` → **PASS**, recording not required.
+
 ## Step 6 — Print pass/fail table
 
 Print a table like:
@@ -202,6 +217,7 @@ Code review Must Fix open: 0           PASS / FAIL / SKIPPED — reason
 Design review average ≥ 3.8            PASS / FAIL / SKIPPED — reason
 Certification artifacts committed      PASS / FAIL — reason
 Deploy bundle present and current      PASS / WARN — reason
+Render proof (+ recording if risky)    PASS / FAIL — reason
 ```
 
 `SKIPPED` only applies to the code and design review rows and only when Step 0's air-hatch wrote a stub. Render SKIPPED rows with the note `SKIPPED — user opted out via Step 0 air-hatch`.

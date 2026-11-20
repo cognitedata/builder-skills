@@ -272,7 +272,25 @@ Re-run the metadata lookups after all fixes have been applied to capture the pos
 | Package | Risk | Details |
 | ------- | ---- | ------- |
 | (none found) | — | — |
+
+### Render proof
+
+- Risky bump: yes | no — <what changed>
+- Bundle check: PASS | FAIL — <failing check>
+- Screenshot: render-proof/screenshot.png
+- Screen recording: <path> | not required | MISSING
 ```
+
+---
+
+## Step 7b — Prove the bundle still renders
+
+Package fixes are the most common way to break boot (bundler, React, SDK or plugin changes). Load `skills/render-smoke-test/SKILL.md` and follow it:
+
+1. Decide `RISKY=yes|no` from the `package.json` / `vite.config.*` diff (Step 1 of that skill). Your own fixes in Steps 2–6 count.
+2. Rebuild the deploy bundle (`npx @cognite/cli apps deploy`), then run `node skills/render-smoke-test/check.mjs`. A failing check is a blocker: fix the cause (usually `base`, a plugin, or a major bump) before finishing.
+3. If `RISKY=yes`, record a 30–60 s screen recording of the built bundle and note its path.
+4. Append the `### Render proof` block from that skill to `review-packages.md`.
 
 ---
 

@@ -33,6 +33,7 @@ Four skills drive the Flows app certification flow end to end. Run them in order
 |-------|-------------|
 | **start-flows-app** | Flows custom app ceremony after Fusion Start building / `apps create`: local HTTPS, `token/inspect` + `appHostingAcl`, data-model curiosity (MCP connect via `connect-atlas-mcp`); then App-Brief / deploy / sign / submit |
 | **flows-app-brief** | Certification coach (step 1) — captures app details, persona, problem, and success criteria, writes `App-Brief.md` |
+| **render-smoke-test** | Shared white-page check: runs the shipped bundle in headless Chromium, fails on dev-shell `index.html`, empty `#root` or 404 chunks, and decides when a risky dependency bump needs a screen recording |
 | **flows-review-checks** | Shared technical-review bar (hunts, coverage scope, public criteria). Loaded by `flows-code-review` and by external review skills — do not copy |
 | **flows-code-review** | Local technical review runner (step 3) — loads `flows-review-checks`, writes `reviews/code-review/feedback-round-<N>/` |
 | **flows-design-review** | Manual design quality assessment (step 4) — scores the 10 quality-guidelines questions, writes `reviews/design-review/feedback-round-<N>/design-review-report.md` |
